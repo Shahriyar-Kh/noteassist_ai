@@ -152,11 +152,7 @@ const ResetPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Blobs */}
-      <div className="absolute top-20 left-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-      <div className="absolute top-40 right-10 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-      <div className="absolute -bottom-8 left-40 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+    <div className="min-h-screen bg-white flex items-center justify-center p-4 relative overflow-hidden">
 
       <div className="w-full max-w-md relative z-10">
         <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-gray-100">
@@ -166,7 +162,7 @@ const ResetPasswordPage = () => {
               <div className="p-2 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl">
                 <BookOpen className="w-6 h-6 text-white" />
               </div>
-              <span className="text-2xl font-bold text-gray-900">SK-LearnTrack</span>
+              <span className="text-2xl font-bold text-gray-900">NoteAssist AI</span>
             </div>
 
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Reset Password</h2>

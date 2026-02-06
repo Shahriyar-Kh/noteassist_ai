@@ -24,7 +24,7 @@ const Footer = () => {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <BookOpen className="w-8 h-8 text-primary-400" />
-              <span className="text-xl font-bold">SK-LearnTrack</span>
+              <span className="text-xl font-bold">NoteAssist AI</span>
             </div>
             <p className="text-gray-400 mb-4">
               Your all-in-one platform for mastering any skill with AI-powered tools.
@@ -37,9 +37,9 @@ const Footer = () => {
             <h4 className="font-semibold mb-4 text-white">Modules</h4>
             <ul className="space-y-2 text-gray-400">
               <li>
-                <Link to="/courses" className="hover:text-primary-400 transition-colors flex items-center gap-2">
+                <Link to="/dashboard" className="hover:text-primary-400 transition-colors flex items-center gap-2">
                   <BookOpen className="w-4 h-4" />
-                  Courses
+                  Dashboard
                 </Link>
               </li>
               <li>
@@ -49,15 +49,15 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/roadmap" className="hover:text-primary-400 transition-colors flex items-center gap-2">
-                  <BookOpen className="w-4 h-4" />
-                  Roadmapper
+                <Link to="/ai-tools" className="hover:text-primary-400 transition-colors flex items-center gap-2">
+                  <Brain className="w-4 h-4" />
+                  AI Tools
                 </Link>
               </li>
               <li>
-                <Link to="/analytics" className="hover:text-primary-400 transition-colors flex items-center gap-2">
-                  <Brain className="w-4 h-4" />
-                  Analytics
+                <Link to="/profile" className="hover:text-primary-400 transition-colors flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  Profile
                 </Link>
               </li>
             </ul>
@@ -98,7 +98,7 @@ const Footer = () => {
                   shahriyarkhanpk1@gmail.com
                 </a>
               </li>
-              <li>Support: support@sklearntrack.com</li>
+              <li>Support: support@noteassist-ai.com</li>
               <li>Islamabad, Pakistan</li>
             </ul>
           </div>
@@ -108,7 +108,7 @@ const Footer = () => {
         <div className="pt-8 border-t border-gray-800">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-gray-400 text-center md:text-left">
-              &copy; {currentYear} SK-LearnTrack. All rights reserved.
+              &copy; {currentYear} NoteAssist AI. All rights reserved.
             </p>
             
             <div className="flex items-center gap-6">

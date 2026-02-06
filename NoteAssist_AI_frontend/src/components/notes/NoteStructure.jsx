@@ -1,23 +1,12 @@
 import { useState } from 'react';
 import { 
-  ChevronDown, ChevronRight, Plus, Edit, Trash2, 
+  Plus, Edit, Trash2, 
   FileText, Code, Link, Wand2, Save, X
 } from 'lucide-react';
 
 const NoteStructure = ({ note, onUpdate }) => {
-  const [expandedChapters, setExpandedChapters] = useState(new Set());
   const [editingItem, setEditingItem] = useState(null);
   const [editValue, setEditValue] = useState('');
-
-  const toggleChapter = (chapterId) => {
-    const newExpanded = new Set(expandedChapters);
-    if (newExpanded.has(chapterId)) {
-      newExpanded.delete(chapterId);
-    } else {
-      newExpanded.add(chapterId);
-    }
-    setExpandedChapters(newExpanded);
-  };
 
   const startEdit = (type, id, currentValue) => {
     setEditingItem({ type, id });
@@ -53,19 +42,23 @@ const NoteStructure = ({ note, onUpdate }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">Note Structure</h3>
+    <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-5">
+      {/* Header */}
+      <div className="mb-6">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+          📚 Note Structure
+        </h3>
         <button 
           onClick={() => onUpdate('add-chapter')}
-          className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm transition-all duration-200 transform hover:scale-105 shadow-sm hover:shadow-md"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 text-sm font-semibold transition-all duration-200 transform hover:scale-[1.02] shadow-md hover:shadow-lg"
         >
-          <Plus size={16} />
-          Add Chapter
+          <Plus size={18} />
+          Add New Chapter
         </button>
       </div>
 
-      <div className="space-y-1">
+      {/* Chapters List */}
+      <div className="space-y-2">
         {note.chapters?.map((chapter, index) => (
           <div 
             key={chapter.id}
@@ -74,208 +67,196 @@ const NoteStructure = ({ note, onUpdate }) => {
               animation: `fadeIn 0.3s ease-out ${index * 0.1}s both`
             }}
           >
-            {/* Chapter Row */}
-            <div className="group flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 hover:shadow-sm">
-              <button
-                onClick={() => toggleChapter(chapter.id)}
-                className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-transform duration-200 hover:scale-110"
-              >
-                {expandedChapters.has(chapter.id) ? (
-                  <ChevronDown size={16} />
-                ) : (
-                  <ChevronRight size={16} />
-                )}
-              </button>
+            {/* Chapter Header */}
+            <div className="group border dark:border-gray-700 rounded-lg overflow-hidden transition-all duration-200">
+              <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-gray-600 dark:hover:to-gray-600 transition-all duration-200">
+                
+                <FileText size={18} className="text-blue-600 dark:text-blue-400" />
 
-              <FileText size={16} className="text-blue-600" />
-
-              {editingItem?.type === 'chapter' && editingItem?.id === chapter.id ? (
-                <div className="flex-1 flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    onKeyDown={handleKeyPress}
-                    className="flex-1 px-2 py-1 text-sm border dark:border-gray-600 rounded bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500"
-                    autoFocus
-                  />
-                  <button
-                    onClick={saveEdit}
-                    className="p-1 text-green-600 hover:bg-green-50 rounded transition"
-                    title="Save"
-                  >
-                    <Save size={14} />
-                  </button>
-                  <button
-                    onClick={cancelEdit}
-                    className="p-1 text-gray-600 hover:bg-gray-100 rounded transition"
-                    title="Cancel"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <span className="flex-1 font-medium text-sm">
-                    {chapter.title}
-                  </span>
-                  <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
+                {/* Chapter Title or Edit Input */}
+                {editingItem?.type === 'chapter' && editingItem?.id === chapter.id ? (
+                  <div className="flex-1 flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onKeyDown={handleKeyPress}
+                      className="flex-1 px-3 py-1.5 text-sm border-2 border-blue-500 dark:border-blue-400 rounded bg-white dark:bg-gray-900 dark:text-white focus:outline-none"
+                      autoFocus
+                    />
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        startEdit('chapter', chapter.id, chapter.title);
-                      }}
-                      className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition"
-                      title="Edit Chapter"
+                      onClick={saveEdit}
+                      className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900 rounded transition"
+                      title="Save"
                     >
-                      <Edit size={14} />
+                      <Save size={16} />
                     </button>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onUpdate('delete-chapter', chapter.id);
-                      }}
-                      className="p-1 hover:bg-red-100 text-red-600 rounded transition"
-                      title="Delete Chapter"
+                    <button
+                      onClick={cancelEdit}
+                      className="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition"
+                      title="Cancel"
                     >
-                      <Trash2 size={14} />
-                    </button>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onUpdate('add-topic', chapter.id);
-                      }}
-                      className="p-1 hover:bg-blue-100 text-blue-600 rounded transition"
-                      title="Add Topic"
-                    >
-                      <Plus size={14} />
+                      <X size={16} />
                     </button>
                   </div>
-                </>
-              )}
+                ) : (
+                  <>
+                    <span className="flex-1 font-semibold text-sm text-gray-800 dark:text-gray-100">
+                      {chapter.title}
+                    </span>
+                    <span className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded">
+                      {chapter.topics?.length || 0} topics
+                    </span>
 
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {chapter.topics?.length || 0} topics
-              </span>
-            </div>
-
-            {/* Topics (when expanded) */}
-            {expandedChapters.has(chapter.id) && (
-              <div className="ml-8 mt-1 space-y-1 transition-all duration-300">
-                {chapter.topics?.map((topic, topicIndex) => (
-                  <div
-                    key={topic.id}
-                    className="group flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all duration-200 transform hover:translate-x-1"
-                    onClick={() => onUpdate('select-topic', topic.id)}
-                    style={{
-                      animation: `fadeIn 0.2s ease-out ${topicIndex * 0.05}s both`
-                    }}
-                  >
-                    <div className="w-6" />
-
-                    {editingItem?.type === 'topic' && editingItem?.id === topic.id ? (
-                      <div className="flex-1 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="text"
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          onKeyDown={handleKeyPress}
-                          className="flex-1 px-2 py-1 text-sm border dark:border-gray-600 rounded bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500"
-                          autoFocus
-                        />
-                        <button
-                          onClick={saveEdit}
-                          className="p-1 text-green-600 hover:bg-green-50 rounded transition"
-                          title="Save"
-                        >
-                          <Save size={14} />
-                        </button>
-                        <button
-                          onClick={cancelEdit}
-                          className="p-1 text-gray-600 hover:bg-gray-100 rounded transition"
-                          title="Cancel"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <span className="flex-1 text-sm">{topic.name}</span>
-
-                        {/* Topic indicators */}
-                        <div className="flex items-center gap-1">
-                          {topic.has_explanation && (
-                            <span className="p-1 bg-green-100 text-green-700 rounded" title="Has explanation">
-                              <FileText size={12} />
-                            </span>
-                          )}
-                          {topic.has_code && (
-                            <span className="p-1 bg-purple-100 text-purple-700 rounded" title="Has code">
-                              <Code size={12} />
-                            </span>
-                          )}
-                          {topic.has_source && (
-                            <span className="p-1 bg-blue-100 text-blue-700 rounded" title="Has source">
-                              <Link size={12} />
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              startEdit('topic', topic.id, topic.name);
-                            }}
-                            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition"
-                            title="Edit Topic"
-                          >
-                            <Edit size={14} />
-                          </button>
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onUpdate('ai-topic', topic.id);
-                            }}
-                            className="p-1 hover:bg-purple-100 text-purple-600 rounded transition" 
-                            title="AI Actions"
-                          >
-                            <Wand2 size={14} />
-                          </button>
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onUpdate('delete-topic', topic.id);
-                            }}
-                            className="p-1 hover:bg-red-100 text-red-600 rounded transition"
-                            title="Delete Topic"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ))}
-
-                {/* Add Topic Button */}
-                <button 
-                  onClick={() => onUpdate('add-topic', chapter.id)}
-                  className="ml-6 flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg w-full transition-all duration-200 transform hover:scale-[1.02]"
-                >
-                  <Plus size={14} />
-                  Add Topic
-                </button>
+                    {/* Chapter Action Buttons */}
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startEdit('chapter', chapter.id, chapter.title);
+                        }}
+                        className="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-blue-100 dark:hover:bg-blue-900 hover:text-blue-600 dark:hover:text-blue-400 rounded transition"
+                        title="Edit Chapter"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onUpdate('delete-chapter', chapter.id);
+                        }}
+                        className="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900 hover:text-red-600 dark:hover:text-red-400 rounded transition"
+                        title="Delete Chapter"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
-            )}
+
+              {/* Topics List - Always Visible */}
+              <div className="p-3 space-y-2 bg-gray-50 dark:bg-gray-800 border-t dark:border-gray-700">
+                  {chapter.topics?.map((topic, topicIndex) => (
+                    <div
+                      key={topic.id}
+                      className="group flex items-center gap-2 p-3 bg-white dark:bg-gray-700 border dark:border-gray-600 rounded-lg hover:shadow-md dark:hover:bg-gray-600 transition-all duration-200 cursor-pointer"
+                      onClick={() => onUpdate('select-topic', topic.id)}
+                      style={{
+                        animation: `fadeIn 0.2s ease-out ${topicIndex * 0.05}s both`
+                      }}
+                    >
+                      <div className="text-lg">📄</div>
+
+                      {/* Topic Title or Edit Input */}
+                      {editingItem?.type === 'topic' && editingItem?.id === topic.id ? (
+                        <div className="flex-1 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="text"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={handleKeyPress}
+                            className="flex-1 px-3 py-1.5 text-sm border-2 border-blue-500 dark:border-blue-400 rounded bg-white dark:bg-gray-900 dark:text-white focus:outline-none"
+                            autoFocus
+                          />
+                          <button
+                            onClick={saveEdit}
+                            className="p-1 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900 rounded transition"
+                            title="Save"
+                          >
+                            <Save size={16} />
+                          </button>
+                          <button
+                            onClick={cancelEdit}
+                            className="p-1 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition"
+                            title="Cancel"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="flex-1 text-sm font-medium text-gray-800 dark:text-gray-100">
+                            {topic.name}
+                          </span>
+
+                          {/* Topic Indicators */}
+                          <div className="flex items-center gap-1.5">
+                            {topic.has_explanation && (
+                              <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded text-xs font-medium flex items-center gap-1" title="Has explanation">
+                                <FileText size={12} /> Content
+                              </span>
+                            )}
+                            {topic.has_code && (
+                              <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded text-xs font-medium flex items-center gap-1" title="Has code">
+                                <Code size={12} /> Code
+                              </span>
+                            )}
+                            {topic.has_source && (
+                              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-xs font-medium flex items-center gap-1" title="Has source">
+                                <Link size={12} /> Link
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Topic Action Buttons */}
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                startEdit('topic', topic.id, topic.name);
+                              }}
+                              className="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-blue-100 dark:hover:bg-blue-900 hover:text-blue-600 dark:hover:text-blue-400 rounded transition"
+                              title="Edit Topic"
+                            >
+                              <Edit size={14} />
+                            </button>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onUpdate('ai-topic', topic.id);
+                              }}
+                              className="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-purple-100 dark:hover:bg-purple-900 hover:text-purple-600 dark:hover:text-purple-400 rounded transition" 
+                              title="AI Actions"
+                            >
+                              <Wand2 size={14} />
+                            </button>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onUpdate('delete-topic', topic.id);
+                              }}
+                              className="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900 hover:text-red-600 dark:hover:text-red-400 rounded transition"
+                              title="Delete Topic"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Add Topic Button - Always Visible */}
+                  <button 
+                    onClick={() => onUpdate('add-topic', chapter.id)}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900 hover:bg-blue-100 dark:hover:bg-blue-800 rounded-lg border-2 border-dashed border-blue-300 dark:border-blue-600 transition-all duration-200 transform hover:scale-[1.01]"
+                  >
+                    <Plus size={16} />
+                    Add Topic to "{chapter.title}"
+                  </button>
+              </div>
+            </div>
           </div>
         ))}
       </div>
 
+      {/* Empty State */}
       {(!note.chapters || note.chapters.length === 0) && (
-        <div className="text-center py-8 text-gray-500">
-          <FileText size={48} className="mx-auto mb-3 opacity-50" />
-          <p className="text-sm">No chapters yet. Add your first chapter to get started.</p>
+        <div className="text-center py-12">
+          <div className="text-6xl mb-4">📚</div>
+          <p className="text-gray-600 dark:text-gray-400 font-medium mb-2">No chapters yet</p>
+          <p className="text-sm text-gray-500 dark:text-gray-500">Click "Add New Chapter" to get started creating your notes structure</p>
         </div>
       )}
     </div>

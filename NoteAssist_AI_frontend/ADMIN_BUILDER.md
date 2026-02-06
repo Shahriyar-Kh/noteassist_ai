@@ -1,4 +1,4 @@
-# 🎓 SK-LearnTrack Admin Course Builder
+# 🎓 NoteAssist AI Admin Builder
 
 ## Beautiful, Advanced Course Management Interface
 
@@ -384,9 +384,9 @@ def hello():
 
 ## 📖 Additional Resources
 
-- [Backend API Documentation](../sklearntrack_backend/courses/AI_SERVICE.md)
-- [Model Structure](../sklearntrack_backend/courses/models.py)
-- [API Views](../sklearntrack_backend/courses/views_admin.py)
+- [Backend API Documentation](../NoteAssist_AI_Backend/notes/AI_SERVICE.md)
+- [Model Structure](../NoteAssist_AI_Backend/notes/models.py)
+- [API Views](../NoteAssist_AI_Backend/notes/views.py)
 
 ---
 
@@ -403,4 +403,4 @@ To improve the admin builder:
 
 ## 📄 License
 
-Part of SK-LearnTrack project. All rights reserved.
+Part of NoteAssist AI project. All rights reserved.

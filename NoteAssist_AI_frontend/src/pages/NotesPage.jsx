@@ -17,7 +17,6 @@ import NoteStructure from '@/components/notes/NoteStructure';
 import TopicEditor from '@/components/notes/TopicEditor';
 import ExportButtons from '@/components/notes/ExportButtons';
 import DailyReportModal from '@/components/notes/DailyReportModal';
-import AIToolsSidebar from '@/components/notes/AIToolsSidebar';
 
 const NotesPage = () => {
   // State from old functional file
@@ -34,7 +33,6 @@ const NotesPage = () => {
   const [showNewChapterModal, setShowNewChapterModal] = useState(false);
   const [showTopicEditor, setShowTopicEditor] = useState(false);
   const [showDailyReport, setShowDailyReport] = useState(false);
-  const [showAITools, setShowAITools] = useState(false);
   
   // Delete confirmation (from old file)
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -332,12 +330,12 @@ const NotesPage = () => {
   return (
     <>
       <Helmet>
-        <title>Study Notes - SK LearnTrack | Organize Your Learning</title>
+        <title>Study Notes - NoteAssist AI | Organize Your Learning</title>
         <meta name="description" content="Create, organize, and manage your study notes with rich text formatting, AI assistance, and powerful export features." />
       </Helmet>
 
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-blue-900/10 dark:to-indigo-900/10">
-        <Navbar />
+        <Navbar hideLinks={['notes']} />
         
         {/* Toast Notifications */}
         {toast && (
@@ -364,7 +362,7 @@ const NotesPage = () => {
               <div className="space-y-2">
                 <h1 className="text-4xl lg:text-5xl font-black tracking-tight flex items-center gap-4">
                   <BookOpen className="w-10 h-10 lg:w-12 lg:h-12" />
-                  Study Notes
+                  Full Study Notes
                 </h1>
                 <p className="text-blue-100 text-lg font-medium">
                   Organize your learning with rich text formatting & AI assistance
@@ -377,13 +375,6 @@ const NotesPage = () => {
                 >
                   <BarChart3 className="w-5 h-5 group-hover:rotate-12 transition-transform" />
                   <span className="font-semibold">Daily Report</span>
-                </button>
-                <button
-                  onClick={() => setShowAITools(true)}
-                  className="group flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-2xl"
-                >
-                  <Sparkles className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" />
-                  <span className="font-semibold">AI Tools</span>
                 </button>
                 <button
                   onClick={() => setShowNewNoteModal(true)}
@@ -578,7 +569,6 @@ const NotesPage = () => {
                   <NoteStructure 
                     note={selectedNote} 
                     onUpdate={handleStructureUpdate}
-                    onOpenAITools={() => setShowAITools(true)}
                   />
                 </div>
               </div>
@@ -807,10 +797,6 @@ const NotesPage = () => {
                   setSelectedTopic(null);
                 }}
                 onAIAction={handleAIAction}
-                onOpenAITools={() => {
-                  setShowAITools(true);
-                  setShowTopicEditor(false);
-                }}
               />
             </div>
           </div>
@@ -849,12 +835,6 @@ const NotesPage = () => {
         )}
 
         {/* Sidebar Modals */}
-        <AIToolsSidebar 
-          isOpen={showAITools}
-          onClose={() => setShowAITools(false)}
-          noteService={noteService}
-        />
-        
         <DailyReportModal 
           isOpen={showDailyReport} 
           onClose={() => setShowDailyReport(false)}

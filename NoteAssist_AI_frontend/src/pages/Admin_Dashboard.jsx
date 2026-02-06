@@ -10,27 +10,27 @@ const AdminDashboard = () => {
 
   const [stats] = useState({
     totalUsers: 15234,
-    totalCourses: 342,
+    totalTopics: 342,
     totalNotes: 52341,
     activeUsers: 8456,
     newUsersToday: 234,
-    activeCourses: 89,
+    activeNotes: 89,
     pendingReviews: 12,
     systemHealth: 98,
   });
 
   const [recentUsers] = useState([
-    { id: 1, name: 'John Doe', email: 'john@example.com', joined: '2 hours ago', status: 'active', courses: 5 },
-    { id: 2, name: 'Jane Smith', email: 'jane@example.com', joined: '5 hours ago', status: 'active', courses: 3 },
-    { id: 3, name: 'Mike Johnson', email: 'mike@example.com', joined: '1 day ago', status: 'inactive', courses: 2 },
-    { id: 4, name: 'Sarah Williams', email: 'sarah@example.com', joined: '2 days ago', status: 'active', courses: 7 },
+    { id: 1, name: 'John Doe', email: 'john@example.com', joined: '2 hours ago', status: 'active', notes: 5 },
+    { id: 2, name: 'Jane Smith', email: 'jane@example.com', joined: '5 hours ago', status: 'active', notes: 3 },
+    { id: 3, name: 'Mike Johnson', email: 'mike@example.com', joined: '1 day ago', status: 'inactive', notes: 2 },
+    { id: 4, name: 'Sarah Williams', email: 'sarah@example.com', joined: '2 days ago', status: 'active', notes: 7 },
   ]);
 
-  const [topCourses] = useState([
-    { id: 1, title: 'Machine Learning Fundamentals', students: 1234, completion: 78, rating: 4.8 },
-    { id: 2, title: 'Web Development Bootcamp', students: 2341, completion: 82, rating: 4.9 },
-    { id: 3, title: 'Data Science with Python', students: 1567, completion: 71, rating: 4.7 },
-    { id: 4, title: 'Mobile App Development', students: 987, completion: 65, rating: 4.6 },
+  const [topNotes] = useState([
+    { id: 1, title: 'Binary Search Explained', students: 1234, completion: 78, rating: 4.8 },
+    { id: 2, title: 'React Hooks Cheatsheet', students: 2341, completion: 82, rating: 4.9 },
+    { id: 3, title: 'Data Structures Overview', students: 1567, completion: 71, rating: 4.7 },
+    { id: 4, title: 'SQL Query Patterns', students: 987, completion: 65, rating: 4.6 },
   ]);
 
   const [announcements] = useState([
@@ -42,7 +42,7 @@ const AdminDashboard = () => {
   const navigationItems = [
     { icon: Activity, label: 'Dashboard', active: true },
     { icon: Users, label: 'User Management', badge: '15.2K' },
-    { icon: BookOpen, label: 'Course Management', badge: '342' },
+    { icon: BookOpen, label: 'Notes Management', badge: '342' },
     { icon: FileText, label: 'Content Review', badge: 12 },
     { icon: MessageSquare, label: 'Announcements' },
     { icon: BarChart3, label: 'Analytics' },
@@ -73,7 +73,7 @@ const AdminDashboard = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search users, courses, content..."
+            placeholder="Search users, notes, content..."
             className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
@@ -116,9 +116,9 @@ const AdminDashboard = () => {
               +8.2%
             </span>
           </div>
-          <h3 className="text-gray-600 text-sm mb-1">Total Courses</h3>
-          <p className="text-3xl font-bold text-gray-900">{stats.totalCourses}</p>
-          <p className="text-xs text-gray-500 mt-2">{stats.activeCourses} active</p>
+          <h3 className="text-gray-600 text-sm mb-1">Total Topics</h3>
+          <p className="text-3xl font-bold text-gray-900">{stats.totalTopics}</p>
+          <p className="text-xs text-gray-500 mt-2">{stats.activeNotes} active notes</p>
         </div>
 
         <div className="bg-white rounded-2xl p-6 border border-gray-200 hover:shadow-lg transition-shadow">
@@ -170,7 +170,7 @@ const AdminDashboard = () => {
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">User</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Joined</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Courses</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Notes</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Actions</th>
                   </tr>
@@ -185,7 +185,7 @@ const AdminDashboard = () => {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-sm text-gray-600">{user.joined}</td>
-                      <td className="py-3 px-4 text-sm font-medium text-gray-900">{user.courses}</td>
+                      <td className="py-3 px-4 text-sm font-medium text-gray-900">{user.notes}</td>
                       <td className="py-3 px-4">
                         <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(user.status)}`}>
                           <div className={`w-1.5 h-1.5 rounded-full ${user.status === 'active' ? 'bg-green-600' : 'bg-gray-400'}`} />
@@ -306,19 +306,19 @@ const AdminDashboard = () => {
                 </button>
                 <button className="w-full flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors">
                   <BookPlus className="w-4 h-4" />
-                  <span className="text-sm font-medium">Create Course</span>
+                  <span className="text-sm font-medium">Create Note</span>
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Top Courses */}
+        {/* Top Notes */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Top Performing Courses</h2>
-              <p className="text-sm text-gray-600 mt-1">Most popular courses by enrollment</p>
+              <h2 className="text-xl font-bold text-gray-900">Top Performing Notes</h2>
+              <p className="text-sm text-gray-600 mt-1">Most popular notes by engagement</p>
             </div>
             <button className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
               <Download className="w-4 h-4 text-gray-600" />
@@ -327,28 +327,28 @@ const AdminDashboard = () => {
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
-            {topCourses.map((course) => (
-              <div key={course.id} className="p-4 border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all">
+            {topNotes.map((note) => (
+              <div key={note.id} className="p-4 border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all">
                 <div className="flex items-start justify-between mb-3">
-                  <h3 className="font-semibold text-gray-900 flex-1">{course.title}</h3>
+                  <h3 className="font-semibold text-gray-900 flex-1">{note.title}</h3>
                   <div className="flex items-center gap-1 text-yellow-500">
                     <Award className="w-4 h-4" />
-                    <span className="text-sm font-bold">{course.rating}</span>
+                    <span className="text-sm font-bold">{note.rating}</span>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-3 mb-3">
                   <div>
-                    <p className="text-xs text-gray-600 mb-1">Students</p>
-                    <p className="text-lg font-bold text-gray-900">{course.students}</p>
+                    <p className="text-xs text-gray-600 mb-1">Readers</p>
+                    <p className="text-lg font-bold text-gray-900">{note.students}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-600 mb-1">Completion</p>
-                    <p className="text-lg font-bold text-gray-900">{course.completion}%</p>
+                    <p className="text-lg font-bold text-gray-900">{note.completion}%</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-600 mb-1">Rating</p>
-                    <p className="text-lg font-bold text-gray-900">{course.rating}/5</p>
+                    <p className="text-lg font-bold text-gray-900">{note.rating}/5</p>
                   </div>
                 </div>
 

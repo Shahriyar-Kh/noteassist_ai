@@ -107,7 +107,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.isAuthenticated = false;
         state.user = null;
-        state.redirect = '/login';
+        state.redirect = '/home';
       })
       // Get current user
       .addCase(getCurrentUser.fulfilled, (state, action) => {

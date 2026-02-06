@@ -7,10 +7,12 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Sparkles, Wand2, FileText, Code, History, Download, Trash2,
   Clock, CheckCircle, ArrowRight, Zap, Brain, Loader2, AlertCircle,
-  Filter, Search, Tag, Calendar, TrendingUp, Award, Target
+  Filter, Search, Tag, Calendar, TrendingUp, Award, Target, Home, LayoutDashboard
 } from 'lucide-react';
 import { noteService } from '@/services/note.service';
 import { toast } from 'react-hot-toast';
+import Navbar from '@/components/layout/Navbar';
+import Footer from '@/components/layout/Footer';
 
 const AIToolsPage = () => {
   const navigate = useNavigate();
@@ -158,9 +160,11 @@ const AIToolsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex flex-col">
+      <Navbar hideLinks={['ai-tools']} />
+
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-30">
+      <header className="bg-white/80 backdrop-blur-xl border-b border-gray-200 sticky top-16 z-30">
         <div className="container mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <div>
@@ -179,16 +183,6 @@ const AIToolsPage = () => {
 
             <div className="flex items-center gap-3">
               <Link
-                to="?tab=overview"
-                className={`px-4 py-2 rounded-xl font-semibold transition-all ${
-                  activeTab === 'overview'
-                    ? 'bg-gradient-to-r from-violet-600 to-blue-600 text-white shadow-lg'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                Tools
-              </Link>
-              <Link
                 to="?tab=history"
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all ${
                   activeTab === 'history'
@@ -205,8 +199,8 @@ const AIToolsPage = () => {
       </header>
 
       <div className="container mx-auto px-6 py-8">
-        {/* Overview Tab */}
-        {activeTab === 'overview' && (
+        {/* AI Tools Overview */}
+        {activeTab !== 'history' && (
           <div className="space-y-8">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -435,6 +429,8 @@ const AIToolsPage = () => {
           </div>
         )}
       </div>
+
+      <Footer />
     </div>
   );
 };

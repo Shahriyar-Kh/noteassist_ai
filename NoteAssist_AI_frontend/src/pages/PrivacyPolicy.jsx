@@ -55,7 +55,7 @@ const PrivacyPolicy = () => {
             <section className="bg-white rounded-2xl shadow-lg p-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Introduction</h2>
               <p className="text-gray-700 mb-4">
-                Welcome to Sk-LearnTrack ("we," "our," or "us"). We are committed to protecting your privacy. 
+                Welcome to NoteAssist AI ("we," "our," or "us"). We are committed to protecting your privacy. 
                 This Privacy Policy explains how we collect, use, disclose, and safeguard your information when 
                 you use our online learning and note management platform.
               </p>
@@ -80,7 +80,7 @@ const PrivacyPolicy = () => {
                   <ul className="text-gray-700 list-disc pl-5 space-y-1">
                     <li>Access to create and manage files in your Google Drive (scope: drive.file)</li>
                     <li>Files you choose to upload or create through our platform</li>
-                    <li>We only access files created or opened by Sk-LearnTrack</li>
+                    <li>We only access files created or opened by NoteAssist AI</li>
                   </ul>
                 </div>
 
@@ -108,7 +108,7 @@ const PrivacyPolicy = () => {
                       Our platform uses Google Drive API with the following limitations:
                     </p>
                     <ul className="text-yellow-700 list-disc pl-5 mt-2 space-y-1">
-                      <li><strong>Scope: drive.file</strong> - access only to files created by Sk-LearnTrack</li>
+                      <li><strong>Scope: drive.file</strong> - access only to files created by NoteAssist AI</li>
                       <li>We <strong>cannot access</strong>, view, or modify other files in your Google Drive</li>
                       <li>All uploaded notes remain in your personal Google Drive account</li>
                       <li>You can <strong>revoke access anytime</strong> via your Google Account settings</li>
@@ -231,12 +231,12 @@ const PrivacyPolicy = () => {
                   <div className="flex items-center gap-3">
                     <FileText className="w-5 h-5 text-primary-600" />
                     <a 
-                      href="https://sk-learntrack.vercel.app" 
+                      href="https://noteassist-ai.vercel.app" 
                       className="text-primary-600 hover:text-primary-700"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      https://sk-learntrack.vercel.app
+                      https://noteassist-ai.vercel.app
                     </a>
                   </div>
                 </div>

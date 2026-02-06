@@ -164,7 +164,7 @@ const HomePage = () => {
         </script>
       </Helmet>
 
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+      <div className="min-h-screen bg-white">
         {/* Navigation */}
         <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-xl z-50 border-b border-gray-200/50 shadow-sm">
           <div className="container mx-auto px-4 py-4">
@@ -177,11 +177,25 @@ const HomePage = () => {
                   </div>
                 </div>
                 <span className="text-2xl font-bold bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-transparent">
-                  StudyNotes AI
+                  NoteAssist AI
                 </span>
               </Link>
 
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-6">
+                <Link 
+                  to="/ai-tools" 
+                  className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-violet-600 font-medium transition-colors"
+                >
+                  <Brain className="w-4 h-4" />
+                  AI Tools
+                </Link>
+                <Link 
+                  to="/notes" 
+                  className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-violet-600 font-medium transition-colors"
+                >
+                  <FileText className="w-4 h-4" />
+                  Full Notes
+                </Link>
                 <Link 
                   to="/login" 
                   className="px-5 py-2.5 text-gray-700 hover:text-violet-600 font-medium transition-colors"
@@ -205,12 +219,6 @@ const HomePage = () => {
 
         {/* Hero Section */}
         <section className="relative pt-32 pb-20 overflow-hidden">
-          {/* Animated Background */}
-          <div className="absolute inset-0 z-0">
-            <div className="absolute top-20 left-10 w-96 h-96 bg-violet-400/30 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
-            <div className="absolute top-40 right-10 w-96 h-96 bg-blue-400/30 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
-            <div className="absolute -bottom-8 left-40 w-96 h-96 bg-cyan-400/30 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000"></div>
-          </div>
 
           <div className="container relative z-10 mx-auto px-4">
             <div className="max-w-5xl mx-auto text-center">
@@ -508,7 +516,7 @@ const HomePage = () => {
         </section>
 
         {/* CTA Section */}
-        <section className="py-20 bg-gradient-to-br from-violet-600 via-blue-600 to-cyan-600 text-white relative overflow-hidden">
+        <section className="py-20 bg-white text-gray-900 relative overflow-hidden">
           {/* Decorative Elements */}
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
@@ -571,18 +579,6 @@ const HomePage = () => {
           66% {
             transform: translate(-20px, 20px) scale(0.9);
           }
-        }
-
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-
-        .animation-delay-4000 {
-          animation-delay: 4s;
         }
       `}</style>
     </>

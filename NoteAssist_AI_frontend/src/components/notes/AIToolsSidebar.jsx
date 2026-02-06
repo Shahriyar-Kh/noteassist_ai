@@ -418,7 +418,7 @@ const AIToolsSidebar = ({ isOpen, onClose, noteService }) => {
                   <button
                     onClick={() => exportPDF(result.historyId)}
                     className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition"
-                    title="Export PDF"
+                    title="Download"
                   >
                     <Download size={16} />
                   </button>

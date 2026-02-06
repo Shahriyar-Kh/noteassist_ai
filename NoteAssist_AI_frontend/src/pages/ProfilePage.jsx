@@ -29,13 +29,13 @@ const ProfilePage = () => {
   const [notifications, setNotifications] = useState({
     email_notifications: true,
     weekly_summary: true,
-    course_reminders: true,
+    study_reminders: true,
   });
 
   const [stats, setStats] = useState({
     totalStudyDays: 0,
     totalNotes: 0,
-    activeCourses: 0,
+    activeNotes: 0,
     lastLogin: null,
     accountCreated: null,
     emailVerified: false,
@@ -89,7 +89,7 @@ const ProfilePage = () => {
       setStats({
         totalStudyDays: response.totalStudyDays || 0,
         totalNotes: response.totalNotes || 0,
-        activeCourses: response.activeCourses || 0,
+        activeNotes: response.activeNotes || 0,
         lastLogin: response.lastLogin || null,
         accountCreated: response.accountCreated || null,
         emailVerified: response.emailVerified || false,
@@ -107,7 +107,7 @@ const ProfilePage = () => {
       setNotifications({
         email_notifications: response.email_notifications !== undefined ? response.email_notifications : true,
         weekly_summary: response.weekly_summary !== undefined ? response.weekly_summary : true,
-        course_reminders: response.course_reminders !== undefined ? response.course_reminders : true,
+        study_reminders: response.study_reminders !== undefined ? response.study_reminders : true,
       });
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -392,8 +392,8 @@ const ProfilePage = () => {
                   <span className="font-bold text-gray-900">{stats.totalNotes}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Active Courses</span>
-                  <span className="font-bold text-gray-900">{stats.activeCourses}</span>
+                  <span className="text-sm text-gray-600">Active Notes</span>
+                  <span className="font-bold text-gray-900">{stats.activeNotes}</span>
                 </div>
               </div>
             </div>
@@ -658,7 +658,7 @@ const ProfilePage = () => {
                           <p className="text-sm text-gray-600 mt-1">
                             {key === 'email_notifications' && 'Receive email notifications for important updates'}
                             {key === 'weekly_summary' && 'Get a weekly summary of your learning progress'}
-                            {key === 'course_reminders' && 'Receive reminders about your active courses'}
+                            {key === 'study_reminders' && 'Receive reminders about your active notes'}
                           </p>
                         </div>
                         <button
@@ -765,10 +765,10 @@ const ProfilePage = () => {
 
                     <div className="p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-green-600 font-medium">Active Courses</span>
+                        <span className="text-sm text-green-600 font-medium">Active Notes</span>
                         <BookOpen className="w-5 h-5 text-green-600" />
                       </div>
-                      <div className="text-3xl font-bold text-green-900">{stats.activeCourses}</div>
+                      <div className="text-3xl font-bold text-green-900">{stats.activeNotes}</div>
                     </div>
 
                     <div className="p-6 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg">

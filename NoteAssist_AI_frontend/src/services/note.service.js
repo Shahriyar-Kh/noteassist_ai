@@ -288,14 +288,6 @@ performAIAction: async (topicId, actionData) => {
     return response.data;
   },
 
-  // ========================================================================
-  // CODE SNIPPETS (if you have separate snippets)
-  // ========================================================================
-
-  getSnippets: async () => {
-    const response = await api.get(API_ENDPOINTS.SNIPPETS);
-    return response.data;
-  },
 // Update the runCode function
 runCode: async ({ code, language, stdin = "", timeout = 15 }) => {
   try {
@@ -365,75 +357,104 @@ runCode: async ({ code, language, stdin = "", timeout = 15 }) => {
   }
 },
 
-  createSnippet: async (snippetData) => {
-    const response = await api.post(API_ENDPOINTS.SNIPPETS, snippetData);
-    return response.data;
-  },
-
-  updateSnippet: async (id, snippetData) => {
-    const response = await api.patch(API_ENDPOINTS.SNIPPET_DETAIL(id), snippetData);
-    return response.data;
-  },
-
-  deleteSnippet: async (id) => {
-    const response = await api.delete(API_ENDPOINTS.SNIPPET_DETAIL(id));
-    return response.data;
-  },
   // ========================================================================
 // STANDALONE AI TOOLS
 // ========================================================================
 aiToolExplain: async (data) => {
-  const response = await api.post('/api/ai-tools/explain_topic/', data);
-  return response.data;
+  const payload = {
+    topic: data.title,
+    level: data.level || 'beginner',
+    subject_area: data.subject_area || 'programming',
+    save_immediately: false,
+  };
+  const response = await api.post('/api/ai-tools/generate/', payload);
+  const output = response.data?.output;
+  return {
+    generated_content: output?.content || '',
+    title: output?.title || data.title,
+    history_id: output?.id,
+  };
 },
 
 aiToolImprove: async (data) => {
-  const response = await api.post('/api/ai-tools/improve/', data);
-  return response.data;
+  const payload = {
+    content: data.input_content,
+    save_immediately: false,
+  };
+  const response = await api.post('/api/ai-tools/improve/', payload);
+  const output = response.data?.output;
+  return {
+    generated_content: output?.content || '',
+    title: output?.title || data.title,
+    history_id: output?.id,
+  };
 },
 
 aiToolSummarize: async (data) => {
-  const response = await api.post('/api/ai-tools/summarize/', data);
-  return response.data;
+  const payload = {
+    content: data.input_content,
+    max_length: data.max_length || 'medium',
+  };
+  const response = await api.post('/api/ai-tools/summarize/', payload);
+  const output = response.data?.output;
+  return {
+    generated_content: output?.content || '',
+    title: output?.title || data.title,
+    history_id: output?.id,
+  };
 },
 
 aiToolGenerateCode: async (data) => {
-  const response = await api.post('/api/ai-tools/generate_code/', data);
-  return response.data;
+  const payload = {
+    topic: data.title,
+    language: data.language || 'python',
+    level: data.level || 'beginner',
+  };
+  const response = await api.post('/api/ai-tools/code/', payload);
+  const output = response.data?.output;
+  return {
+    generated_content: output?.content || '',
+    title: output?.title || data.title,
+    language: output?.language || data.language,
+    history_id: output?.id,
+  };
 },
 
 
 // Get AI history
 getAIHistory: async (featureType = null) => {
-  const params = featureType ? { feature_type: featureType } : {};
-  const response = await api.get('/api/ai-tools/history/', { params });
+  const params = featureType ? { tool_type: featureType } : {};
+  const response = await api.get('/api/ai-tools/outputs/', { params });
   return response.data;
 },
 
 // Delete AI history item
 deleteAIHistory: async (historyId) => {
-  const response = await api.delete(`/api/ai-tools/${historyId}/delete_history/`);
+  const response = await api.delete(`/api/ai-tools/outputs/${historyId}/`);
   return response.data;
 },
 
 // Save AI history as note
 saveAIHistoryAsNote: async (historyId) => {
-  const response = await api.post(`/api/ai-tools/${historyId}/save_as_note/`);
+  const response = await api.post(`/api/ai-tools/outputs/${historyId}/save/`, {
+    note_title: 'AI Output',
+  });
   return response.data;
 },
 
 // Export AI history as PDF
 exportAIHistoryPDF: async (historyId) => {
-  const response = await api.post(`/api/ai-tools/${historyId}/export_pdf/`, {}, {
-    responseType: 'blob'
+  const response = await api.get(`/api/ai-tools/outputs/${historyId}/download/`, {
+    responseType: 'blob',
+    params: { format: 'md' }
   });
   
   // Create download
-  const blob = new Blob([response.data], { type: 'application/pdf' });
+  const blob = new Blob([response.data], { type: 'text/markdown' });
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `ai-content-${Date.now()}.pdf`;
+  link.download = `ai-content-${Date.now()}.md`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -444,7 +465,7 @@ exportAIHistoryPDF: async (historyId) => {
 
 // Export AI history to Google Drive
 exportAIHistoryToDrive: async (historyId) => {
-  const response = await api.post(`/api/ai-tools/${historyId}/export_to_drive/`);
+  const response = await api.post(`/api/ai-tools/outputs/${historyId}/upload-to-drive/`);
   return response.data;
 },
 };

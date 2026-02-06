@@ -20,10 +20,10 @@ import DashboardPage from '@/pages/User_DashboardPage';
 
 // AI Tools Pages
 import AIToolsPage from './pages/AIToolsPage';
-import GenerateTopicPage from './pages/GenerateTopicPage';
-import ImproveTopicPage from './pages/ImproveTopicPage';
-import SummarizeTopicPage from './pages/SummarizeTopicPage';
-import CodeGeneratorPage from './pages/CodeGeneratorPage';
+import AIToolsGenerateTopicPage from './pages/AIToolsGenerateTopicPage';
+import AIToolsImprovePage from './pages/AIToolsImprovePage';
+import AIToolsSummarizePage from './pages/AIToolsSummarizePage';
+import AIToolsGenerateCodePage from './pages/AIToolsGenerateCodePage';
 import AIHistoryPage from './pages/AIHistoryPage';
 
 // Admin Pages
@@ -60,6 +60,8 @@ function App() {
               <HomePage />
             </GuestRoute>
           } />
+
+          <Route path="/home" element={<HomePage />} />
           
           <Route path="/login" element={
             <GuestRoute>
@@ -113,25 +115,25 @@ function App() {
           
           <Route path="/ai-tools/generate" element={
             <ProtectedRoute>
-              <GenerateTopicPage />
+              <AIToolsGenerateTopicPage />
             </ProtectedRoute>
           } />
           
           <Route path="/ai-tools/improve" element={
             <ProtectedRoute>
-              <ImproveTopicPage />
+              <AIToolsImprovePage />
             </ProtectedRoute>
           } />
           
           <Route path="/ai-tools/summarize" element={
             <ProtectedRoute>
-              <SummarizeTopicPage />
+              <AIToolsSummarizePage />
             </ProtectedRoute>
           } />
           
           <Route path="/ai-tools/code" element={
             <ProtectedRoute>
-              <CodeGeneratorPage />
+              <AIToolsGenerateCodePage />
             </ProtectedRoute>
           } />
           

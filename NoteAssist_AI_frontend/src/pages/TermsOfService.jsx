@@ -42,7 +42,7 @@ const TermsOfService = () => {
                 <div>
                   <h3 className="font-semibold text-blue-900 mb-2">Please Read Carefully</h3>
                   <p className="text-blue-700">
-                    By accessing or using Sk-LearnTrack, you agree to be bound by these Terms of Service. 
+                    By accessing or using NoteAssist AI, you agree to be bound by these Terms of Service. 
                     If you disagree with any part, you may not use our services.
                   </p>
                 </div>
@@ -79,7 +79,7 @@ const TermsOfService = () => {
             <section className="bg-white rounded-2xl shadow-lg p-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Acceptance of Terms</h2>
               <p className="text-gray-700">
-                By accessing or using Sk-LearnTrack ("Service"), you agree to be bound by these Terms of Service. 
+                By accessing or using NoteAssist AI ("Service"), you agree to be bound by these Terms of Service. 
                 If you disagree with any part of these terms, you may not access the Service.
               </p>
             </section>
@@ -88,7 +88,7 @@ const TermsOfService = () => {
             <section className="bg-white rounded-2xl shadow-lg p-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">2. Description of Service</h2>
               <p className="text-gray-700 mb-4">
-                Sk-LearnTrack is an online learning and note management platform that allows users to:
+                NoteAssist AI is an online learning and note management platform that allows users to:
               </p>
               <ul className="text-gray-700 list-disc pl-5 space-y-2">
                 <li>Create and organize study notes</li>
@@ -180,7 +180,7 @@ const TermsOfService = () => {
                     <FileText className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
                     <p className="text-yellow-700">
                       <strong>Limited scope:</strong> We only interact with files you explicitly create or 
-                      upload through Sk-LearnTrack (scope: drive.file)
+                      upload through NoteAssist AI (scope: drive.file)
                     </p>
                   </div>
                   <div className="flex items-start gap-3">
@@ -218,7 +218,7 @@ const TermsOfService = () => {
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
-                      <span>No claim of ownership by Sk-LearnTrack</span>
+                      <span>No claim of ownership by NoteAssist AI</span>
                     </li>
                   </ul>
                 </div>
@@ -247,7 +247,7 @@ const TermsOfService = () => {
               <h2 className="text-2xl font-bold text-gray-900 mb-4">7. Limitation of Liability</h2>
               <div className="bg-gray-50 rounded-xl p-6">
                 <p className="text-gray-700 mb-4">
-                  Sk-LearnTrack is provided "as is" without warranties of any kind, either express or implied. 
+                  NoteAssist AI is provided "as is" without warranties of any kind, either express or implied. 
                   To the fullest extent permitted by law:
                 </p>
                 <ul className="text-gray-700 space-y-2">
@@ -338,12 +338,12 @@ const TermsOfService = () => {
                   <div className="flex items-center gap-3">
                     <FileText className="w-5 h-5 text-primary-600" />
                     <a 
-                      href="https://sk-learntrack.vercel.app" 
+                      href="https://noteassist-ai.vercel.app" 
                       className="text-primary-600 hover:text-primary-700"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      https://sk-learntrack.vercel.app
+                      https://noteassist-ai.vercel.app
                     </a>
                   </div>
                 </div>
@@ -359,7 +359,7 @@ const TermsOfService = () => {
               </p>
               <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
                 <p className="text-yellow-700">
-                  <strong>Continued use</strong> of Sk-LearnTrack after changes constitutes acceptance of 
+                  <strong>Continued use</strong> of NoteAssist AI after changes constitutes acceptance of 
                   the modified terms.
                 </p>
               </div>

@@ -12,7 +12,7 @@ import {
   Clock, Flame, Target, BarChart3, History, ChevronRight,
   Play, CheckCircle, ArrowRight, MessageSquare
 } from 'lucide-react';
-import { dashboardService } from '@/services/dashboard.service';
+import dashboardService from '@/services/dashboard.service';
 import { toast } from 'react-hot-toast';
 
 const DashboardPage = () => {
@@ -40,8 +40,8 @@ const DashboardPage = () => {
         dashboardService.getRecentNotes()
       ]);
 
-      setDashboardData(overview.data);
-      setRecentNotes(notes.data || []);
+      setDashboardData(overview || null);
+      setRecentNotes(Array.isArray(notes) ? notes : (notes?.data || []));
     } catch (err) {
       console.error('Dashboard fetch error:', err);
       toast.error('Failed to load dashboard data');
@@ -54,7 +54,7 @@ const DashboardPage = () => {
     try {
       await dispatch(logoutAction()).unwrap();
       toast.success('Logged out successfully');
-      navigate('/login');
+      navigate('/home');
     } catch (error) {
       console.error('Logout error:', error);
       toast.error('Logout failed');
@@ -108,7 +108,7 @@ const DashboardPage = () => {
   const statsCards = [
     {
       title: 'Total Notes',
-      value: dashboardData?.total_notes || 0,
+      value: dashboardData?.total_notes ?? 0,
       change: dashboardData?.notes_this_week || 0,
       changeLabel: 'this week',
       icon: FileText,
@@ -117,7 +117,7 @@ const DashboardPage = () => {
     },
     {
       title: 'AI Generations',
-      value: dashboardData?.total_ai_requests || 0,
+      value: dashboardData?.total_ai_requests ?? dashboardData?.total_ai_generations ?? 0,
       change: dashboardData?.ai_requests_this_week || 0,
       changeLabel: 'this week',
       icon: Brain,
@@ -126,7 +126,7 @@ const DashboardPage = () => {
     },
     {
       title: 'Topics Created',
-      value: dashboardData?.total_topics || 0,
+      value: dashboardData?.total_topics ?? 0,
       change: dashboardData?.topics_this_week || 0,
       changeLabel: 'this week',
       icon: Target,
@@ -135,8 +135,8 @@ const DashboardPage = () => {
     },
     {
       title: 'Current Streak',
-      value: `${dashboardData?.current_streak || 0}d`,
-      change: dashboardData?.current_streak || 0,
+      value: `${dashboardData?.current_streak ?? dashboardData?.streak_days ?? 0}d`,
+      change: dashboardData?.current_streak ?? dashboardData?.streak_days ?? 0,
       changeLabel: 'days',
       icon: Flame,
       gradient: 'from-orange-500 to-red-500',
@@ -473,7 +473,7 @@ const DashboardPage = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-gray-900">
-                      {dashboardData?.current_streak || 0}-Day Streak!
+                      {(dashboardData?.current_streak ?? dashboardData?.streak_days ?? 0)}-Day Streak!
                     </h3>
                     <p className="text-sm text-gray-600">Keep it going!</p>
                   </div>
@@ -482,11 +482,11 @@ const DashboardPage = () => {
                   <div className="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-gradient-to-r from-orange-500 to-red-500 rounded-full transition-all" 
-                      style={{ width: `${Math.min((dashboardData?.current_streak || 0) * 10, 100)}%` }} 
+                      style={{ width: `${Math.min(((dashboardData?.current_streak ?? dashboardData?.streak_days ?? 0) * 10), 100)}%` }} 
                     />
                   </div>
                   <span className="text-sm font-bold text-gray-900">
-                    {dashboardData?.current_streak || 0}/{dashboardData?.longest_streak || 0}
+                    {(dashboardData?.current_streak ?? dashboardData?.streak_days ?? 0)}/{dashboardData?.longest_streak ?? dashboardData?.total_active_days ?? 0}
                   </span>
                 </div>
               </div>
