@@ -412,7 +412,7 @@ class PDFExportService:
         📅 Created: {self.note.created_at.strftime('%B %d, %Y')}<br/>
         🔄 Last Updated: {self.note.updated_at.strftime('%B %d, %Y')}<br/>
         📊 Status: {self.note.get_status_display()}<br/><br/>
-        <font color="#3b82f6"><b>SK LearnTrack</b></font>
+        <font color="#3b82f6"><b>NoteAssist AI</b></font>
         </para>
         """
         story.append(Paragraph(metadata_text, self.styles['subtitle']))

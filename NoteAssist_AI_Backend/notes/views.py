@@ -62,16 +62,17 @@ class NoteViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         # IMPORTANT: Always filter by current user
-        queryset = Note.objects.filter(user=self.request.user).select_related(
-            'user'
-        ).prefetch_related(
-            Prefetch('chapters', queryset=Chapter.objects.order_by('order')),
-            Prefetch('chapters__topics', queryset=ChapterTopic.objects.order_by('order').select_related(
-                'explanation', 'code_snippet', 'source'
-            )),
-            Prefetch('chapters__topics__explanation'),
-            Prefetch('chapters__topics__code_snippet'),
-        )
+        if self.action == 'list':
+            queryset = Note.objects.filter(user=self.request.user).select_related('user')
+        else:
+            queryset = Note.objects.filter(user=self.request.user).select_related(
+                'user'
+            ).prefetch_related(
+                Prefetch('chapters', queryset=Chapter.objects.order_by('order')),
+                Prefetch('chapters__topics', queryset=ChapterTopic.objects.order_by('order').select_related(
+                    'explanation', 'code_snippet', 'source'
+                )),
+            )
         
         # Filters
         status_filter = self.request.query_params.get('status')
@@ -95,7 +96,8 @@ class NoteViewSet(viewsets.ModelViewSet):
         
         return queryset.annotate(
             chapter_count=Count('chapters', distinct=True),
-            topic_count=Count('chapters__topics', distinct=True)
+            topic_count=Count('chapters__topics', distinct=True),
+            version_count=Count('versions', distinct=True)
         ).order_by('-updated_at')
     
     def create(self, request, *args, **kwargs):

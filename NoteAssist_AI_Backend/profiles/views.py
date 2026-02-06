@@ -11,6 +11,7 @@ from django.utils import timezone
 import logging
 
 from .models import Profile, NotificationSettings, ProfileActivityLog
+from notes.models import Note
 from .serializers import (
     ProfileSerializer,
     NotificationSettingsSerializer,
@@ -277,15 +278,13 @@ class ProfileViewSet(viewsets.ViewSet):
         user = request.user
         profile = self._get_user_profile(request)
         
-        # Get active courses count (enrollments not completed)
-        enrollments_count = 0
-        if hasattr(user, 'enrollments'):
-            enrollments_count = user.enrollments.filter(completed_at__isnull=True).count()
+        # Active notes = drafts or in-progress notes
+        active_notes_count = Note.objects.filter(user=user, status='draft').count()
         
         summary_data = {
             'totalStudyDays': profile.total_study_days,
             'totalNotes': profile.total_notes,
-            'activeCourses': enrollments_count,
+            'activeNotes': active_notes_count,
             'currentStreak': profile.current_streak,
             'longestStreak': profile.longest_streak,
             'lastLogin': user.last_login_at or user.created_at,

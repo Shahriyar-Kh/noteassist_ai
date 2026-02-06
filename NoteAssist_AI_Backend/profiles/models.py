@@ -190,9 +190,9 @@ class NotificationSettings(models.Model):
         default=True,
         help_text='Receive weekly summary of learning progress'
     )
-    course_reminders = models.BooleanField(
+    study_reminders = models.BooleanField(
         default=True,
-        help_text='Receive reminders about active courses'
+        help_text='Receive reminders about active study notes'
     )
     
     # Future notification types can be added here

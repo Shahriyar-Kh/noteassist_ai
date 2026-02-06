@@ -73,14 +73,14 @@ class NotificationSettingsAdmin(admin.ModelAdmin):
         'user_email',
         'email_notifications',
         'weekly_summary',
-        'course_reminders',
+        'study_reminders',
         'achievement_alerts',
         'updated_at'
     ]
     list_filter = [
         'email_notifications',
         'weekly_summary',
-        'course_reminders',
+        'study_reminders',
         'achievement_alerts'
     ]
     search_fields = ['profile__user__email']
@@ -94,7 +94,7 @@ class NotificationSettingsAdmin(admin.ModelAdmin):
             'fields': (
                 'email_notifications',
                 'weekly_summary',
-                'course_reminders',
+                'study_reminders',
                 'achievement_alerts',
                 'community_updates'
             )

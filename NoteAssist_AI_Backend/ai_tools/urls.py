@@ -8,7 +8,7 @@ urlpatterns = [
 	path('summarize/', AIToolsViewSet.as_view({'post': 'summarize'}), name='ai-tools-summarize'),
 	path('code/', AIToolsViewSet.as_view({'post': 'code'}), name='ai-tools-code'),
 
-	path('outputs/', AIToolsViewSet.as_view({'get': 'list_outputs'}), name='ai-tools-outputs'),
+	path('outputs/', AIToolsViewSet.as_view({'get': 'outputs'}), name='ai-tools-outputs'),
 	path('outputs/<int:pk>/', AIToolsViewSet.as_view({'get': 'retrieve_output', 'delete': 'delete_output'}), name='ai-tools-output-detail'),
 	path('outputs/<int:pk>/save/', AIToolsViewSet.as_view({'post': 'save_to_note'}), name='ai-tools-output-save'),
 	path('outputs/<int:pk>/download/', AIToolsViewSet.as_view({'get': 'download_output'}), name='ai-tools-output-download'),

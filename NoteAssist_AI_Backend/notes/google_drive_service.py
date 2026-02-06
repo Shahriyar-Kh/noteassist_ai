@@ -29,7 +29,7 @@ SCOPES = [
     'https://www.googleapis.com/auth/drive.file'
 ]
 
-FOLDER_NAME = 'SK-LearnTrack Notes'
+FOLDER_NAME = 'NoteAssist AI Notes'
 
 
 class GoogleDriveService:
@@ -115,7 +115,7 @@ class GoogleDriveService:
             return False
     
     def get_or_create_folder(self):
-        """Get or create SK-LearnTrack Notes folder"""
+        """Get or create NoteAssist AI Notes folder"""
         try:
             # Search for existing folder
             query = f"name='{FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
@@ -323,7 +323,7 @@ class GoogleAuthService:
         if settings.DEBUG:
             redirect_uri = 'http://localhost:8000/api/notes/google-callback/'
         else:
-            redirect_uri = 'https://sk-learntrack-pkw6.onrender.com/api/notes/google-callback/'
+            redirect_uri = 'https://noteassist-ai.onrender.com/api/notes/google-callback/'
         
         logger.info(f"🔐 Using fallback redirect URI: {redirect_uri}")
         return redirect_uri

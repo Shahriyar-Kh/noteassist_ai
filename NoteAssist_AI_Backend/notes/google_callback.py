@@ -171,7 +171,7 @@ class GoogleOAuthCallbackView(View):
                         <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; font-size: 12px;">
 GOOGLE_OAUTH_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
-BACKEND_URL=https://sk-learntrack-pkw6.onrender.com
+BACKEND_URL=https://noteassist-ai.onrender.com
                         </pre>
                     </div>
                     """.format(redirect_uri=redirect_uri)
@@ -216,7 +216,7 @@ BACKEND_URL=https://sk-learntrack-pkw6.onrender.com
             logger.info(f"🔐 Using BACKEND_URL from settings: {settings.BACKEND_URL}")
         else:
             # Fallback for Render
-            redirect_uri = 'https://sk-learntrack-pkw6.onrender.com/api/notes/google-callback/'
+            redirect_uri = 'https://noteassist-ai.onrender.com/api/notes/google-callback/'
             logger.warning(f"⚠️ BACKEND_URL not set, using fallback: {redirect_uri}")
         
         return redirect_uri

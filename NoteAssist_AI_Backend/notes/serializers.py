@@ -127,8 +127,8 @@ class ChapterSerializer(serializers.ModelSerializer):
 
 class NoteListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for list views"""
-    chapter_count = serializers.SerializerMethodField()
-    total_topics = serializers.SerializerMethodField()
+    chapter_count = serializers.IntegerField(read_only=True)
+    total_topics = serializers.IntegerField(source='topic_count', read_only=True)
     
     class Meta:
         model = Note
@@ -138,11 +138,6 @@ class NoteListSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
     
-    def get_chapter_count(self, obj):
-        return obj.chapters.count()
-    
-    def get_total_topics(self, obj):
-        return ChapterTopic.objects.filter(chapter__note=obj).count()
 
 
 # Add to your NoteDetailSerializer:
@@ -159,7 +154,7 @@ class NoteCreateSerializer(serializers.ModelSerializer):
     
 class NoteDetailSerializer(serializers.ModelSerializer):
     chapters = ChapterSerializer(many=True, read_only=True)
-    version_count = serializers.SerializerMethodField()
+    version_count = serializers.IntegerField(read_only=True)
     google_drive_status = serializers.SerializerMethodField()  # NEW
 
     class Meta:
@@ -171,9 +166,6 @@ class NoteDetailSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
         read_only_fields = ['slug', 'created_at', 'updated_at']
-    
-    def get_version_count(self, obj):
-        return obj.versions.count()
     
     def get_google_drive_status(self, obj):
         """Check if user has Google Drive connected"""

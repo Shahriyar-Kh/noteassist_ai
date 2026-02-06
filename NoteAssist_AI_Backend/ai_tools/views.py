@@ -47,6 +47,7 @@ class AIToolsViewSet(viewsets.GenericViewSet):
 
         if not quota.can_use_tool():
             raise serializers.ValidationError({
+                'error': 'Daily or monthly quota exceeded',
                 'quota_exceeded': True,
                 'message': 'Daily or monthly quota exceeded',
                 'daily_used': quota.daily_used,
@@ -307,13 +308,31 @@ class AIToolsViewSet(viewsets.GenericViewSet):
         if tool_type:
             outputs = outputs.filter(usage__tool_type=tool_type)
 
-        page = self.paginate_queryset(outputs)
-        if page is not None:
-            serializer = AIToolOutputSerializer(page, many=True, context={'request': request})
-            return self.get_paginated_response(serializer.data)
-
         serializer = AIToolOutputSerializer(outputs, many=True, context={'request': request})
         return Response(serializer.data)
+
+    def retrieve_output(self, request, pk=None):
+        """Retrieve a single AI output"""
+        try:
+            ai_output = AIToolOutput.objects.select_related('usage').get(
+                pk=pk,
+                user=request.user
+            )
+        except AIToolOutput.DoesNotExist:
+            return Response({'error': 'Output not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = AIToolOutputSerializer(ai_output, context={'request': request})
+        return Response(serializer.data)
+
+    def delete_output(self, request, pk=None):
+        """Delete an AI output"""
+        try:
+            ai_output = AIToolOutput.objects.get(pk=pk, user=request.user)
+        except AIToolOutput.DoesNotExist:
+            return Response({'error': 'Output not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        ai_output.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['post'], url_path='save')
     def save_to_note(self, request, pk=None):
@@ -450,11 +469,6 @@ class AIToolsViewSet(viewsets.GenericViewSet):
             usages = usages.filter(created_at__gte=from_date)
         if to_date:
             usages = usages.filter(created_at__lte=to_date)
-
-        page = self.paginate_queryset(usages)
-        if page is not None:
-            serializer = AIToolUsageSerializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
 
         serializer = AIToolUsageSerializer(usages, many=True)
         return Response(serializer.data)

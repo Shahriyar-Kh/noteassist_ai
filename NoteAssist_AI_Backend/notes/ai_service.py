@@ -26,11 +26,15 @@ class AIService:
         """Initialize Groq client"""
         try:
             from groq import Groq
+            import httpx
             api_key = getattr(settings, 'GROQ_API_KEY', None)
             if not api_key:
                 logger.warning("GROQ_API_KEY not configured")
                 return None
-            return Groq(api_key=api_key)
+            return Groq(
+                api_key=api_key,
+                http_client=httpx.Client(),
+            )
         except ImportError:
             logger.error("groq package not installed. Run: pip install groq")
             return None

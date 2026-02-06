@@ -1,4 +1,4 @@
-# FILE: sklearntrack_backend/__init__.py
+# FILE: NoteAssist_AI/__init__.py
 # ============================================================================
 
 from .celery import app as celery_app

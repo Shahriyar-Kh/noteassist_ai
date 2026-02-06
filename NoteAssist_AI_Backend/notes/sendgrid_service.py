@@ -64,7 +64,7 @@ class SendGridEmailService:
                     <p>Keep up the great work! Your consistency is key to mastering new concepts.</p>
                     
                     <div class="footer">
-                        <p>This is an automated report from SK-LearnTrack.</p>
+                        <p>This is an automated report from NoteAssist AI.</p>
                         <p>You can adjust email preferences in your account settings.</p>
                     </div>
                 </div>

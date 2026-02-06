@@ -18,7 +18,7 @@ class NotificationSettingsSerializer(serializers.ModelSerializer):
         fields = [
             'email_notifications',
             'weekly_summary',
-            'course_reminders',
+            'study_reminders',
             'achievement_alerts',
             'community_updates',
         ]
@@ -312,7 +312,7 @@ class ActivitySummarySerializer(serializers.Serializer):
     
     totalStudyDays = serializers.IntegerField()
     totalNotes = serializers.IntegerField()
-    activeCourses = serializers.IntegerField()
+    activeNotes = serializers.IntegerField()
     currentStreak = serializers.IntegerField()
     longestStreak = serializers.IntegerField()
     lastLogin = serializers.DateTimeField()

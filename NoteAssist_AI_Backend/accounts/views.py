@@ -517,10 +517,10 @@ class AuthViewSet(viewsets.GenericViewSet):
         frontend_url = settings.FRONTEND_URL
         reset_url = f"{frontend_url}/reset-password?token={token}"
         
-        subject = 'Reset Your SK-LearnTrack Password'
+        subject = 'Reset Your NoteAssist AI Password'
         message = f"""Hello {user.full_name or user.email},
 
-You requested to reset your password for your SK-LearnTrack account.
+You requested to reset your password for your NoteAssist AI account.
 
 Click the link below to set a new password (valid for 1 hour):
 {reset_url}
@@ -529,7 +529,7 @@ If you did not request this password reset, please ignore this email.
 Your account security is important to us.
 
 Best regards,
-SK-LearnTrack Team
+NoteAssist AI Team
 """
         
         # ✅ FIXED: Use synchronous sending with proper error handling
@@ -565,8 +565,8 @@ SK-LearnTrack Team
         frontend_url = settings.FRONTEND_URL
         verification_url = f"{frontend_url}/verify-email?token={token}"
         
-        subject = 'Verify Your SK-LearnTrack Account'
-        message = f"""Welcome to SK-LearnTrack!
+        subject = 'Verify Your NoteAssist AI Account'
+        message = f"""Welcome to NoteAssist AI!
 
 Please verify your email address by clicking the link below:
 {verification_url}
@@ -576,7 +576,7 @@ This link will expire in 7 days.
 If you did not create an account, please ignore this email.
 
 Thank you,
-SK-LearnTrack Team
+NoteAssist AI Team
 """
         
         # ✅ FIXED: Use synchronous sending

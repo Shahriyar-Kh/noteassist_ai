@@ -86,7 +86,7 @@ class DailyNotesReportService:
             <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
                 <!-- Header -->
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
-                    <h1 style="color: #ffffff; margin: 0; font-size: 24px;">SK LearnTrack</h1>
+                    <h1 style="color: #ffffff; margin: 0; font-size: 24px;">NoteAssist AI</h1>
                     <p style="color: #ffffff; margin: 10px 0 0 0; opacity: 0.9;">Daily Learning Activity Report</p>
                     <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px; opacity: 0.8;">{report_data['date']}</p>
                 </div>
@@ -154,12 +154,12 @@ class DailyNotesReportService:
                 <!-- Footer -->
                 <div style="background-color: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
                     <p style="margin: 0 0 10px; font-size: 12px; color: #666666;">
-                        This is an automated learning activity report from SK LearnTrack.
+                        This is an automated learning activity report from NoteAssist AI.
                     </p>
                     <p style="margin: 0; font-size: 11px; color: #999999;">
-                        <a href="https://sk-learntrack.vercel.app/settings" style="color: #667eea; text-decoration: none;">Email Preferences</a>
+                        <a href="https://noteassist-ai.vercel.app/settings" style="color: #667eea; text-decoration: none;">Email Preferences</a>
                         | 
-                        <a href="https://sk-learntrack.vercel.app" style="color: #999999; text-decoration: none;">Visit Dashboard</a>
+                        <a href="https://noteassist-ai.vercel.app" style="color: #999999; text-decoration: none;">Visit Dashboard</a>
                     </p>
                 </div>
             </div>
@@ -169,7 +169,7 @@ class DailyNotesReportService:
         
         # Plain text version (critical for deliverability)
         text_content = f"""
-SK LearnTrack - Daily Learning Activity Report
+NoteAssist AI - Daily Learning Activity Report
 {report_data['date']}
 
 Hello {user.first_name or user.username},
@@ -188,10 +188,10 @@ Keep up the great work! Consistency is the key to mastering new concepts.
 ---
 This is an automated learning activity report.
 
-Manage your preferences: https://sk-learntrack.vercel.app/settings
-Visit your dashboard: https://sk-learntrack.vercel.app
+Manage your preferences: https://noteassist-ai.vercel.app/settings
+Visit your dashboard: https://noteassist-ai.vercel.app
 
-SK LearnTrack Team
+NoteAssist AI Team
         """.strip()
         
         return html_content, text_content

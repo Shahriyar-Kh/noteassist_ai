@@ -1,5 +1,5 @@
 """
-WSGI config for sklearntrack_backend project.
+WSGI config for NoteAssist_AI project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 
@@ -11,6 +11,6 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sklearntrack_backend.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'NoteAssist_AI.settings')
 
 application = get_wsgi_application()
