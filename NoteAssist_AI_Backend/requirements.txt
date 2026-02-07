@@ -23,6 +23,7 @@ django-filter==25.2
 reportlab==4.4.9
 requests-oauthlib==2.0.0
 beautifulsoup4==4.12.3
+markdown==3.6
 lxml==6.0.2
 cryptography==46.0.4
 pyOpenSSL==25.3.0
