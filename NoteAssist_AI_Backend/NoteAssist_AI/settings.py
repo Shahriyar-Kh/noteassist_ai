@@ -13,12 +13,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 os.makedirs(BASE_DIR / 'static', exist_ok=True)
 os.makedirs(BASE_DIR / 'logs', exist_ok=True)
 
+# ============================================================================
+# Production/Development Configuration
+# ============================================================================
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
+DEBUG = os.getenv('DEBUG', 'True' if ENVIRONMENT == 'development' else 'False') == 'True'
+
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-key-change-in-production')
-DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = config(
     'ALLOWED_HOSTS',
-    default='localhost,127.0.0.1',
+    default='localhost,127.0.0.1' if DEBUG else 'localhost,127.0.0.1',
     cast=lambda v: [s.strip() for s in v.split(',')]
 )
 
@@ -50,6 +55,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # WhiteNoise for static files in production
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.gzip.GZipMiddleware',
@@ -82,18 +88,35 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'NoteAssist_AI.wsgi.application'
 
-# Database Configuration - Production/Development flexibility
+# ============================================================================
+# Database Configuration - Supabase PostgreSQL via DATABASE_URL
+# ============================================================================
+import dj_database_url
+
 DATABASE_URL = config('DATABASE_URL', default=None)
 
+# Use DATABASE_URL if available (Supabase or any PostgreSQL), otherwise SQLite3
 if DATABASE_URL:
+    # Parse DATABASE_URL using dj-database-url (Supabase/PostgreSQL)
     DATABASES = {
-        'default': dj_database_url.parse(
-            DATABASE_URL,
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
             conn_max_age=600,
-            ssl_require=not DEBUG,
+            conn_health_checks=True,
+            ssl_require=True,
         )
     }
+    # Add additional PostgreSQL optimizations
+    DATABASES['default']['ATOMIC_REQUESTS'] = True
+    DATABASES['default']['OPTIONS'] = {
+        'connect_timeout': 10,
+        'keepalives': 1,
+        'keepalives_idle': 30,
+        'keepalives_interval': 10,
+        'keepalives_count': 5,
+    }
 else:
+    # Development: SQLite3 (local)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -138,17 +161,25 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+# ============================================================================
+# Static and Media Files
+# ============================================================================
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
+if ENVIRONMENT == 'production':
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+else:
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Create media directories
-os.makedirs(MEDIA_ROOT / 'avatars', exist_ok=True)
-os.makedirs(MEDIA_ROOT / 'notes/images', exist_ok=True)
-os.makedirs(MEDIA_ROOT / 'notes/pdfs', exist_ok=True)
+os.makedirs(os.path.join(MEDIA_ROOT, 'avatars'), exist_ok=True)
+os.makedirs(os.path.join(MEDIA_ROOT, 'notes', 'images'), exist_ok=True)
+os.makedirs(os.path.join(MEDIA_ROOT, 'notes', 'pdfs'), exist_ok=True)
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -211,15 +242,26 @@ SIMPLE_JWT = {
     'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
 }
 
+# ============================================================================
 # CORS Settings
+# ============================================================================
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOWED_ORIGINS = [
+        'http://localhost:3000',
+        'http://localhost:5173',
+    ]
 else:
     CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = [
+        'https://noteassist-frontend.vercel.app',
+        'http://localhost:5173',
+        'http://localhost:3000',
+    ]
 
 CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
-    default='http://localhost:3000,http://localhost:5173',
+    default=','.join(CORS_ALLOWED_ORIGINS),
     cast=lambda v: [s.strip() for s in v.split(',')]
 )
 CORS_ALLOW_CREDENTIALS = True
@@ -399,8 +441,10 @@ def custom_404(request, exception=None):
 
 handler404 = 'NoteAssist_AI.settings.custom_404'
 
-# Production Security Settings
-if not DEBUG:
+# ============================================================================
+# Security Settings
+# ============================================================================
+if ENVIRONMENT == 'production':
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
@@ -411,16 +455,9 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
+else:
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
 
-# Database optimization for PostgreSQL
-if DATABASE_URL and 'postgres' in DATABASE_URL:
-    DATABASES['default']['CONN_MAX_AGE'] = 60
-    DATABASES['default']['OPTIONS'] = {
-        'connect_timeout': 10,
-        'keepalives': 1,
-        'keepalives_idle': 30,
-        'keepalives_interval': 10,
-        'keepalives_count': 5,
-    }
-
-logger.info("✅ NoteAssist AI Settings loaded successfully")
+logger.info(f"✅ NoteAssist AI Settings loaded successfully (Environment: {ENVIRONMENT}, Debug: {DEBUG})")
