@@ -5,36 +5,46 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Provider } from 'react-redux';
 import { Toaster } from 'react-hot-toast';
 import { store } from './store';
+import { lazy, Suspense, useEffect } from 'react';
 
-// Pages
+// Main Pages (loaded immediately for faster initial load)
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import NotesPage from './pages/NotesPage';
-import ProfilePage from './pages/ProfilePage';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsOfService from './pages/TermsOfService';
+import DashboardPage from '@/pages/User_DashboardPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
-import DashboardPage from '@/pages/User_DashboardPage';
 
-// AI Tools Pages
-import AIToolsPage from './pages/AIToolsPage';
-import AIToolsGenerateTopicPage from './pages/AIToolsGenerateTopicPage';
-import AIToolsImprovePage from './pages/AIToolsImprovePage';
-import AIToolsSummarizePage from './pages/AIToolsSummarizePage';
-import AIToolsGenerateCodePage from './pages/AIToolsGenerateCodePage';
-import AIHistoryPage from './pages/AIHistoryPage';
+// Static Pages (loaded immediately)
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
 
-// Admin Pages
-import AdminDashboard from '@/pages/Admin_Dashboard';
-import AdminAIAnalyticsPage from './pages/AdminAIAnalyticsPage';
-
-// Guards
+// Guards (loaded immediately)
 import ProtectedRoute from '@/components/guards/ProtectedRoute';
 import GuestRoute from '@/components/guards/GuestRoute';
 import AdminRoute from '@/components/guards/AdminRoute';
-import { useEffect } from 'react';
+
+// Lazy-loaded Pages (code splitting for better performance)
+// Profile & AI Tools - loaded on demand
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const AIToolsPage = lazy(() => import('./pages/AIToolsPage'));
+const AIToolsGenerateTopicPage = lazy(() => import('./pages/AIToolsGenerateTopicPage'));
+const AIToolsImprovePage = lazy(() => import('./pages/AIToolsImprovePage'));
+const AIToolsSummarizePage = lazy(() => import('./pages/AIToolsSummarizePage'));
+const AIToolsGenerateCodePage = lazy(() => import('./pages/AIToolsGenerateCodePage'));
+const AIHistoryPage = lazy(() => import('./pages/AIHistoryPage'));
+
+// Admin Pages - lazy loaded (accessed less frequently)
+const AdminDashboard = lazy(() => import('@/pages/Admin_Dashboard'));
+const AdminAIAnalyticsPage = lazy(() => import('./pages/AdminAIAnalyticsPage'));
+
+// Loading component for lazy-loaded routes
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+  </div>
+);
 
 function App() {
   useEffect(() => {
@@ -53,119 +63,121 @@ function App() {
     <Provider store={store}>
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Toaster position="top-right" />
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={
-            <GuestRoute>
-              <HomePage />
-            </GuestRoute>
-          } />
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={
+              <GuestRoute>
+                <HomePage />
+              </GuestRoute>
+            } />
 
-          <Route path="/home" element={<HomePage />} />
-          
-          <Route path="/login" element={
-            <GuestRoute>
-              <LoginPage />
-            </GuestRoute>
-          } />
-          
-          <Route path="/register" element={
-            <GuestRoute>
-              <RegisterPage />
-            </GuestRoute>
-          } />
-          
-          {/* Password Reset Routes */}
-          <Route path="/forgot-password" element={
-            <GuestRoute>
-              <ForgotPasswordPage />
-            </GuestRoute>
-          } />
-          
-          <Route path="/reset-password" element={
-            <GuestRoute>
-              <ResetPasswordPage />
-            </GuestRoute>
-          } />
+            <Route path="/home" element={<HomePage />} />
+            
+            <Route path="/login" element={
+              <GuestRoute>
+                <LoginPage />
+              </GuestRoute>
+            } />
+            
+            <Route path="/register" element={
+              <GuestRoute>
+                <RegisterPage />
+              </GuestRoute>
+            } />
+            
+            {/* Password Reset Routes */}
+            <Route path="/forgot-password" element={
+              <GuestRoute>
+                <ForgotPasswordPage />
+              </GuestRoute>
+            } />
+            
+            <Route path="/reset-password" element={
+              <GuestRoute>
+                <ResetPasswordPage />
+              </GuestRoute>
+            } />
 
-          {/* Static Pages */}
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="/terms-of-service" element={<TermsOfService />} />
+            {/* Static Pages */}
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
 
-          {/* User Dashboard */}
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          } />
+            {/* User Dashboard */}
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            } />
 
-          {/* Notes */}
-          <Route path="/notes" element={
-            <ProtectedRoute>
-              <NotesPage />
-            </ProtectedRoute>
-          } />
+            {/* Notes */}
+            <Route path="/notes" element={
+              <ProtectedRoute>
+                <NotesPage />
+              </ProtectedRoute>
+            } />
 
-          {/* AI Tools Routes */}
-          <Route path="/ai-tools" element={
-            <ProtectedRoute>
-              <AIToolsPage />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/ai-tools/generate" element={
-            <ProtectedRoute>
-              <AIToolsGenerateTopicPage />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/ai-tools/improve" element={
-            <ProtectedRoute>
-              <AIToolsImprovePage />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/ai-tools/summarize" element={
-            <ProtectedRoute>
-              <AIToolsSummarizePage />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/ai-tools/code" element={
-            <ProtectedRoute>
-              <AIToolsGenerateCodePage />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/ai-tools/history" element={
-            <ProtectedRoute>
-              <AIHistoryPage />
-            </ProtectedRoute>
-          } />
+            {/* AI Tools Routes - Lazy Loaded */}
+            <Route path="/ai-tools" element={
+              <ProtectedRoute>
+                <AIToolsPage />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/ai-tools/generate" element={
+              <ProtectedRoute>
+                <AIToolsGenerateTopicPage />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/ai-tools/improve" element={
+              <ProtectedRoute>
+                <AIToolsImprovePage />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/ai-tools/summarize" element={
+              <ProtectedRoute>
+                <AIToolsSummarizePage />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/ai-tools/code" element={
+              <ProtectedRoute>
+                <AIToolsGenerateCodePage />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/ai-tools/history" element={
+              <ProtectedRoute>
+                <AIHistoryPage />
+              </ProtectedRoute>
+            } />
 
-          {/* Profile */}
-          <Route path="/profile" element={
-            <ProtectedRoute>
-              <ProfilePage />
-            </ProtectedRoute>
-          } />
+            {/* Profile - Lazy Loaded */}
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            } />
 
-          {/* Admin Routes */}
-          <Route path="/admin" element={
-            <AdminRoute>
-              <AdminDashboard />
-            </AdminRoute>
-          } />
-          
-          <Route path="/admin/analytics" element={
-            <AdminRoute>
-              <AdminAIAnalyticsPage />
-            </AdminRoute>
-          } />
+            {/* Admin Routes - Lazy Loaded */}
+            <Route path="/admin" element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            } />
+            
+            <Route path="/admin/analytics" element={
+              <AdminRoute>
+                <AdminAIAnalyticsPage />
+              </AdminRoute>
+            } />
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </Router>
     </Provider>
   );
