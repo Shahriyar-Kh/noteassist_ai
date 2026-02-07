@@ -17,8 +17,8 @@ keepalive = 5
 graceful_timeout = 30
 
 # Logging
-accesslog = '/var/log/studynotes/gunicorn-access.log'
-errorlog = '/var/log/studynotes/gunicorn-error.log'
+accesslog = '-'  # Log to stdout
+errorlog = '-'   # Log to stderr
 loglevel = 'info'
 access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(D)s'
 
@@ -27,9 +27,9 @@ proc_name = 'studynotes_gunicorn'
 
 # Server mechanics
 daemon = False
-pidfile = '/var/run/studynotes/gunicorn.pid'
-user = 'www-data'
-group = 'www-data'
+pidfile = None
+user = None
+group = None
 tmp_upload_dir = None
 
 # Performance
