@@ -533,10 +533,12 @@ NoteAssist AI Team
 """
         
         # ✅ FIXED: Use synchronous sending with proper error handling
+        # Use SENDGRID_FROM_EMAIL (verified) instead of DEFAULT_FROM_EMAIL
+        from_email = getattr(settings, 'SENDGRID_FROM_EMAIL', None) or settings.DEFAULT_FROM_EMAIL
         success = send_email_sync(
             subject=subject,
             message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
+            from_email=from_email,
             recipient_list=[user.email]
         )
         
@@ -580,10 +582,12 @@ NoteAssist AI Team
 """
         
         # ✅ FIXED: Use synchronous sending
+        # Use SENDGRID_FROM_EMAIL (verified) instead of DEFAULT_FROM_EMAIL
+        from_email = getattr(settings, 'SENDGRID_FROM_EMAIL', None) or settings.DEFAULT_FROM_EMAIL
         success = send_email_sync(
             subject=subject,
             message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
+            from_email=from_email,
             recipient_list=[user.email]
         )
         

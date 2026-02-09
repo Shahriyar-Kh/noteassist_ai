@@ -227,12 +227,14 @@ NoteAssist AI Team
             # Check if EmailService is available
             if EmailService:
                 # Use unified email service (recommended)
+                # Use SENDGRID_FROM_EMAIL (verified) instead of DEFAULT_FROM_EMAIL
+                from_email = getattr(settings, 'SENDGRID_FROM_EMAIL', None) or settings.DEFAULT_FROM_EMAIL
                 success = EmailService.send_email(
                     to_email=user.email,
                     subject=subject,
                     text_content=text_content,
                     html_content=html_content,
-                    from_email=settings.DEFAULT_FROM_EMAIL
+                    from_email=from_email
                 )
                 
                 if success:
