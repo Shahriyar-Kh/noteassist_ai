@@ -112,11 +112,16 @@ class AuthViewSet(viewsets.GenericViewSet):
             user = serializer.save()
             logger.info(f"User registered successfully: {user.email} (ID: {user.id})")
             
-            # Send verification email (non-blocking)
+            # ⚡ Send verification email in background (non-blocking)
             try:
-                self._send_verification_email(user, request)
+                thread = threading.Thread(
+                    target=self._send_verification_email_async,
+                    args=(user, request),
+                    daemon=True
+                )
+                thread.start()
             except Exception as e:
-                logger.error(f"Failed to send verification email: {str(e)}")
+                logger.error(f"Failed to queue verification email: {str(e)}")
                 # Continue registration even if email fails
             
             # Generate JWT tokens with user claims
@@ -414,9 +419,12 @@ class AuthViewSet(viewsets.GenericViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'])
     def resend_verification(self, request):
         """
-        Resend email verification link.
+        ⚡ REFACTORED: Resend email verification link - FAST response
+        Returns immediately without waiting for email to send.
+        Email is sent in background thread with timeout protection.
         """
         email = request.data.get('email', '').lower().strip()
         
@@ -435,8 +443,14 @@ class AuthViewSet(viewsets.GenericViewSet):
                     'message': 'Email is already verified'
                 }, status=status.HTTP_200_OK)
             
-            # Send new verification email
-            self._send_verification_email(user, request)
+            # ⚡ REFACTORED: Send email in background (non-blocking)
+            thread = threading.Thread(
+                target=self._send_verification_email_async,
+                args=(user, request),
+                daemon=True
+            )
+            thread.start()
+            logger.info(f"Verification email queued for: {email}")
             
             return Response({
                 'success': True,
@@ -642,9 +656,107 @@ NoteAssist AI Team
         
         return success
 
+    def _send_verification_email_async(self, user, request):
+        """
+        ⚡ NEW: Async background email sender with timeout protection
+        This runs in a separate thread and doesn't block the API response
+        """
+        import socket
+        
+        # Set timeout to prevent hanging
+        original_timeout = socket.getdefaulttimeout()
+        socket.setdefaulttimeout(15)  # 15 second timeout
+        
+        try:
+            logger.info(f"🔄 Background: Sending verification email to {user.email}")
+            self._send_verification_email_sync(user, request)
+        except Exception as e:
+            logger.error(f"❌ Background: Failed to send verification email to {user.email}: {str(e)}")
+        finally:
+            socket.setdefaulttimeout(original_timeout)
+    
+    def _send_verification_email_sync(self, user, request):
+        """
+        ✅ Synchronous email sending (called from background thread)
+        """
+        # Create verification token (expires in 7 days)
+        token = str(uuid.uuid4())
+        expires_at = timezone.now() + timedelta(days=7)
+        
+        EmailVerification.objects.create(
+            user=user,
+            token=token,
+            expires_at=expires_at
+        )
+        
+        # Build verification URL
+        frontend_url = settings.FRONTEND_URL
+        verification_url = f"{frontend_url}/verify-email?token={token}"
+        
+        subject = 'Verify Your NoteAssist AI Account'
+        message = f"""Welcome to NoteAssist AI!
+
+Please verify your email address by clicking the link below:
+{verification_url}
+
+This link will expire in 7 days.
+
+If you did not create an account, please ignore this email.
+
+Thank you,
+NoteAssist AI Team
+"""
+        
+        # Use SENDGRID_FROM_EMAIL (verified) instead of DEFAULT_FROM_EMAIL
+        from_email = getattr(settings, 'SENDGRID_FROM_EMAIL', None) or settings.DEFAULT_FROM_EMAIL
+        
+        try:
+            # Try SendGrid first
+            import sendgrid
+            from sendgrid.helpers.mail import Mail, Email, To, Content
+            
+            sendgrid_key = getattr(settings, 'SENDGRID_API_KEY', '').strip()
+            if sendgrid_key and len(sendgrid_key) > 20:
+                try:
+                    sg = sendgrid.SendGridAPIClient(api_key=sendgrid_key)
+                    mail = Mail(
+                        from_email=Email(from_email),
+                        to_emails=To(user.email),
+                        subject=subject,
+                        plain_text_content=Content("text/plain", message)
+                    )
+                    
+                    response = sg.send(mail)
+                    
+                    if response.status_code == 202:
+                        logger.info(f"✅ Verification email accepted by SendGrid for {user.email}")
+                        return True
+                    else:
+                        logger.warning(f"⚠️  SendGrid returned {response.status_code}, trying SMTP")
+                except Exception as e:
+                    logger.warning(f"⚠️  SendGrid failed ({str(e)}), trying SMTP fallback")
+            
+            # Fallback to SMTP with short timeout
+            from django.core.mail import EmailMultiAlternatives, get_connection
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=message,
+                from_email=from_email,
+                to=[user.email],
+                connection=get_connection(timeout=10)
+            )
+            email.send(fail_silently=False)
+            logger.info(f"✅ Verification email sent via SMTP to {user.email}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to send verification email: {str(e)}")
+            return False
+
     def _send_verification_email(self, user, request):
         """
         ✅ FIXED: Send email verification link synchronously
+        (Kept for backward compatibility - use _send_verification_email_async instead)
         """
         # Create verification token (expires in 7 days)
         token = str(uuid.uuid4())
