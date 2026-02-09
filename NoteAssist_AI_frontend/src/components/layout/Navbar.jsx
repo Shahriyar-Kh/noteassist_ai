@@ -15,7 +15,10 @@ const Navbar = ({ hideLinks = [] }) => {
 
   // This navbar is for regular users only
   const isAdmin = user?.role === 'admin' || user?.is_staff || user?.is_superuser;
-  if (isAdmin) {
+  
+  // Don't render if user is not authenticated or is an admin
+  // Check for both isAuthenticated AND user to ensure state is loaded
+  if (!isAuthenticated || !user || isAdmin) {
     return null; // Admins use AdminLayout navbar instead
   }
 
