@@ -2,8 +2,9 @@
 // AI-Powered StudyNotes - Marketing Homepage with Advanced Design
 // ============================================================================
 
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
 import { 
   Sparkles, Brain, Zap, FileText, Code, TrendingUp,
   ArrowRight, CheckCircle, Star, Users, BookOpen,
@@ -11,10 +12,14 @@ import {
 } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import Footer from '@/components/layout/Footer';
+import { startGuestSession } from '@/store/slices/authSlice';
 
 const HomePage = () => {
   const [activeFeature, setActiveFeature] = useState(0);
   const [scrollY, setScrollY] = useState(0);
+  const [guestLoading, setGuestLoading] = useState(false);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
@@ -124,6 +129,22 @@ const HomePage = () => {
 
   const ActiveIcon = aiFeatures[activeFeature].icon;
 
+  // Handle guest mode start
+  const handleStartFree = async () => {
+    setGuestLoading(true);
+    try {
+      await dispatch(startGuestSession()).unwrap();
+      // Redirect to notes page
+      navigate('/notes');
+    } catch (error) {
+      console.error('Failed to start guest session:', error);
+      // Fallback to register page if guest session fails
+      navigate('/register');
+    } finally {
+      setGuestLoading(false);
+    }
+  };
+
   return (
     <>
       {/* SEO Meta Tags */}
@@ -202,16 +223,17 @@ const HomePage = () => {
                 >
                   Sign In
                 </Link>
-                <Link 
-                  to="/register" 
-                  className="group relative px-6 py-2.5 bg-gradient-to-r from-violet-600 to-blue-600 text-white rounded-xl font-semibold overflow-hidden transition-all hover:shadow-lg hover:shadow-violet-500/50"
+                <button
+                  onClick={handleStartFree}
+                  disabled={guestLoading}
+                  className="group relative px-6 py-2.5 bg-gradient-to-r from-violet-600 to-blue-600 text-white rounded-xl font-semibold overflow-hidden transition-all hover:shadow-lg hover:shadow-violet-500/50 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   <span className="relative z-10 flex items-center gap-2">
-                    Get Started Free
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    {guestLoading ? 'Starting...' : 'Get Started Free'}
+                    {!guestLoading && <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-violet-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                </Link>
+                </button>
               </div>
             </div>
           </div>
@@ -266,16 +288,17 @@ const HomePage = () => {
                 className="flex flex-col sm:flex-row gap-4 justify-center mb-12"
                 style={{ animation: 'fadeInUp 0.6s ease-out 0.6s both' }}
               >
-                <Link 
-                  to="/register" 
-                  className="group relative px-8 py-4 bg-gradient-to-r from-violet-600 to-blue-600 text-white rounded-2xl font-bold text-lg overflow-hidden transition-all hover:shadow-2xl hover:shadow-violet-500/50 hover:scale-105"
+                <button
+                  onClick={handleStartFree}
+                  disabled={guestLoading}
+                  className="group relative px-8 py-4 bg-gradient-to-r from-violet-600 to-blue-600 text-white rounded-2xl font-bold text-lg overflow-hidden transition-all hover:shadow-2xl hover:shadow-violet-500/50 hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
-                    Start Learning for Free
-                    <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                    {guestLoading ? 'Starting...' : 'Start Learning for Free'}
+                    {!guestLoading && <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />}
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-violet-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                </Link>
+                </button>
                 
                 <Link 
                   to="/login" 

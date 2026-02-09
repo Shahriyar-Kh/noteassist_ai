@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
   REGISTER: '/api/auth/register/',
   LOGOUT: '/api/auth/logout/',
   ME: '/api/auth/users/me/',
+  GUEST_SESSION: '/api/auth/guest/session/',
  
     // Profile endpoints
   PROFILE: '/api/profile/',

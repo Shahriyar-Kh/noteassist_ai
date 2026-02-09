@@ -1,10 +1,25 @@
-// FILE: src/components/guards/ProtectedRoute.jsx - FIXED VERSION
+// FILE: src/components/guards/ProtectedRoute.jsx - FIXED VERSION WITH GUEST SUPPORT
 // ============================================================================
 
 import { Navigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
-const ProtectedRoute = ({ children, allowedRoles = [] }) => {
+const ProtectedRoute = ({ children, allowedRoles = [], allowGuest = false }) => {
+  // Check for guest mode
+  const isGuest = localStorage.getItem('isGuest') === 'true';
+  
+  // If guest mode is allowed for this route, let them through
+  if (allowGuest && isGuest) {
+    console.log('[ProtectedRoute] Guest access allowed for this route');
+    return children;
+  }
+  
+  // If guest but not allowed, redirect to login with message
+  if (isGuest && !allowGuest) {
+    console.log('[ProtectedRoute] Guest trying to access protected route, redirecting to login');
+    return <Navigate to="/login" state={{ message: 'Please login or register to access this page.' }} replace />;
+  }
+
   // Check authentication
   const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
   const userStr = localStorage.getItem('user');
@@ -67,6 +82,7 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 ProtectedRoute.propTypes = {
   children: PropTypes.node.isRequired,
   allowedRoles: PropTypes.arrayOf(PropTypes.string),
+  allowGuest: PropTypes.bool,
 };
 
 export default ProtectedRoute;

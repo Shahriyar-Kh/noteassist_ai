@@ -3,7 +3,7 @@
 
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import AuthViewSet, UserViewSet
+from .views import AuthViewSet, UserViewSet, GuestSessionView
 
 router = DefaultRouter()
 router.register('users', UserViewSet, basename='user')
@@ -13,6 +13,9 @@ urlpatterns = [
     path('register/', AuthViewSet.as_view({'post': 'register'}), name='register'),
     path('google_auth/', AuthViewSet.as_view({'post': 'google_auth'}), name='google_auth'),
     path('logout/', AuthViewSet.as_view({'post': 'logout'}), name='logout'),
+    
+    # Guest session endpoints
+    path('guest/session/', GuestSessionView.as_view(), name='guest_session'),
     
     # Password management
     path('request_password_reset/', AuthViewSet.as_view({'post': 'request_password_reset'}), name='request_password_reset'),

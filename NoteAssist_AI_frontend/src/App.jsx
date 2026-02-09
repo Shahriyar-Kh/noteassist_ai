@@ -110,40 +110,40 @@ function App() {
               </ProtectedRoute>
             } />
 
-            {/* Notes */}
+            {/* Notes - Allow guest access */}
             <Route path="/notes" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowGuest={true}>
                 <NotesPage />
               </ProtectedRoute>
             } />
 
-            {/* AI Tools Routes - Lazy Loaded */}
+            {/* AI Tools Routes - Allow guest access */}
             <Route path="/ai-tools" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowGuest={true}>
                 <AIToolsPage />
               </ProtectedRoute>
             } />
             
             <Route path="/ai-tools/generate" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowGuest={true}>
                 <AIToolsGenerateTopicPage />
               </ProtectedRoute>
             } />
             
             <Route path="/ai-tools/improve" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowGuest={true}>
                 <AIToolsImprovePage />
               </ProtectedRoute>
             } />
             
             <Route path="/ai-tools/summarize" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowGuest={true}>
                 <AIToolsSummarizePage />
               </ProtectedRoute>
             } />
             
             <Route path="/ai-tools/code" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowGuest={true}>
                 <AIToolsGenerateCodePage />
               </ProtectedRoute>
             } />

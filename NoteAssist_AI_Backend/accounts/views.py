@@ -718,3 +718,90 @@ class UserViewSet(viewsets.ModelViewSet):
 class EmailTokenObtainPairView(TokenObtainPairView):
     """Custom JWT view using email-based authentication"""
     serializer_class = EmailTokenObtainPairSerializer
+
+
+# ==================== GUEST USER VIEWS ====================
+from rest_framework.views import APIView
+from .guest_manager import GuestSessionManager
+
+
+class GuestSessionView(APIView):
+    """
+    API endpoint for guest user session management
+    """
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        """Initialize a new guest session"""
+        try:
+            # Check if already a guest
+            if GuestSessionManager.is_guest(request):
+                stats = GuestSessionManager.get_guest_stats(request)
+                return Response({
+                    'message': 'Guest session already active',
+                    'is_guest': True,
+                    'stats': stats
+                }, status=status.HTTP_200_OK)
+            
+            # Initialize new guest session
+            guest_id = GuestSessionManager.initialize_guest_session(request)
+            stats = GuestSessionManager.get_guest_stats(request)
+            
+            logger.info(f"✅ Guest session created: {guest_id}")
+            
+            return Response({
+                'message': 'Guest session created successfully',
+                'is_guest': True,
+                'guest_id': guest_id,
+                'stats': stats
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            logger.error(f"❌ Guest session creation error: {str(e)}")
+            return Response({
+                'error': 'Failed to create guest session',
+                'detail': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def get(self, request):
+        """Get current guest session status and statistics"""
+        try:
+            is_guest = GuestSessionManager.is_guest(request)
+            
+            if not is_guest:
+                return Response({
+                    'is_guest': False,
+                    'message': 'Not a guest session'
+                }, status=status.HTTP_200_OK)
+            
+            stats = GuestSessionManager.get_guest_stats(request)
+            
+            return Response({
+                'is_guest': True,
+                'stats': stats
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"❌ Guest session status error: {str(e)}")
+            return Response({
+                'error': 'Failed to get guest session status',
+                'detail': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def delete(self, request):
+        """Clear guest session"""
+        try:
+            if GuestSessionManager.is_guest(request):
+                GuestSessionManager.clear_guest_session(request)
+                logger.info("✅ Guest session cleared")
+            
+            return Response({
+                'message': 'Guest session cleared successfully'
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"❌ Guest session clear error: {str(e)}")
+            return Response({
+                'error': 'Failed to clear guest session',
+                'detail': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

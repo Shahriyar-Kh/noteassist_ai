@@ -104,4 +104,62 @@ export const authService = {
   getRedirectUrl: () => {
     return localStorage.getItem('redirect') || '/dashboard';
   },
+
+  // ==================== GUEST MODE ====================
+  
+  // Initialize guest session
+  startGuestSession: async () => {
+    try {
+      const response = await api.post(API_ENDPOINTS.GUEST_SESSION);
+      console.log('Guest session started:', response.data);
+      
+      // Store guest session info
+      localStorage.setItem('isGuest', 'true');
+      localStorage.setItem('guestSession', JSON.stringify(response.data));
+      
+      return response.data;
+    } catch (error) {
+      console.error('Guest session error:', error);
+      throw error.response?.data || { detail: 'Failed to start guest session' };
+    }
+  },
+
+  // Get guest session status
+  getGuestSession: async () => {
+    try {
+      const response = await api.get(API_ENDPOINTS.GUEST_SESSION);
+      return response.data;
+    } catch (error) {
+      console.error('Get guest session error:', error);
+      throw error;
+    }
+  },
+
+  // Clear guest session
+  clearGuestSession: async () => {
+    try {
+      await api.delete(API_ENDPOINTS.GUEST_SESSION);
+    } catch (error) {
+      console.error('Clear guest session error:', error);
+    } finally {
+      localStorage.removeItem('isGuest');
+      localStorage.removeItem('guestSession');
+    }
+  },
+
+  // Check if user is guest
+  isGuest: () => {
+    return localStorage.getItem('isGuest') === 'true';
+  },
+
+  // Get stored guest session
+  getStoredGuestSession: () => {
+    const session = localStorage.getItem('guestSession');
+    return session ? JSON.parse(session) : null;
+  },
+
+  // Update guest session in storage
+  updateGuestSession: (sessionData) => {
+    localStorage.setItem('guestSession', JSON.stringify(sessionData));
+  },
 };

@@ -6,8 +6,11 @@ from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
+
+# Import guest manager
+from accounts.guest_manager import GuestSessionManager
 
 from .models import AIToolUsage, AIToolOutput, AIToolQuota
 from .serializers import (
@@ -40,9 +43,27 @@ class AIToolsViewSet(viewsets.GenericViewSet):
     - GET  /api/ai-tools/quota/
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]  # Changed to allow guest access
+
+    def _check_guest_limit(self, request, tool_name):
+        """Check if guest user can use the AI tool"""
+        if GuestSessionManager.is_guest(request):
+            if not GuestSessionManager.can_use_ai_tool(request, tool_name):
+                return Response({
+                    'error': 'Guest limit reached',
+                    'message': 'Your free trial is complete. Please login or register to continue.',
+                    'limit_reached': True,
+                    'tool_name': tool_name,
+                    'usage': GuestSessionManager.get_ai_tool_usage(request, tool_name),
+                    'limit': GuestSessionManager.MAX_AI_TOOL_ATTEMPTS.get(tool_name, 0)
+                }, status=status.HTTP_403_FORBIDDEN)
+        return None
 
     def _check_quota(self, user):
+        """Check quota for authenticated users"""
+        if not user or not user.is_authenticated:
+            return None  # Skip quota check for guests
+            
         quota, _ = AIToolQuota.objects.get_or_create(user=user)
 
         if not quota.can_use_tool():
@@ -61,10 +82,17 @@ class AIToolsViewSet(viewsets.GenericViewSet):
     @action(detail=False, methods=['post'])
     def generate(self, request):
         """Generate topic explanation using AI"""
+        # Check guest limit first
+        guest_limit_response = self._check_guest_limit(request, 'generate_topic')
+        if guest_limit_response:
+            return guest_limit_response
+        
         serializer = AIGenerateRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        quota = self._check_quota(request.user)
+        # Check quota for authenticated users
+        is_guest = GuestSessionManager.is_guest(request)
+        quota = None if is_guest else self._check_quota(request.user)
 
         topic = serializer.validated_data['topic']
         level = serializer.validated_data['level']
@@ -82,7 +110,31 @@ class AIToolsViewSet(viewsets.GenericViewSet):
             )
 
             response_time = time.time() - start_time
+            
+            # For guest users, return mock data without saving
+            if is_guest:
+                GuestSessionManager.increment_ai_tool_usage(request, 'generate_topic')
+                
+                mock_output = {
+                    'id': 'guest-output',
+                    'title': topic,
+                    'content': output_content,
+                    'created_at': timezone.now().isoformat(),
+                    'is_guest_output': True,
+                    'tool_type': 'generate',
+                    'can_use_more': GuestSessionManager.can_use_ai_tool(request, 'generate_topic'),
+                    'usage_remaining': GuestSessionManager.MAX_AI_TOOL_ATTEMPTS['generate_topic'] - GuestSessionManager.get_ai_tool_usage(request, 'generate_topic')
+                }
+                
+                logger.info(f"✅ Guest AI generate used (not persisted)")
+                return Response({
+                    'success': True,
+                    'output': mock_output,
+                    'message': 'Content generated successfully',
+                    'is_guest': True
+                }, status=status.HTTP_201_CREATED)
 
+            # For authenticated users, save to database
             usage = AIToolUsage.objects.create(
                 user=request.user,
                 tool_type='generate',
@@ -145,10 +197,16 @@ class AIToolsViewSet(viewsets.GenericViewSet):
     @action(detail=False, methods=['post'])
     def improve(self, request):
         """Improve existing content using AI"""
+        # Check guest limit first
+        guest_limit_response = self._check_guest_limit(request, 'improve_topic')
+        if guest_limit_response:
+            return guest_limit_response
+        
         serializer = AIImproveRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        quota = self._check_quota(request.user)
+        is_guest = GuestSessionManager.is_guest(request)
+        quota = None if is_guest else self._check_quota(request.user)
         content = serializer.validated_data['content']
 
         try:
@@ -157,6 +215,28 @@ class AIToolsViewSet(viewsets.GenericViewSet):
 
             improved_content = ai_service.improve_explanation(content)
             response_time = time.time() - start_time
+            
+            # For guest users, return mock data without saving
+            if is_guest:
+                GuestSessionManager.increment_ai_tool_usage(request, 'improve_topic')
+                
+                mock_output = {
+                    'id': 'guest-output',
+                    'title': 'Improved Content',
+                    'content': improved_content,
+                    'created_at': timezone.now().isoformat(),
+                    'is_guest_output': True,
+                    'tool_type': 'improve',
+                    'can_use_more': GuestSessionManager.can_use_ai_tool(request, 'improve_topic'),
+                    'usage_remaining': GuestSessionManager.MAX_AI_TOOL_ATTEMPTS['improve_topic'] - GuestSessionManager.get_ai_tool_usage(request, 'improve_topic')
+                }
+                
+                return Response({
+                    'success': True,
+                    'output': mock_output,
+                    'message': 'Content improved successfully',
+                    'is_guest': True
+                }, status=status.HTTP_201_CREATED)
 
             usage = AIToolUsage.objects.create(
                 user=request.user,
@@ -194,10 +274,16 @@ class AIToolsViewSet(viewsets.GenericViewSet):
     @action(detail=False, methods=['post'])
     def summarize(self, request):
         """Summarize content using AI"""
+        # Check guest limit first
+        guest_limit_response = self._check_guest_limit(request, 'summarize_topic')
+        if guest_limit_response:
+            return guest_limit_response
+        
         serializer = AISummarizeRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        quota = self._check_quota(request.user)
+        is_guest = GuestSessionManager.is_guest(request)
+        quota = None if is_guest else self._check_quota(request.user)
         content = serializer.validated_data['content']
 
         try:
@@ -206,6 +292,28 @@ class AIToolsViewSet(viewsets.GenericViewSet):
 
             summary = ai_service.summarize_explanation(content)
             response_time = time.time() - start_time
+            
+            # For guest users, return mock data without saving
+            if is_guest:
+                GuestSessionManager.increment_ai_tool_usage(request, 'summarize_topic')
+                
+                mock_output = {
+                    'id': 'guest-output',
+                    'title': 'Content Summary',
+                    'content': summary,
+                    'created_at': timezone.now().isoformat(),
+                    'is_guest_output': True,
+                    'tool_type': 'summarize',
+                    'can_use_more': GuestSessionManager.can_use_ai_tool(request, 'summarize_topic'),
+                    'usage_remaining': GuestSessionManager.MAX_AI_TOOL_ATTEMPTS['summarize_topic'] - GuestSessionManager.get_ai_tool_usage(request, 'summarize_topic')
+                }
+                
+                return Response({
+                    'success': True,
+                    'output': mock_output,
+                    'message': 'Content summarized successfully',
+                    'is_guest': True
+                })
 
             usage = AIToolUsage.objects.create(
                 user=request.user,
@@ -243,10 +351,16 @@ class AIToolsViewSet(viewsets.GenericViewSet):
     @action(detail=False, methods=['post'])
     def code(self, request):
         """Generate code using AI"""
+        # Check guest limit first
+        guest_limit_response = self._check_guest_limit(request, 'generate_code')
+        if guest_limit_response:
+            return guest_limit_response
+        
         serializer = AICodeRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        quota = self._check_quota(request.user)
+        is_guest = GuestSessionManager.is_guest(request)
+        quota = None if is_guest else self._check_quota(request.user)
         topic = serializer.validated_data['topic']
         language = serializer.validated_data['language']
         level = serializer.validated_data['level']
@@ -262,6 +376,29 @@ class AIToolsViewSet(viewsets.GenericViewSet):
             )
 
             response_time = time.time() - start_time
+            
+            # For guest users, return mock data without saving
+            if is_guest:
+                GuestSessionManager.increment_ai_tool_usage(request, 'generate_code')
+                
+                mock_output = {
+                    'id': 'guest-output',
+                    'title': f"{topic} - {language}",
+                    'content': code,
+                    'language': language,
+                    'created_at': timezone.now().isoformat(),
+                    'is_guest_output': True,
+                    'tool_type': 'code',
+                    'can_use_more': GuestSessionManager.can_use_ai_tool(request, 'generate_code'),
+                    'usage_remaining': GuestSessionManager.MAX_AI_TOOL_ATTEMPTS['generate_code'] - GuestSessionManager.get_ai_tool_usage(request, 'generate_code')
+                }
+                
+                return Response({
+                    'success': True,
+                    'output': mock_output,
+                    'message': 'Code generated successfully',
+                    'is_guest': True
+                })
 
             usage = AIToolUsage.objects.create(
                 user=request.user,
@@ -300,6 +437,13 @@ class AIToolsViewSet(viewsets.GenericViewSet):
     @action(detail=False, methods=['get'])
     def outputs(self, request):
         """List user's AI outputs"""
+        # Require authentication for outputs
+        if not request.user.is_authenticated:
+            return Response({
+                'error': 'Authentication required',
+                'message': 'Please login or register to view your outputs.'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
         outputs = AIToolOutput.objects.filter(
             user=request.user
         ).select_related('usage').order_by('-created_at')
