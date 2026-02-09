@@ -43,8 +43,14 @@ class EmailService:
                 return False
             
             # Use default from_email if not provided
+            # Priority: SENDGRID_FROM_EMAIL > EMAIL_HOST_USER > DEFAULT_FROM_EMAIL
+            # This ensures we use a VERIFIED sender email
             if not from_email:
-                from_email = settings.DEFAULT_FROM_EMAIL
+                from_email = (
+                    getattr(settings, 'SENDGRID_FROM_EMAIL', None) or 
+                    getattr(settings, 'EMAIL_HOST_USER', None) or 
+                    settings.DEFAULT_FROM_EMAIL
+                )
             
             logger.info(f"📧 Attempting to send email to: {to_email}")
             logger.info(f"   Subject: {subject}")

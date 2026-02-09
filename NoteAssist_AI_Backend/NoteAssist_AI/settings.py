@@ -62,6 +62,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'accounts.middleware.guest_middleware.GuestSessionMiddleware',  # Guest session management
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'utils.middleware.CacheHeadersMiddleware',
@@ -296,6 +297,7 @@ GZIP_MINIMUM_SIZE = 1024
 # Email Configuration
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000' if DEBUG else 'https://noteassist-ai.vercel.app')
 SENDGRID_API_KEY = config('SENDGRID_API_KEY', default='').strip()
+SENDGRID_FROM_EMAIL = config('SENDGRID_FROM_EMAIL', default='').strip()
 EMAIL_HOST = config('EMAIL_HOST', default='')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
