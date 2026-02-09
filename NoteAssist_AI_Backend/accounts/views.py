@@ -270,7 +270,9 @@ class AuthViewSet(viewsets.GenericViewSet):
     @action(detail=False, methods=['post'])
     def request_password_reset(self, request):
         """
-        Request password reset email.
+        ⚡ REFACTORED: Request password reset email - FAST response
+        Returns immediately without waiting for email to send.
+        Email is sent in background thread with timeout protection.
         Security: Always returns success to prevent email enumeration.
         """
         serializer = PasswordResetRequestSerializer(data=request.data)
@@ -296,23 +298,26 @@ class AuthViewSet(viewsets.GenericViewSet):
                 expires_at=expires_at
             )
             
-            # Send reset email
-            try:
-                self._send_password_reset_email(user, token)
-                logger.info(f"Password reset email sent to: {email}")
-            except Exception as e:
-                logger.error(f"Failed to send reset email to {email}: {str(e)}")
-                # Continue silently - security best practice
+            # ⚡ REFACTORED: Send email in background thread (non-blocking)
+            # Returns immediately - email sent asynchronously
+            thread = threading.Thread(
+                target=self._send_password_reset_email_async,
+                args=(user, token),
+                daemon=True
+            )
+            thread.start()
+            logger.info(f"Password reset email queued for: {email}")
             
         except User.DoesNotExist:
             # Security: Don't reveal that email doesn't exist
             logger.info(f"Password reset requested for non-existent email: {email}")
         
-        # Always return the same success message
+        # Always return the same success message IMMEDIATELY
         return Response({
             'success': True,
             'message': 'If an account exists with this email, you will receive a password reset link.',
-            'instructions': 'Check your inbox and spam folder. Link expires in 1 hour.'
+            'instructions': 'Check your inbox and spam folder. Link expires in 1 hour.',
+            'timestamp': timezone.now().isoformat()
         }, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['post'])
@@ -510,9 +515,97 @@ class AuthViewSet(viewsets.GenericViewSet):
             )
             return user, True
     
+    def _send_password_reset_email_async(self, user, token):
+        """
+        ⚡ NEW: Async background email sender with timeout protection
+        This runs in a separate thread and doesn't block the API response
+        """
+        import socket
+        
+        # Set timeout to prevent hanging
+        original_timeout = socket.getdefaulttimeout()
+        socket.setdefaulttimeout(15)  # 15 second timeout
+        
+        try:
+            logger.info(f"🔄 Background: Sending password reset email to {user.email}")
+            self._send_password_reset_email_sync(user, token)
+        except Exception as e:
+            logger.error(f"❌ Background: Failed to send reset email to {user.email}: {str(e)}")
+        finally:
+            socket.setdefaulttimeout(original_timeout)
+    
+    def _send_password_reset_email_sync(self, user, token):
+        """
+        ✅ Synchronous email sending (called from background thread)
+        """
+        frontend_url = settings.FRONTEND_URL
+        reset_url = f"{frontend_url}/reset-password?token={token}"
+        
+        subject = 'Reset Your NoteAssist AI Password'
+        message = f"""Hello {user.full_name or user.email},
+
+You requested to reset your password for your NoteAssist AI account.
+
+Click the link below to set a new password (valid for 1 hour):
+{reset_url}
+
+If you did not request this password reset, please ignore this email.
+Your account security is important to us.
+
+Best regards,
+NoteAssist AI Team
+"""
+        
+        # Use SENDGRID_FROM_EMAIL (verified) instead of DEFAULT_FROM_EMAIL
+        from_email = getattr(settings, 'SENDGRID_FROM_EMAIL', None) or settings.DEFAULT_FROM_EMAIL
+        
+        try:
+            # Try SendGrid first
+            import sendgrid
+            from sendgrid.helpers.mail import Mail, Email, To, Content
+            
+            sendgrid_key = getattr(settings, 'SENDGRID_API_KEY', '').strip()
+            if sendgrid_key and len(sendgrid_key) > 20:
+                try:
+                    sg = sendgrid.SendGridAPIClient(api_key=sendgrid_key)
+                    mail = Mail(
+                        from_email=Email(from_email),
+                        to_emails=To(user.email),
+                        subject=subject,
+                        plain_text_content=Content("text/plain", message)
+                    )
+                    
+                    response = sg.send(mail)
+                    
+                    if response.status_code == 202:
+                        logger.info(f"✅ Password reset email accepted by SendGrid for {user.email}")
+                        return True
+                    else:
+                        logger.warning(f"⚠️  SendGrid returned {response.status_code}, trying SMTP")
+                except Exception as e:
+                    logger.warning(f"⚠️  SendGrid failed ({str(e)}), trying SMTP fallback")
+            
+            # Fallback to SMTP with short timeout
+            from django.core.mail import EmailMultiAlternatives, get_connection
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=message,
+                from_email=from_email,
+                to=[user.email],
+                connection=get_connection(timeout=10)
+            )
+            email.send(fail_silently=False)
+            logger.info(f"✅ Password reset email sent via SMTP to {user.email}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to send password reset email: {str(e)}")
+            return False
+
     def _send_password_reset_email(self, user, token):
         """
         ✅ FIXED: Send password reset email synchronously with error handling
+        (Kept for backward compatibility - use _send_password_reset_email_async instead)
         """
         frontend_url = settings.FRONTEND_URL
         reset_url = f"{frontend_url}/reset-password?token={token}"
