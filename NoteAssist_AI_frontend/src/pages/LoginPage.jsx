@@ -203,7 +203,13 @@ const handleGoogleResponse = async (response) => {
         const errorType = data.error_type;
         const errorDetail = data.detail;
 
-        if (errorType === 'email_not_found') {
+        if (errorType === 'account_blocked') {
+          // ⛔ BLOCKED USER - PROMINENT ERROR
+          setMessage({
+            type: 'error',
+            text: `⛔ Your account has been blocked.\n\nReason: ${errorDetail || 'No reason provided'}\n\nPlease contact support for assistance.`,
+          });
+        } else if (errorType === 'email_not_found') {
           setFieldErrors({ ...errors, email: errorDetail });
           setMessage({
             type: 'error',

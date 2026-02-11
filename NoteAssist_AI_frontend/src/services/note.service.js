@@ -1,52 +1,79 @@
 // FILE: src/services/note.service.js
 // ============================================================================
+// ⚡ OPTIMIZED - Request deduplication, better error handling
 
 import api from './api';
 import { API_ENDPOINTS } from '@/utils/constants';
+import { requestDeduplicator } from '@/utils/requestDeduplication';
+import { showToast } from '@/components/common/Toast';
 
 export const noteService = {
   // ========================================================================
-  // NOTES
+  // NOTES - ⚡ WITH DEDUPLICATION & INSTANT FEEDBACK
   // ========================================================================
   
-  // Get all notes with optional filters
+  // Get all notes with optional filters (deduplicated)
   getNotes: async (params = {}) => {
-    const response = await api.get(API_ENDPOINTS.NOTES, { params });
-    return response.data;
+    return requestDeduplicator.execute(
+      API_ENDPOINTS.NOTES,
+      () => api.get(API_ENDPOINTS.NOTES, { params }),
+      params
+    ).then(response => response.data);
   },
 
-  // Get note detail with full structure
+  // Get note detail with full structure (deduplicated)
   getNoteDetail: async (id) => {
-    const response = await api.get(API_ENDPOINTS.NOTE_DETAIL(id));
-    return response.data;
+    return requestDeduplicator.execute(
+      `${API_ENDPOINTS.NOTE_DETAIL(id)}`,
+      () => api.get(API_ENDPOINTS.NOTE_DETAIL(id))
+    ).then(response => response.data);
   },
 
-  // Get note structure (chapters + topics)
+  // Get note structure (chapters + topics) - deduplicated
   getNoteStructure: async (id) => {
-    const response = await api.get(`${API_ENDPOINTS.NOTE_DETAIL(id)}structure/`);
-    return response.data;
+    return requestDeduplicator.execute(
+      `${API_ENDPOINTS.NOTE_DETAIL(id)}structure/`,
+      () => api.get(`${API_ENDPOINTS.NOTE_DETAIL(id)}structure/`)
+    ).then(response => response.data);
   },
 
-  // Create note
+  // Create note - with instant feedback
   createNote: async (noteData) => {
-    const response = await api.post(API_ENDPOINTS.NOTES, noteData);
-    return response.data;
+    try {
+      const response = await api.post(API_ENDPOINTS.NOTES, noteData);
+      return response.data;
+    } catch (error) {
+      showToast.error(error.response?.data?.error || 'Failed to create note');
+      throw error;
+    }
   },
 
-  // Update note
+  // Update note - with instant feedback
   updateNote: async (id, noteData) => {
-    const response = await api.patch(API_ENDPOINTS.NOTE_DETAIL(id), noteData);
-    return response.data;
+    try {
+      const response = await api.patch(API_ENDPOINTS.NOTE_DETAIL(id), noteData);
+      return response.data;
+    } catch (error) {
+      showToast.error(error.response?.data?.error || 'Failed to update note');
+      throw error;
+    }
   },
 
-  // Delete note
+  // Delete note - with instant feedback
   deleteNote: async (id) => {
-    const response = await api.delete(API_ENDPOINTS.NOTE_DETAIL(id));
-    return response.data;
+    try {
+      const response = await api.delete(API_ENDPOINTS.NOTE_DETAIL(id));
+      return response.data;
+    } catch (error) {
+      showToast.error(error.response?.data?.error || 'Failed to delete note');
+      throw error;
+    }
   },
 
- // Export note to PDF - FIXED VERSION
+ // Export note to PDF - FIXED VERSION with feedback
 exportNotePDF: async (id, noteTitle) => {
+  const loadingToastId = showToast.processing('Generating PDF... This may take a moment');
+  
   try {
     const response = await api.post(`/api/notes/${id}/export_pdf/`, {}, {
       responseType: 'blob',
@@ -91,6 +118,7 @@ exportNotePDF: async (id, noteTitle) => {
       window.URL.revokeObjectURL(url);
     }, 100);
 
+    showToast.success('✓ PDF exported successfully');
     return { success: true, filename };
 
   } catch (error) {
@@ -98,11 +126,13 @@ exportNotePDF: async (id, noteTitle) => {
     
     // Check if it's a timeout error
     if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      showToast.error('PDF generation took too long. Please try again.');
       throw new Error('PDF generation is taking too long. Please try again.');
     }
     
     // Check if it's a network error vs server error
     if (error.message === 'Network Error' || !error.response) {
+      showToast.error('Network error. Please check your connection.');
       throw new Error('Network error. Please check your connection.');
     }
     
@@ -113,18 +143,24 @@ exportNotePDF: async (id, noteTitle) => {
         if (error.response.data instanceof Blob) {
           const errorText = await error.response.data.text();
           const errorData = JSON.parse(errorText);
-          throw new Error(errorData.error || errorData.message || 'Failed to export PDF');
+          const errorMsg = errorData.error || errorData.message || 'Failed to export PDF';
+          showToast.error(errorMsg);
+          throw new Error(errorMsg);
         }
         // If it's already an object
         else if (typeof error.response.data === 'object') {
-          throw new Error(error.response.data.error || error.response.data.message || 'Failed to export PDF');
+          const errorMsg = error.response.data.error || error.response.data.message || 'Failed to export PDF';
+          showToast.error(errorMsg);
+          throw new Error(errorMsg);
         }
       } catch (e) {
         // If we can't parse as JSON, use the original error
+        showToast.error(error.message || 'Failed to export PDF');
         throw new Error(error.message || 'Failed to export PDF');
       }
     }
     
+    showToast.error('Failed to export PDF');
     throw error;
   }
 },

@@ -3,9 +3,11 @@
 
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
-import { Toaster } from 'react-hot-toast';
 import { store } from './store';
 import { lazy, Suspense, useEffect } from 'react';
+
+// ⚡ PERFORMANCE: Toast notification system
+import ToastContainer from './components/common/Toast';
 
 // Main Pages (loaded immediately for faster initial load)
 import HomePage from './pages/HomePage';
@@ -38,6 +40,8 @@ const AIHistoryPage = lazy(() => import('./pages/AIHistoryPage'));
 // Admin Pages - lazy loaded (accessed less frequently)
 const AdminDashboard = lazy(() => import('@/pages/Admin_Dashboard'));
 const AdminAIAnalyticsPage = lazy(() => import('./pages/AdminAIAnalyticsPage'));
+const AdminUserManagementPage = lazy(() => import('./pages/AdminUserManagementPage'));
+const AdminUserDetailPage = lazy(() => import('./pages/AdminUserDetailPage'));
 
 // Loading component for lazy-loaded routes
 const PageLoader = () => (
@@ -62,7 +66,8 @@ function App() {
   return (
     <Provider store={store}>
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <Toaster position="top-right" />
+        {/* ⚡ Global Toast Notification System */}
+        <ToastContainer maxToasts={5} />
         <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* Public Routes */}
@@ -161,16 +166,35 @@ function App() {
               </ProtectedRoute>
             } />
 
-            {/* Admin Routes - Lazy Loaded */}
+            {/* ================================================================
+                ADMIN ROUTES - All lazy loaded, require admin permissions
+                ================================================================ */}
+
+            {/* Admin Dashboard */}
             <Route path="/admin" element={
               <AdminRoute>
                 <AdminDashboard />
               </AdminRoute>
             } />
             
+            {/* Admin AI Analytics */}
             <Route path="/admin/analytics" element={
               <AdminRoute>
                 <AdminAIAnalyticsPage />
+              </AdminRoute>
+            } />
+
+            {/* Admin User Management - Lists all users with insights */}
+            <Route path="/admin/users" element={
+              <AdminRoute>
+                <AdminUserManagementPage />
+              </AdminRoute>
+            } />
+
+            {/* Admin User Detail - Single user deep-dive */}
+            <Route path="/admin/users/:userId" element={
+              <AdminRoute>
+                <AdminUserDetailPage />
               </AdminRoute>
             } />
 

@@ -39,6 +39,7 @@ urlpatterns = [
     
     # App URLs
     path('api/auth/', include('accounts.urls')),
+    path('api/accounts/', include('accounts.urls')),  # Admin endpoints at /api/accounts/admin/
     path('api/profile/', include('profiles.urls')),
     path('api/dashboard/', include('dashboard.urls')),
     path('api/ai-tools/', include('ai_tools.urls')),

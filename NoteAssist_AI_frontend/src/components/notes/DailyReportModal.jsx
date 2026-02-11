@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import { X, TrendingUp, BookOpen, Target, Clock } from 'lucide-react';
 import api from '@/services/api';
-import toast from 'react-hot-toast';
 
 const DailyReportModal = ({ isOpen, onClose, note }) => {
   const [report, setReport] = useState(null);
@@ -26,16 +25,31 @@ useEffect(() => {
       if (response.data && response.data.success) {
         setReport(response.data.report);
       } else {
-        toast.error('Failed to load daily report: ' + (response.data?.error || 'Unknown error'));
+        window.toastManager?.addToast({
+          type: 'error',
+          title: 'Failed to Load Report',
+          message: response.data?.error || 'Unknown error',
+          duration: 5000
+        });
       }
     } catch (error) {
       console.error('Error fetching report:', error);
       console.error('Error response:', error.response);
       
       if (error.response?.status === 401) {
-        toast.error('❌ Please login to view your daily report');
+        window.toastManager?.addToast({
+          type: 'error',
+          title: 'Authentication Required',
+          message: 'Please login to view your daily report',
+          duration: 5000
+        });
       } else {
-        toast.error('Failed to load daily report');
+        window.toastManager?.addToast({
+          type: 'error',
+          title: 'Error',
+          message: 'Failed to load daily report',
+          duration: 5000
+        });
       }
     } finally {
       setLoading(false);
@@ -44,39 +58,77 @@ useEffect(() => {
 
   const [sendingEmail, setSendingEmail] = useState(false);
 
-  const handleEmailReport = async () => {
+  const handleEmailReport = async (e) => {
+    e?.preventDefault?.();
     setSendingEmail(true);
-    
-    // Show immediate feedback
-    const loadingToast = toast.loading('Sending email report, please wait...');
     
     try {
       console.log('Sending daily report email...');
       const response = await api.post(`/api/notes/send_daily_report_email/`);
       
       console.log('Response:', response.data);
-      
-      // Dismiss loading toast
-      toast.dismiss(loadingToast);
+      console.log('window.toastManager exists?', !!window.toastManager);
       
       if (response.data && response.data.success) {
-        toast.success('✅ Email sent successfully!', { duration: 4000 });
+        console.log('Calling toast with success message');
+        if (window.toastManager && typeof window.toastManager.addToast === 'function') {
+          window.toastManager.addToast({
+            type: 'success',
+            title: 'Email Sent',
+            message: 'Daily report sent successfully to your email!',
+            duration: 4000
+          });
+          console.log('✅ Toast addToast called successfully');
+        } else {
+          console.error('❌ window.toastManager.addToast is not available:', window.toastManager);
+        }
       } else {
         const errorMsg = response.data?.error || 'Failed to send report';
-        toast.error('❌ ' + errorMsg, { duration: 5000 });
+        if (window.toastManager && typeof window.toastManager.addToast === 'function') {
+          window.toastManager.addToast({
+            type: 'error',
+            title: 'Failed to Send',
+            message: errorMsg,
+            duration: 5000
+          });
+        }
       }
     } catch (error) {
-      toast.dismiss(loadingToast);
       console.error('Error sending email:', error);
       console.error('Error response:', error.response);
+      console.log('window.toastManager exists?', !!window.toastManager);
       
       if (error.response?.status === 401) {
-        toast.error('❌ Please login to send email reports', { duration: 5000 });
+        if (window.toastManager && typeof window.toastManager.addToast === 'function') {
+          window.toastManager.addToast({
+            type: 'error',
+            title: 'Authentication Required',
+            message: 'Please login to send email reports',
+            duration: 5000
+          });
+        }
       } else if (error.response?.status === 400) {
-        toast.error('❌ ' + (error.response?.data?.error || 'Invalid request'), { duration: 5000 });
+        const errorMsg = error.response?.data?.error || 'Invalid request';
+        if (window.toastManager && typeof window.toastManager.addToast === 'function') {
+          window.toastManager.addToast({
+            type: 'error',
+            title: 'Invalid Request',
+            message: errorMsg,
+            duration: 5000
+          });
+        }
       } else {
         const errorMsg = error.response?.data?.error || 'Failed to send report. Please try again.';
-        toast.error('❌ ' + errorMsg, { duration: 5000 });
+        if (window.toastManager && typeof window.toastManager.addToast === 'function') {
+          window.toastManager.addToast({
+            type: 'error',
+            title: 'Error',
+            message: errorMsg,
+            duration: 5000
+          });
+        } else {
+          console.error('❌ window.toastManager.addToast is not available');
+        }
       }
     } finally {
       setSendingEmail(false);
@@ -85,7 +137,7 @@ useEffect(() => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
       <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
           <h2 className="text-2xl font-bold">Today's Learning Report</h2>
@@ -161,6 +213,7 @@ useEffect(() => {
             {/* Actions */}
             <div className="mt-6 flex gap-3">
             <button
+              type="button"
               onClick={handleEmailReport}
               disabled={sendingEmail}
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
@@ -175,6 +228,7 @@ useEffect(() => {
               )}
             </button>
               <button
+                type="button"
                 onClick={onClose}
                 className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300"
               >

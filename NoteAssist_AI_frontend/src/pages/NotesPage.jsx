@@ -841,7 +841,7 @@ const NotesPage = () => {
         />
       </div>
 
-      <style jsx global>{`
+      <style>{`
         @keyframes slideInRight {
           from {
             transform: translateX(100%);

@@ -45,7 +45,19 @@ export const authService = {
       return response.data;
     } catch (error) {
       console.error('Login error:', error.response?.data || error);
-      throw error.response?.data || { detail: 'Login failed' };
+      const errorData = error.response?.data || { detail: 'Login failed' };
+      
+      // ✅ Enhanced error handling for blocked users
+      if (errorData.error_type === 'account_blocked' || errorData.blocked_reason) {
+        return {
+          error_type: 'account_blocked',
+          detail: errorData.blocked_reason || errorData.detail || 'Your account has been blocked',
+          is_blocked: true,
+          blocked_reason: errorData.blocked_reason || errorData.detail
+        };
+      }
+      
+      throw errorData;
     }
   },
 

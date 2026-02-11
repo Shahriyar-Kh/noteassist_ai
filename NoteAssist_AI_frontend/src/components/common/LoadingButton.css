@@ -1,0 +1,205 @@
+/* FILE: src/components/common/LoadingButton.css */
+/* ============================================================================
+   Loading Button Styles - Professional, smooth, instant feedback
+   ============================================================================ */
+
+.loading-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  font-family: inherit;
+  outline: none;
+}
+
+/* Base styles */
+.loading-button:focus-visible {
+  outline: 2px solid #4F46E5;
+  outline-offset: 2px;
+}
+
+/* Size variants */
+.loading-button--sm {
+  padding: 6px 12px;
+  font-size: 13px;
+  height: 32px;
+}
+
+.loading-button--md {
+  padding: 8px 16px;
+  font-size: 14px;
+  height: 40px;
+}
+
+.loading-button--lg {
+  padding: 10px 20px;
+  font-size: 16px;
+  height: 48px;
+}
+
+/* Color variants */
+.loading-button--primary {
+  background-color: #4F46E5;
+  color: white;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.15);
+}
+
+.loading-button--primary:hover:not(:disabled) {
+  background-color: #4338CA;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+  transform: translateY(-1px);
+}
+
+.loading-button--primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(79, 70, 229, 0.15);
+}
+
+.loading-button--secondary {
+  background-color: #E5E7EB;
+  color: #1F2937;
+  border: 1px solid #D1D5DB;
+}
+
+.loading-button--secondary:hover:not(:disabled) {
+  background-color: #D1D5DB;
+  border-color: #9CA3AF;
+  transform: translateY(-1px);
+}
+
+.loading-button--secondary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.loading-button--danger {
+  background-color: #EF4444;
+  color: white;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.15);
+}
+
+.loading-button--danger:hover:not(:disabled) {
+  background-color: #DC2626;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+  transform: translateY(-1px);
+}
+
+.loading-button--danger:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.loading-button--success {
+  background-color: #10B981;
+  color: white;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+}
+
+.loading-button--success:hover:not(:disabled) {
+  background-color: #059669;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+  transform: translateY(-1px);
+}
+
+.loading-button--success:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Disabled state */
+.loading-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Loading state */
+.loading-button--loading {
+  pointer-events: none;
+}
+
+/* Spinner animation */
+.loading-button__spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Loading button text */
+.loading-button__text {
+  display: inline-block;
+}
+
+/* Smooth transitions on loading */
+.loading-button--loading .loading-button__spinner {
+  margin: 0 2px 0 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .loading-button--lg {
+    padding: 8px 16px;
+    font-size: 14px;
+    height: 40px;
+  }
+
+  .loading-button--md {
+    padding: 7px 14px;
+    font-size: 13px;
+    height: 36px;
+  }
+
+  .loading-button--sm {
+    padding: 5px 10px;
+    font-size: 12px;
+    height: 28px;
+  }
+}
+
+/* Accessibility: Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .loading-button {
+    transition: none;
+  }
+
+  .loading-button__spinner {
+    animation: none;
+    border: 2px solid currentColor;
+    position: relative;
+  }
+
+  .loading-button__spinner::after {
+    content: '';
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: currentColor;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    margin: -1px 0 0 -1px;
+    animation: pulse 1s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
+  }
+}

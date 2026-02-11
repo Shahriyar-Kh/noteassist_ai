@@ -81,6 +81,17 @@ class Note(models.Model):
             self.slug = slugify(self.title)[:500]
         super().save(*args, **kwargs)
     
+    @property
+    def chapter_count(self):
+        """Count of chapters in this note"""
+        return self.chapters.count()
+    
+    @property
+    def topic_count(self):
+        """Count of topics across all chapters in this note"""
+        # Count all topics related to all chapters in this note
+        return self.chapters.values_list('topics', flat=True).distinct().count()
+    
     def __str__(self):
         return self.title
     
@@ -287,6 +298,10 @@ class NoteVersion(models.Model):
         db_table = 'note_versions'
         ordering = ['-version_number']
         unique_together = ['note', 'version_number']
+        indexes = [
+            models.Index(fields=['note', '-version_number'], name='version_note_number_idx'),
+            models.Index(fields=['note', '-saved_at'], name='version_note_date_idx'),
+        ]
     
     def __str__(self):
         return f"{self.note.title} - v{self.version_number}"
@@ -327,6 +342,11 @@ class AIGeneratedContent(models.Model):
     class Meta:
         db_table = 'ai_generated_content'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at'], name='ai_gen_user_created_idx'),
+            models.Index(fields=['topic', '-created_at'], name='ai_gen_topic_created_idx'),
+            models.Index(fields=['user', 'action_type'], name='ai_gen_user_action_idx'),
+        ]
     
     def __str__(self):
         return f"{self.get_action_type_display()} - {self.created_at}"
@@ -420,6 +440,12 @@ class NoteShare(models.Model):
     class Meta:
         db_table = 'note_shares'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['note', '-created_at'], name='share_note_date_idx'),
+            models.Index(fields=['shared_with', '-created_at'], name='share_recipient_date_idx'),
+            models.Index(fields=['public_slug'], name='share_public_slug_idx'),
+            models.Index(fields=['is_public', 'expires_at'], name='share_public_valid_idx'),
+        ]
     
     def __str__(self):
         if self.is_public:

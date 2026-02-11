@@ -4,9 +4,14 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import AuthViewSet, UserViewSet, GuestSessionView
+from .admin_views import AdminUserManagementViewSet
 
 router = DefaultRouter()
 router.register('users', UserViewSet, basename='user')
+
+# Admin router
+admin_router = DefaultRouter()
+admin_router.register('user-management', AdminUserManagementViewSet, basename='admin-user-management')
 
 urlpatterns = [
     # Authentication endpoints
@@ -24,6 +29,9 @@ urlpatterns = [
     # Email verification
     path('verify_email/', AuthViewSet.as_view({'post': 'verify_email'}), name='verify_email'),
     path('resend_verification/', AuthViewSet.as_view({'post': 'resend_verification'}), name='resend_verification'),
+    
+    # Admin endpoints
+    path('admin/', include(admin_router.urls)),
     
     # User management routes
     path('', include(router.urls)),

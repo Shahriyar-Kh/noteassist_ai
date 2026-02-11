@@ -1,5 +1,6 @@
-# FILE: accounts/serializers.py - UPDATED VERSION
+# FILE: accounts/serializers.py
 # ============================================================================
+# Enhanced authentication serializers with blocking checks
 # Works with separate profiles app
 # ============================================================================
 
@@ -7,6 +8,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils import timezone
 from .models import LoginActivity
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 import logging
@@ -120,6 +122,8 @@ class UserSerializer(serializers.ModelSerializer):
     """
     
     profile = serializers.SerializerMethodField()
+    plan_type = serializers.SerializerMethodField()
+    is_blocked = serializers.SerializerMethodField()
     
     class Meta:
         model = User
@@ -128,11 +132,11 @@ class UserSerializer(serializers.ModelSerializer):
             'country', 'education_level', 'field_of_study',
             'learning_goal', 'preferred_study_hours', 'timezone',
             'email_verified', 'is_staff', 'is_superuser',
-            'profile', 'created_at'
+            'is_blocked', 'plan_type', 'profile', 'created_at'
         ]
         read_only_fields = [
             'id', 'email_verified', 'created_at', 'username', 
-            'role', 'is_staff', 'is_superuser'
+            'role', 'is_staff', 'is_superuser', 'is_blocked', 'plan_type'
         ]
     
     def get_profile(self, obj):
@@ -140,6 +144,22 @@ class UserSerializer(serializers.ModelSerializer):
         if hasattr(obj, 'profile'):
             return BasicProfileSerializer(obj.profile, context=self.context).data
         return None
+    
+    def get_plan_type(self, obj):
+        """Get plan type from AI quota"""
+        try:
+            quota = obj.ai_quota
+            if quota.monthly_limit >= 500:
+                return 'premium'
+            elif quota.monthly_limit >= 100:
+                return 'basic'
+            return 'free'
+        except Exception:
+            return 'free'
+    
+    def get_is_blocked(self, obj):
+        """Get block status"""
+        return not obj.is_active if not hasattr(obj, 'is_blocked') else getattr(obj, 'is_blocked', False)
 
 
 class LoginActivitySerializer(serializers.ModelSerializer):
@@ -152,7 +172,7 @@ class LoginActivitySerializer(serializers.ModelSerializer):
 
 class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
-    Custom JWT serializer with better error messages
+    Enhanced JWT serializer with blocking check and custom claims
     """
     
     username_field = 'email'
@@ -174,10 +194,28 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['is_staff'] = user.is_staff
         token['is_superuser'] = user.is_superuser
         
+        # Add blocking status if available
+        if hasattr(user, 'is_blocked'):
+            token['is_blocked'] = user.is_blocked
+        else:
+            token['is_blocked'] = not user.is_active
+        
+        # Add plan type
+        try:
+            quota = user.ai_quota
+            if quota.monthly_limit >= 500:
+                token['plan_type'] = 'premium'
+            elif quota.monthly_limit >= 100:
+                token['plan_type'] = 'basic'
+            else:
+                token['plan_type'] = 'free'
+        except Exception:
+            token['plan_type'] = 'free'
+        
         return token
     
     def validate(self, attrs):
-        """Validate and authenticate user with specific error messages"""
+        """Validate and authenticate user with comprehensive checks"""
         email = attrs.get('email', '').lower().strip()
         password = attrs.get('password')
         
@@ -194,6 +232,21 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
             raise serializers.ValidationError({
                 'detail': 'This email is not registered. Please sign up first.',
                 'error_type': 'email_not_found'
+            })
+        
+        # ✅ CHECK IF USER IS BLOCKED - BEFORE password check
+        is_blocked = getattr(user, 'is_blocked', not user.is_active)
+        if is_blocked:
+            block_reason = getattr(user, 'blocked_reason', 'Policy violation')
+            blocked_at = getattr(user, 'blocked_at', None)
+            logger.warning(f"Blocked user login attempt: {email}")
+            raise serializers.ValidationError({
+                'detail': f'Your account has been blocked. Reason: {block_reason}. Please contact support at shahriyarkhanpk3@gmail.com',
+                'error_type': 'account_blocked',
+                'is_blocked': True,
+                'blocked_reason': block_reason,
+                'blocked_at': blocked_at.isoformat() if blocked_at else None,
+                'support_email': 'shahriyarkhanpk3@gmail.com',
             })
         
         # Check if user is active
@@ -219,7 +272,6 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
             })
         
         # Update last login
-        from django.utils import timezone
         user.last_login_at = timezone.now()
         user.save(update_fields=['last_login_at'])
         
@@ -293,3 +345,117 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
         return instance
+
+
+# ============================================================================
+# ENHANCED SERIALIZERS FOR ADMIN OPERATIONS
+# ============================================================================
+
+class EnhancedUserDetailSerializer(serializers.ModelSerializer):
+    """Enhanced user detail serializer for admin analytics"""
+    
+    ai_quota = serializers.SerializerMethodField()
+    notes_count = serializers.SerializerMethodField()
+    ai_usage_count = serializers.SerializerMethodField()
+    plan_type = serializers.SerializerMethodField()
+    block_info = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = User
+        fields = [
+            'id', 'email', 'full_name', 'role', 'is_active', 'is_staff',
+            'email_verified', 'created_at', 'last_login_at',
+            'country', 'education_level', 'field_of_study',
+            'learning_goal', 'timezone',
+            'plan_type', 'ai_quota', 'notes_count', 'ai_usage_count',
+            'block_info'
+        ]
+        read_only_fields = [
+            'id', 'email', 'created_at', 'last_login_at',
+            'plan_type', 'ai_quota', 'notes_count', 'ai_usage_count'
+        ]
+    
+    def get_ai_quota(self, obj):
+        """Get AI quota information"""
+        try:
+            quota = obj.ai_quota
+            return {
+                'daily_limit': quota.daily_limit,
+                'daily_used': quota.daily_used,
+                'monthly_limit': quota.monthly_limit,
+                'monthly_used': quota.monthly_used,
+            }
+        except Exception:
+            return {
+                'daily_limit': 20,
+                'daily_used': 0,
+                'monthly_limit': 100,
+                'monthly_used': 0,
+            }
+    
+    def get_notes_count(self, obj):
+        """Get total notes count"""
+        if hasattr(obj, 'notes'):
+            return obj.notes.count()
+        return 0
+    
+    def get_ai_usage_count(self, obj):
+        """Get total AI usage count"""
+        if hasattr(obj, 'ai_tool_usages'):
+            return obj.ai_tool_usages.count()
+        return 0
+    
+    def get_plan_type(self, obj):
+        """Get plan type from quota"""
+        try:
+            quota = obj.ai_quota
+            if quota.monthly_limit >= 500:
+                return 'premium'
+            elif quota.monthly_limit >= 100:
+                return 'basic'
+            return 'free'
+        except Exception:
+            return 'free'
+    
+    def get_block_info(self, obj):
+        """Get blocking information"""
+        is_blocked = not obj.is_active
+        return {
+            'is_blocked': is_blocked,
+            'blocked_reason': getattr(obj, 'blocked_reason', None),
+            'blocked_at': getattr(obj, 'blocked_at', None),
+            'blocked_by': getattr(obj, 'blocked_by', None),
+        }
+
+
+class UserListSerializer(serializers.ModelSerializer):
+    """Compact serializer for user lists"""
+    
+    plan_type = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = User
+        fields = [
+            'id', 'email', 'full_name', 'plan_type', 'status',
+            'created_at', 'last_login_at', 'email_verified', 'role'
+        ]
+        read_only_fields = ['id', 'email', 'created_at', 'last_login_at', 'role']
+    
+    def get_plan_type(self, obj):
+        """Get plan type"""
+        try:
+            quota = obj.ai_quota
+            if quota.monthly_limit >= 500:
+                return 'premium'
+            elif quota.monthly_limit >= 100:
+                return 'basic'
+            return 'free'
+        except Exception:
+            return 'free'
+    
+    def get_status(self, obj):
+        """Get user status"""
+        if not obj.is_active:
+            return 'blocked'
+        return 'active'

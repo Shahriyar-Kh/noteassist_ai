@@ -24,7 +24,7 @@ const AdminRoute = ({ children }) => {
     }
 
     // Check if user is admin
-    const isAdmin = user.role === 'admin' || user.is_staff || user.is_superuser;
+    const isAdmin = user.role === 'admin' || user.is_staff || user.is_superuser || user.is_admin;
 
     if (!isAdmin) {
       // Not an admin - redirect to user dashboard

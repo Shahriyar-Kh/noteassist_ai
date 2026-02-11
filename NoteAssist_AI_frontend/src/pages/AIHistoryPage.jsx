@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import aiToolsService from '../services/aiTools.service';
-import { History, ArrowLeft, Loader2, Eye, Download, Trash2, Filter } from 'lucide-react';
+import { History, ArrowLeft, Loader2, Eye, Download, Trash2, Filter, TrendingUp, AlertCircle } from 'lucide-react';
 
 const AIHistoryPage = () => {
   const navigate = useNavigate();
@@ -10,6 +10,7 @@ const AIHistoryPage = () => {
   const [quota, setQuota] = useState(null);
   const [filter, setFilter] = useState('all');
   const [error, setError] = useState('');
+  const [breakdown, setBreakdown] = useState(null);
 
   useEffect(() => {
     fetchHistory();
@@ -32,7 +33,14 @@ const AIHistoryPage = () => {
   const fetchQuota = async () => {
     try {
       const data = await aiToolsService.getQuota();
-      setQuota(data.quota);
+      setQuota(data);
+      
+      // ✅ Calculate breakdown if available
+      if (data.breakdown) {
+        setBreakdown(data.breakdown);
+      } else if (data.usage_by_type) {
+        setBreakdown(data.usage_by_type);
+      }
     } catch (err) {
       console.error('Failed to load quota:', err);
     }
@@ -75,6 +83,16 @@ const AIHistoryPage = () => {
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
 
+  const getToolName = (type) => {
+    const names = {
+      generate: 'Generate Topic',
+      improve: 'Improve Content',
+      summarize: 'Summarize',
+      code: 'Generate Code',
+    };
+    return names[type] || type;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4">
       <div className="max-w-6xl mx-auto">
@@ -98,21 +116,83 @@ const AIHistoryPage = () => {
             </div>
 
             {quota && (
-              <div className="bg-white rounded-lg shadow p-4">
-                <div className="text-sm text-gray-600 mb-1">Daily Quota</div>
+              <div className="bg-white rounded-lg shadow p-4 min-w-max">
+                <div className="text-sm text-gray-600 mb-1 font-medium">Daily Quota</div>
                 <div className="text-2xl font-bold text-gray-900">
-                  {quota.daily_used} / {quota.daily_limit}
+                  {quota.ai_requests_today || 0} / {quota.daily_ai_limit || quota.daily_limit || 10}
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-2 min-w-40">
                   <div
                     className="bg-blue-600 h-2 rounded-full transition-all"
-                    style={{ width: `${(quota.daily_used / quota.daily_limit) * 100}%` }}
+                    style={{ width: `${Math.min(((quota.ai_requests_today || 0) / (quota.daily_ai_limit || quota.daily_limit || 10)) * 100, 100)}%` }}
                   />
                 </div>
               </div>
             )}
           </div>
         </div>
+
+        {/* ✅ Usage Breakdown by Tool Type */}
+        {breakdown && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {[
+              { key: 'generate', name: 'Generate Topic', icon: '✨' },
+              { key: 'improve', name: 'Improve Content', icon: '⚡' },
+              { key: 'summarize', name: 'Summarize', icon: '📄' },
+              { key: 'code', name: 'Generate Code', icon: '💻' },
+            ].map(({ key, name, icon }) => (
+              <div key={key} className={`rounded-lg p-4 ${getToolColor(key)}`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">{icon} {name}</p>
+                    <p className="text-2xl font-bold mt-1">{breakdown[key] || 0}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Plan & Limits Info */}
+        {quota && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 bg-white rounded-lg shadow p-4">
+            <div>
+              <p className="text-sm text-gray-600 font-medium mb-1">Weekly Usage</p>
+              <p className="text-lg font-bold text-gray-900">
+                {quota.ai_requests_week || 0} / {quota.weekly_ai_limit || 50}
+              </p>
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                <div
+                  className="bg-purple-600 h-2 rounded-full transition-all"
+                  style={{ width: `${Math.min(((quota.ai_requests_week || 0) / (quota.weekly_ai_limit || 50)) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 font-medium mb-1">Monthly Usage</p>
+              <p className="text-lg font-bold text-gray-900">
+                {quota.ai_requests_month || 0} / {quota.monthly_ai_limit || 200}
+              </p>
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                <div
+                  className="bg-orange-600 h-2 rounded-full transition-all"
+                  style={{ width: `${Math.min(((quota.ai_requests_month || 0) / (quota.monthly_ai_limit || 200)) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-center">
+              <div className="text-center">
+                <p className="text-sm text-gray-600 font-medium mb-1">Plan Type</p>
+                <p className="text-xl font-bold text-blue-600 capitalize">{quota.plan_type || 'free'}</p>
+                {quota.can_make_ai_request === false && (
+                  <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" /> Limit Reached
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Filter */}
         <div className="bg-white rounded-lg shadow p-4 mb-6">
@@ -129,7 +209,7 @@ const AIHistoryPage = () => {
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                {type.charAt(0).toUpperCase() + type.slice(1)}
+                {type === 'all' ? 'All' : getToolName(type)}
               </button>
             ))}
           </div>
@@ -158,7 +238,7 @@ const AIHistoryPage = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getToolColor(item.tool_type)}`}>
-                        {item.tool_type}
+                        {getToolName(item.tool_type)}
                       </span>
                       <span className="text-sm text-gray-500">
                         {new Date(item.created_at).toLocaleString()}

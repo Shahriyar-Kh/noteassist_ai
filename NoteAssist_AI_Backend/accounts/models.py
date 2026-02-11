@@ -188,6 +188,11 @@ class LoginActivity(models.Model):
         ordering = ['-login_at']
         verbose_name = 'login activity'
         verbose_name_plural = 'login activities'
+        indexes = [
+            models.Index(fields=['user', '-login_at'], name='login_activity_u_date_idx'),
+            models.Index(fields=['-login_at'], name='login_activity_date_idx'),
+            models.Index(fields=['ip_address'], name='login_activity_ip_idx'),
+        ]
     
     def __str__(self):
         return f"{self.user.email} - {self.login_at}"
@@ -205,6 +210,11 @@ class PasswordReset(models.Model):
     class Meta:
         db_table = 'password_resets'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['token'], name='password_reset_token_idx'),
+            models.Index(fields=['user', '-created_at'], name='pw_reset_u_date_idx'),
+            models.Index(fields=['used', 'expires_at'], name='password_reset_valid_idx'),
+        ]
     
     def is_valid(self):
         return not self.used and timezone.now() < self.expires_at
@@ -225,9 +235,185 @@ class EmailVerification(models.Model):
     class Meta:
         db_table = 'email_verifications'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['token'], name='email_verification_token_idx'),
+            models.Index(fields=['user', '-created_at'], name='email_verif_u_date_idx'),
+            models.Index(fields=['verified', 'expires_at'], name='email_verification_valid_idx'),
+        ]
     
     def is_valid(self):
         return not self.verified and timezone.now() < self.expires_at
     
     def __str__(self):
         return f"Verification token for {self.user.email}"
+
+
+class UserPlan(models.Model):
+    """User subscription and plan management"""
+    
+    PLAN_CHOICES = [
+        ('free', 'Free'),
+        ('basic', 'Basic'),
+        ('premium', 'Premium'),
+    ]
+    
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='plan',
+        primary_key=True
+    )
+    plan_type = models.CharField(max_length=20, choices=PLAN_CHOICES, default='free')
+    
+    # AI Usage Limits
+    daily_ai_limit = models.IntegerField(default=10)
+    weekly_ai_limit = models.IntegerField(default=50)
+    monthly_ai_limit = models.IntegerField(default=200)
+    
+    # Feature Access
+    can_use_ai_tools = models.BooleanField(default=True)
+    can_export_pdf = models.BooleanField(default=True)
+    can_publish_notes = models.BooleanField(default=True)
+    max_notes = models.IntegerField(default=100)
+    max_storage_mb = models.IntegerField(default=500)
+    
+    # Usage Tracking
+    ai_requests_today = models.IntegerField(default=0)
+    ai_requests_week = models.IntegerField(default=0)
+    ai_requests_month = models.IntegerField(default=0)
+    last_reset_daily = models.DateField(default=timezone.now)
+    last_reset_weekly = models.DateField(default=timezone.now)
+    last_reset_monthly = models.DateField(default=timezone.now)
+    
+    # Admin Controls
+    is_blocked = models.BooleanField(default=False)
+    blocked_reason = models.TextField(blank=True)
+    blocked_at = models.DateTimeField(null=True, blank=True)
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'user_plans'
+        verbose_name = 'user plan'
+        verbose_name_plural = 'user plans'
+        indexes = [
+            models.Index(fields=['plan_type'], name='plan_type_idx'),
+            models.Index(fields=['is_blocked'], name='plan_blocked_idx'),
+        ]
+    
+    def reset_daily_usage(self):
+        """Reset daily usage counters"""
+        today = timezone.now().date()
+        if self.last_reset_daily < today:
+            self.ai_requests_today = 0
+            self.last_reset_daily = today
+            self.save(update_fields=['ai_requests_today', 'last_reset_daily'])
+    
+    def reset_weekly_usage(self):
+        """Reset weekly usage counters"""
+        today = timezone.now().date()
+        days_since_reset = (today - self.last_reset_weekly).days
+        if days_since_reset >= 7:
+            self.ai_requests_week = 0
+            self.last_reset_weekly = today
+            self.save(update_fields=['ai_requests_week', 'last_reset_weekly'])
+    
+    def reset_monthly_usage(self):
+        """Reset monthly usage counters"""
+        today = timezone.now().date()
+        days_since_reset = (today - self.last_reset_monthly).days
+        if days_since_reset >= 30:
+            self.ai_requests_month = 0
+            self.last_reset_monthly = today
+            self.save(update_fields=['ai_requests_month', 'last_reset_monthly'])
+    
+    def can_make_ai_request(self):
+        """Check if user can make an AI request"""
+        self.reset_daily_usage()
+        self.reset_weekly_usage()
+        self.reset_monthly_usage()
+        
+        if self.is_blocked or not self.can_use_ai_tools:
+            return False
+        
+        if self.ai_requests_today >= self.daily_ai_limit:
+            return False
+        if self.ai_requests_week >= self.weekly_ai_limit:
+            return False
+        if self.ai_requests_month >= self.monthly_ai_limit:
+            return False
+        
+        return True
+    
+    def increment_ai_usage(self):
+        """Increment AI usage counters"""
+        self.ai_requests_today += 1
+        self.ai_requests_week += 1
+        self.ai_requests_month += 1
+        self.save(update_fields=[
+            'ai_requests_today',
+            'ai_requests_week',
+            'ai_requests_month'
+        ])
+    
+    def get_remaining_requests(self):
+        """Get remaining AI requests for all periods"""
+        self.reset_daily_usage()
+        self.reset_weekly_usage()
+        self.reset_monthly_usage()
+        
+        return {
+            'daily': max(0, self.daily_ai_limit - self.ai_requests_today),
+            'weekly': max(0, self.weekly_ai_limit - self.ai_requests_week),
+            'monthly': max(0, self.monthly_ai_limit - self.ai_requests_month),
+        }
+    
+    def __str__(self):
+        return f"{self.user.email} - {self.plan_type}"
+
+
+class UserActionLog(models.Model):
+    """Log admin actions on users for audit trail"""
+    
+    ACTION_CHOICES = [
+        ('block', 'Block User'),
+        ('unblock', 'Unblock User'),
+        ('change_plan', 'Change Plan'),
+        ('change_limits', 'Change Limits'),
+        ('revoke_access', 'Revoke Access'),
+        ('grant_access', 'Grant Access'),
+        ('reset_usage', 'Reset Usage'),
+        ('send_notification', 'Send Notification'),
+    ]
+    
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='action_logs'
+    )
+    admin = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='admin_actions'
+    )
+    action = models.CharField(max_length=50, choices=ACTION_CHOICES)
+    details = models.JSONField(default=dict)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'user_action_logs'
+        ordering = ['-created_at']
+        verbose_name = 'user action log'
+        verbose_name_plural = 'user action logs'
+        indexes = [
+            models.Index(fields=['user', '-created_at'], name='action_user_date_idx'),
+            models.Index(fields=['admin', '-created_at'], name='action_admin_date_idx'),
+            models.Index(fields=['action'], name='action_type_idx'),
+        ]
+    
+    def __str__(self):
+        return f"{self.action} on {self.user.email} by {self.admin.email if self.admin else 'System'}"

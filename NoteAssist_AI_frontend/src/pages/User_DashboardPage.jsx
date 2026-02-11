@@ -465,7 +465,44 @@ const DashboardPage = () => {
                 </div>
               </div>
 
-              {/* Streak Card */}
+              {/* ✅ AI Usage Breakdown */}
+              <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl">
+                      <TrendingUp className="w-5 h-5 text-white" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900">AI Usage Today</h3>
+                  </div>
+                  <Link to="/history" className="text-xs text-blue-600 hover:text-blue-700 font-semibold">
+                    View All
+                  </Link>
+                </div>
+                
+                {dashboardData?.usage_by_tool ? (
+                  <div className="space-y-2">
+                    {[
+                      { key: 'generate', name: 'Generate Topic', icon: '✨' },
+                      { key: 'improve', name: 'Improve Content', icon: '⚡' },
+                      { key: 'summarize', name: 'Summarize', icon: '📄' },
+                      { key: 'code', name: 'Generate Code', icon: '💻' },
+                    ].map(({ key, name, icon }) => (
+                      <div key={key} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                        <span className="text-sm font-medium text-gray-700">{icon} {name}</span>
+                        <span className="text-lg font-bold text-gray-900">{dashboardData.usage_by_tool[key] || 0}</span>
+                      </div>
+                    ))}
+                    <div className="border-t border-gray-200 pt-2 mt-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-gray-900">Total</span>
+                        <span className="text-lg font-bold text-blue-600">{dashboardData.usage_by_tool.total || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 text-center py-4">No AI usage yet</p>
+                )}
+              </div>
               <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-3 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl">

@@ -1,23 +1,59 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Users, BookOpen, FileText, Activity, Search, ChevronRight, Eye, Edit, Trash2,
   Download, AlertCircle, CheckCircle, Clock, Award, BarChart3,
-  UserPlus, BookPlus, MessageSquare, Shield, Settings
+  UserPlus, BookPlus, MessageSquare, Shield, Settings, TrendingUp,
+  ArrowUp, ArrowDown
 } from 'lucide-react';
+import AdminLayout from '@/components/layout/AdminLayout';
+import { toast } from 'react-hot-toast';
+import adminAnalyticsService from '@/services/adminAnalytics.service';
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const [stats] = useState({
-    totalUsers: 15234,
-    totalTopics: 342,
-    totalNotes: 52341,
-    activeUsers: 8456,
-    newUsersToday: 234,
-    activeNotes: 89,
-    pendingReviews: 12,
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalTopics: 0,
+    totalNotes: 0,
+    activeUsers: 0,
+    newUsersToday: 0,
+    activeNotes: 0,
+    pendingReviews: 0,
     systemHealth: 98,
   });
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const response = await adminAnalyticsService.getOverview();
+      
+      if (response) {
+        setStats({
+          totalUsers: response.total_users || 0,
+          totalTopics: response.total_topics || 0,
+          totalNotes: response.total_notes || 0,
+          activeUsers: response.active_users_today || 0,
+          newUsersToday: response.new_users_today || 0,
+          activeNotes: response.published_notes || 0,
+          pendingReviews: 0,
+          systemHealth: 98,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      toast.error('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [recentUsers] = useState([
     { id: 1, name: 'John Doe', email: 'john@example.com', joined: '2 hours ago', status: 'active', notes: 5 },
@@ -39,14 +75,22 @@ const AdminDashboard = () => {
     { id: 3, title: 'Weekly Report Available', date: '2 days ago', priority: 'low' },
   ]);
 
+  const handleViewAllUsers = () => {
+    navigate('/admin/users');
+  };
+
+  const handleViewUser = (userId) => {
+    navigate(`/admin/users/${userId}`);
+  };
+
   const navigationItems = [
-    { icon: Activity, label: 'Dashboard', active: true },
-    { icon: Users, label: 'User Management', badge: '15.2K' },
-    { icon: BookOpen, label: 'Notes Management', badge: '342' },
-    { icon: FileText, label: 'Content Review', badge: 12 },
-    { icon: MessageSquare, label: 'Announcements' },
-    { icon: BarChart3, label: 'Analytics' },
-    { icon: Settings, label: 'Settings' },
+    { icon: Activity, label: 'Dashboard', active: true, path: '/admin/dashboard' },
+    { icon: Users, label: 'User Management', badge: stats.totalUsers.toLocaleString(), path: '/admin/users' },
+    { icon: BookOpen, label: 'Notes Management', badge: stats.totalTopics.toString(), path: '/admin/notes' },
+    { icon: FileText, label: 'Content Review', badge: stats.pendingReviews, path: '/admin/content' },
+    { icon: MessageSquare, label: 'Notifications', path: '/admin/notifications' },
+    { icon: BarChart3, label: 'Analytics', path: '/admin/analytics' },
+    { icon: Settings, label: 'Settings', path: '/admin/settings' },
   ];
 
   const getStatusColor = (status) => {
@@ -60,8 +104,9 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <AdminLayout>
+      <div className="p-4 md:p-8">
+        <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
@@ -212,8 +257,11 @@ const AdminDashboard = () => {
             </div>
 
             <div className="mt-4 flex items-center justify-between">
-              <p className="text-sm text-gray-600">Showing 4 of {stats.totalUsers.toLocaleString()} users</p>
-              <button className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium">
+              <p className="text-sm text-gray-600">Showing {recentUsers.length} of {stats.totalUsers.toLocaleString()} users</p>
+              <button 
+                onClick={handleViewAllUsers}
+                className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
                 View All Users
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -367,7 +415,7 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
-
+    </AdminLayout>
   );
 };
 
