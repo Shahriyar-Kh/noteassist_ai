@@ -63,6 +63,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'accounts.middleware.guest_middleware.GuestSessionMiddleware',  # Guest session management
+    'accounts.middleware.blocking_middleware.UserBlockingMiddleware',  # ✅ ADD THIS LINE
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'utils.middleware.CacheHeadersMiddleware',
@@ -96,26 +97,42 @@ import dj_database_url
 
 DATABASE_URL = config('DATABASE_URL', default=None)
 
-# Use DATABASE_URL if available (Supabase or any PostgreSQL), otherwise SQLite3
+# ============================================================================
+# Database Configuration - Production OPTIMIZED for Supabase PostgreSQL
+# ============================================================================
 if DATABASE_URL:
     # Parse DATABASE_URL using dj-database-url (Supabase/PostgreSQL)
     DATABASES = {
         'default': dj_database_url.config(
             default=DATABASE_URL,
-            conn_max_age=600,
-            conn_health_checks=True,
-            ssl_require=True,
+            conn_max_age=600,                  # ⚡ IMPROVED: 10 min connection lifetime
+            conn_health_checks=True,           # Keep connections alive
+            ssl_require=True,                  # Force SSL for Supabase
         )
     }
-    # Add additional PostgreSQL optimizations
-    DATABASES['default']['ATOMIC_REQUESTS'] = True
+    
+    # ⚡ ADVANCED DATABASE OPTIMIZATIONS FOR SUPABASE + RENDER
+    DATABASES['default']['ATOMIC_REQUESTS'] = False  # Allow more concurrency
+    DATABASES['default']['AUTOCOMMIT'] = True         # Auto-commit for better concurrency
+    DATABASES['default']['CONN_MAX_AGE'] = 600        # Connection pool timeout
     DATABASES['default']['OPTIONS'] = {
         'connect_timeout': 10,
+        'options': '-c statement_timeout=30000 -c default_transaction_isolation=read_committed',
         'keepalives': 1,
         'keepalives_idle': 30,
         'keepalives_interval': 10,
         'keepalives_count': 5,
+        'tcp_user_timeout': 30000,
+        # ⚡ NEW: Connection pool options for better resource usage
+        'sslmode': 'require',
+        'application_name': 'noteassist_api',
     }
+    
+    # ⚡ NEW: Supabase-specific optimization - reduce connection overhead
+    if 'supabase' in DATABASE_URL.lower():
+        DATABASES['default']['OPTIONS']['connect_timeout'] = 5
+        DATABASES['default']['CONN_MAX_AGE'] = 300  # Shorter for Supabase free-tier
+        DATABASES['default']['OPTIONS']['application_name'] = 'noteassist_render'
 else:
     # Development: SQLite3 (local)
     DATABASES = {
@@ -125,30 +142,102 @@ else:
         }
     }
 
-# Redis Configuration (Optional for production)
+# ============================================================================
+# Redis Configuration - For Caching & Celery (⚡ PRODUCTION OPTIMIZED)
+# ============================================================================
 REDIS_URL = config('REDIS_URL', default='redis://127.0.0.1:6379')
 
-# Use local memory cache for development (no Redis required)
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'studynotes-locmem',
-        'TIMEOUT': 3600,
-    },
-    'ai_cache': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'ai-cache-locmem',
-        'TIMEOUT': 86400,
-    },
-    'session': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'session-locmem',
-        'TIMEOUT': 1209600,
-    },
-}
-
-# Use database-backed sessions for development (more reliable than cache)
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+# ⚡ INTELLIGENT CACHING STRATEGY (production-ready with advanced pooling)
+if ENVIRONMENT == 'production' and REDIS_URL and 'redis' in REDIS_URL:
+    # Production: Redis for speed & scalability with pgbouncer-like pooling
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'KEY_PREFIX': 'noteassist',
+            'TIMEOUT': 300,  # 5 minutes default
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.HerdClient',  # ⚡ Prevent cache stampede
+                'CONNECTION_POOL_KWARGS': {
+                    'max_connections': 50,
+                    'retry_on_timeout': True,
+                    'socket_keepalive': True,
+                    'socket_keepalive_options': {
+                        1: 1,  # TCP_KEEPIDLE
+                        2: 1,  # TCP_KEEPINTVL
+                        3: 1,  # TCP_KEEPCNT
+                    }
+                },
+                'SOCKET_TIMEOUT': 5,
+                'SOCKET_KEEPALIVE': True,
+                'SOCKET_KEEPALIVE_OPTIONS': {
+                    1: 1,
+                    2: 1,
+                    3: 1,
+                },
+                'SOCKET_CONNECT_TIMEOUT': 5,
+                'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+                'IGNORE_EXCEPTIONS': False,  # ⚡ Fail explicitly, don't hide errors
+                'PARSER_KWARGS': {
+                    'use_connection_pool': True,
+                },
+            },
+        },
+        'ai_cache': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'KEY_PREFIX': 'noteassist_ai',
+            'TIMEOUT': 3600,  # 1 hour for AI results
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.HerdClient',
+                'CONNECTION_POOL_KWARGS': {
+                    'max_connections': 30,
+                    'retry_on_timeout': True,
+                },
+                'SOCKET_TIMEOUT': 5,
+                'SOCKET_KEEPALIVE': True,
+                'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+            },
+        },
+        'session': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'KEY_PREFIX': 'noteassist_session',
+            'TIMEOUT': 2592000,  # 30 days for sessions
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'CONNECTION_POOL_KWARGS': {
+                    'max_connections': 25,
+                    'retry_on_timeout': True,
+                },
+                'SOCKET_TIMEOUT': 5,
+            },
+        },
+    }
+    # Use Redis sessions for production
+    SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+    SESSION_CACHE_ALIAS = 'session'
+else:
+    # Development: In-memory caching (no external dependencies)
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'studynotes-cache',
+            'TIMEOUT': 300,
+        },
+        'ai_cache': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'ai-cache',
+            'TIMEOUT': 3600,
+        },
+        'session': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'session-cache',
+            'TIMEOUT': 2592000,
+        },
+    }
+    # Development: Database sessions
+    SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -192,10 +281,11 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
 
-# REST Framework
+# REST Framework - ⚡ OPTIMIZED FOR PERFORMANCE
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
+    'PAGE_SIZE': 25,                               # ⚡ Increased from 20 for fewer requests
+    'MAX_PAGE_SIZE': 100,
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
@@ -212,9 +302,9 @@ REST_FRAMEWORK = {
         'utils.throttling.SustainedRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'burst': '60/min',
-        'sustained': '1000/day',
-        'ai_tools': '20/hour',
+        'burst': '100/min',            # ⚡ Increased for better UX
+        'sustained': '10000/day',      # ⚡ Increased for scaling
+        'ai_tools': '30/hour',          # ⚡ Increased for AI tools
     },
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
@@ -222,6 +312,9 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
     ],
+    'DEFAULT_METADATA_CLASS': 'rest_framework.metadata.SimpleMetadata',  # ⚡ Less overhead
+    'COMPACT_JSON': True,                  # ⚡ Reduce response size
+    'NUM_PROXIES': 1 if ENVIRONMENT == 'production' else None,  # ⚡ For Render proxy
 }
 
 # JWT Settings
@@ -260,13 +353,17 @@ else:
         'http://localhost:3000',
     ]
 
-CORS_ALLOWED_ORIGINS = config(
-    'CORS_ALLOWED_ORIGINS',
-    default=','.join(CORS_ALLOWED_ORIGINS),
-    cast=lambda v: [s.strip() for s in v.split(',')]
-)
+# Only override with config if not in DEBUG mode
+if not DEBUG:
+    CORS_ALLOWED_ORIGINS = config(
+        'CORS_ALLOWED_ORIGINS',
+        default=','.join(CORS_ALLOWED_ORIGINS),
+        cast=lambda v: [s.strip() for s in v.split(',')]
+    )
+
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+CORS_EXPOSE_HEADERS = ['Content-Disposition', 'Content-Length']  # Expose headers for file downloads
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',
@@ -282,13 +379,37 @@ CORS_ALLOW_HEADERS = [
 ]
 CORS_PREFLIGHT_MAX_AGE = 86400
 
-# Celery
+# Celery Configuration - ⚡ OPTIMIZED FOR RENDER FREE-TIER
 CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
+
+# ⚡ ADVANCED CELERY OPTIMIZATIONS
+CELERY_TASK_TRACK_STARTED = True              # Track when tasks start
+CELERY_TASK_TIME_LIMIT = 30 * 60              # 30 min hard timeout
+CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60         # 25 min soft timeout
+CELERY_WORKER_PREFETCH_MULTIPLIER = 4         # ⚡ Reduce for limited resources
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000      # Restart worker after 1000 tasks
+CELERY_BROKER_CONNECTION_RETRY = True
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BROKER_CONNECTION_MAX_RETRIES = 10
+CELERY_BROKER_RETRY_ON_TIMEOUT = True
+
+# ⚡ Task routing for priority handling
+CELERY_TASK_ROUTES = {
+    'notes.tasks.send_daily_digest': {'queue': 'high_priority'},
+    'accounts.tasks.send_reset_email': {'queue': 'high_priority'},
+    'ai_tools.tasks.generate_ai_content': {'queue': 'default'},
+    'notes.tasks.sync_google_drive': {'queue': 'low_priority'},
+}
+
+# ⚡ Task defaults for faster execution
+CELERY_TASK_DEFAULT_RETRY_DELAY = 60          # 1 min initial retry
+CELERY_TASK_MAX_RETRIES = 3                   # Max 3 retries
+CELERY_RESULT_EXPIRES = 3600                  # Results expire after 1 hour
 
 # GZip Settings
 GZIP_COMPRESSION_LEVEL = 6

@@ -18,14 +18,25 @@ useEffect(() => {
   const fetchDailyReport = async () => {
     setLoading(true);
     try {
+      console.log('Fetching daily report...');
       // FIXED ENDPOINT - needs note ID
       const response = await api.get(`/api/notes/daily_report/`);
-      if (response.data.success) {
+      console.log('Daily report response:', response.data);
+      
+      if (response.data && response.data.success) {
         setReport(response.data.report);
+      } else {
+        toast.error('Failed to load daily report: ' + (response.data?.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error fetching report:', error);
-      toast.error('Failed to load daily report');
+      console.error('Error response:', error.response);
+      
+      if (error.response?.status === 401) {
+        toast.error('❌ Please login to view your daily report');
+      } else {
+        toast.error('Failed to load daily report');
+      }
     } finally {
       setLoading(false);
     }
@@ -40,21 +51,33 @@ useEffect(() => {
     const loadingToast = toast.loading('Sending email report, please wait...');
     
     try {
+      console.log('Sending daily report email...');
       const response = await api.post(`/api/notes/send_daily_report_email/`);
+      
+      console.log('Response:', response.data);
       
       // Dismiss loading toast
       toast.dismiss(loadingToast);
       
-      if (response.data.success) {
+      if (response.data && response.data.success) {
         toast.success('✅ Email sent successfully!', { duration: 4000 });
       } else {
-        toast.error('Failed to send report');
+        const errorMsg = response.data?.error || 'Failed to send report';
+        toast.error('❌ ' + errorMsg, { duration: 5000 });
       }
     } catch (error) {
       toast.dismiss(loadingToast);
       console.error('Error sending email:', error);
-      const errorMsg = error.response?.data?.error || 'Failed to send report. Please try again.';
-      toast.error(errorMsg, { duration: 5000 });
+      console.error('Error response:', error.response);
+      
+      if (error.response?.status === 401) {
+        toast.error('❌ Please login to send email reports', { duration: 5000 });
+      } else if (error.response?.status === 400) {
+        toast.error('❌ ' + (error.response?.data?.error || 'Invalid request'), { duration: 5000 });
+      } else {
+        const errorMsg = error.response?.data?.error || 'Failed to send report. Please try again.';
+        toast.error('❌ ' + errorMsg, { duration: 5000 });
+      }
     } finally {
       setSendingEmail(false);
     }

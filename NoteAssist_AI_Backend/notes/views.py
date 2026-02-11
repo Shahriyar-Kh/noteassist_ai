@@ -13,46 +13,39 @@ from django.db.models import Q, Count, Prefetch, Max
 from django.http import HttpResponse
 from django.utils import timezone
 from uuid import uuid4
-from .models import AIHistory
+from .models import AIHistory, Note, Chapter, ChapterTopic, NoteShare
 from .google_callback import GoogleOAuthCallbackView
-from .serializers import AIHistorySerializer, AIToolActionSerializer
+from .serializers import (
+    AIHistorySerializer, AIToolActionSerializer, 
+    ChapterSerializer, ChapterTopicSerializer,
+    NoteListSerializer, NoteCreateSerializer, NoteDetailSerializer,
+    NoteShareSerializer, NoteVersionSerializer, AIGeneratedContentSerializer,
+    TopicCreateSerializer, TopicUpdateSerializer
+)
 
 import os
 from django.conf import settings
 from .code_execution_service import CodeExecutionService
+from .services import NoteService, ChapterService, TopicService
+from .google_drive_service import GoogleDriveService, GoogleAuthService
+from .daily_report_service import DailyNotesReportService
+from .pdf_service import export_note_to_pdf
+from .ai_service import (
+    generate_ai_explanation, improve_explanation, 
+    summarize_explanation, generate_ai_code
+)
 
 # Import guest manager
 from accounts.guest_manager import GuestSessionManager
 
-# Import services
-from .google_drive_service import GoogleDriveService, GoogleAuthService, SCOPES
-from .daily_report_service import DailyNotesReportService
-from .services import NoteService, ChapterService, TopicService
-
-from .models import (
-    Note, Chapter, ChapterTopic, TopicExplanation,
-    TopicCodeSnippet, TopicSource, NoteVersion,
-    AIGeneratedContent, NoteShare
-)
-from .serializers import (
-    NoteListSerializer, NoteDetailSerializer, NoteCreateSerializer, ChapterSerializer,
-    ChapterTopicSerializer, NoteVersionSerializer, AIGeneratedContentSerializer,
-    NoteShareSerializer, AIActionSerializer, TopicCreateSerializer,
-    TopicUpdateSerializer
-)
-from .ai_service import (
-    generate_ai_explanation,
-    generate_ai_code,
-    improve_explanation,
-    summarize_explanation
-)
-from .pdf_service import export_note_to_pdf
+# Import optimization utilities
+from utils.query_optimization import QueryOptimizer, CacheOptimizer
 
 logger = logging.getLogger(__name__)
 
 
 class NoteViewSet(viewsets.ModelViewSet):
-    """Note CRUD with chapters and topics"""
+    """Note CRUD with chapters and topics - ⚡ OPTIMIZED"""
 
     permission_classes = [permissions.AllowAny]  # Changed to allow guest access
 
@@ -72,45 +65,37 @@ class NoteViewSet(viewsets.ModelViewSet):
         # Authenticated users see their own notes
         if not self.request.user.is_authenticated:
             return Note.objects.none()
-            
-        # IMPORTANT: Always filter by current user
+        
+        # ⚡ OPTIMIZED: Use QueryOptimizer for better performance
         if self.action == 'list':
-            queryset = Note.objects.filter(user=self.request.user).select_related('user')
+            # List view - optimized for listing with counts
+            queryset = QueryOptimizer.get_notes_for_list(
+                user=self.request.user,
+                filters={
+                    'status': self.request.query_params.get('status'),
+                    'tags': self.request.query_params.get('tags', '').split(',') if self.request.query_params.get('tags') else [],
+                    'search': self.request.query_params.get('search'),
+                }
+            )
         else:
-            queryset = Note.objects.filter(user=self.request.user).select_related(
-                'user'
-            ).prefetch_related(
-                Prefetch('chapters', queryset=Chapter.objects.order_by('order')),
-                Prefetch('chapters__topics', queryset=ChapterTopic.objects.order_by('order').select_related(
-                    'explanation', 'code_snippet', 'source'
-                )),
+            # Detail view - Full structure with chapters and topics
+            # For now, use default behavior as we'll fetch full structure when needed
+            queryset = Note.objects.filter(user=self.request.user).select_related('user')
+        
+        return queryset
+    
+    def retrieve(self, request, *args, **kwargs):
+        """Optimized retrieve with proper query optimization"""
+        note = QueryOptimizer.get_note_detail(kwargs['pk'], request.user)
+        
+        if not note:
+            return Response(
+                {'error': 'Note not found'},
+                status=status.HTTP_404_NOT_FOUND
             )
         
-        # Filters
-        status_filter = self.request.query_params.get('status')
-        if status_filter:
-            queryset = queryset.filter(status=status_filter)
-        
-        tags = self.request.query_params.get('tags')
-        if tags:
-            tag_list = tags.split(',')
-            for tag in tag_list:
-                queryset = queryset.filter(tags__contains=[tag.strip()])
-        
-        search = self.request.query_params.get('search')
-        if search:
-            queryset = queryset.filter(
-                Q(title__icontains=search) | 
-                Q(tags__contains=[search]) |
-                Q(chapters__title__icontains=search) |
-                Q(chapters__topics__name__icontains=search)
-            ).distinct()
-        
-        return queryset.annotate(
-            chapter_count=Count('chapters', distinct=True),
-            topic_count=Count('chapters__topics', distinct=True),
-            version_count=Count('versions', distinct=True)
-        ).order_by('-updated_at')
+        serializer = self.get_serializer(note)
+        return Response(serializer.data)
     
     def create(self, request, *args, **kwargs):
         """Create note using NoteService"""
@@ -135,8 +120,11 @@ class NoteViewSet(viewsets.ModelViewSet):
                 'message': 'Please login or register to create notes.'
             }, status=status.HTTP_401_UNAUTHORIZED)
         
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        
+        if not serializer.is_valid():
+            logger.error(f"Serializer validation errors: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         try:
             # For guest users, return mock note without saving
@@ -182,12 +170,13 @@ class NoteViewSet(viewsets.ModelViewSet):
             return Response(response_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
             
         except ValidationError as e:
+            logger.error(f"Validation error during create: {str(e)}")
             return Response(
                 {'error': str(e.message) if hasattr(e, 'message') else str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
-            logger.error(f"Note creation error: {str(e)}")
+            logger.error(f"Note creation error: {str(e)}", exc_info=True)
             return Response(
                 {'error': f'Failed to create note: {str(e)}'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -349,7 +338,15 @@ class NoteViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def daily_report(self, request):
         """User-based daily report"""
+        # Check authentication
+        if not request.user.is_authenticated:
+            return Response(
+                {'success': False, 'error': 'Authentication required'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+            
         try:
+            logger.info(f"Generating daily report for {request.user.username}")
             report_data = DailyNotesReportService.generate_daily_report(request.user)
 
             return Response({
@@ -372,6 +369,7 @@ class NoteViewSet(viewsets.ModelViewSet):
                 }
             })
         except Exception as e:
+            logger.error(f"Error generating daily report for {request.user.username}: {str(e)}", exc_info=True)
             return Response(
                 {'success': False, 'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -381,26 +379,46 @@ class NoteViewSet(viewsets.ModelViewSet):
     def send_daily_report_email(self, request):
         """Send daily report email"""
         try:
+            # Check authentication
+            if not request.user.is_authenticated:
+                return Response(
+                    {'success': False, 'error': 'Authentication required'},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+            
+            # Validate user has email
+            if not request.user.email:
+                return Response(
+                    {'success': False, 'error': 'User email not found. Please update your profile.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            logger.info(f"Generating daily report for {request.user.username}")
             report_data = DailyNotesReportService.generate_daily_report(request.user)
+            
+            logger.info(f"Sending daily report email to {request.user.email}")
             success = DailyNotesReportService.send_daily_report_email(
                 request.user,
                 report_data
             )
 
             if success:
+                logger.info(f"✅ Daily report sent successfully to {request.user.email}")
                 return Response({
                     'success': True,
                     'message': 'Daily report sent to your email'
                 })
 
+            logger.error(f"❌ Failed to send daily report to {request.user.email}")
             return Response(
-                {'success': False, 'error': 'Failed to send email'},
+                {'success': False, 'error': 'Failed to send email. Please try again.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
         except Exception as e:
+            logger.error(f"Error sending daily report: {str(e)}", exc_info=True)
             return Response(
-                {'success': False, 'error': str(e)},
+                {'success': False, 'error': f'Error: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
