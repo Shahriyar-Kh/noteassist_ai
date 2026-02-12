@@ -12,6 +12,9 @@ from rest_framework.response import Response
 # Import guest manager
 from accounts.guest_manager import GuestSessionManager
 
+# ✅ Import new permission classes
+from accounts.permissions import IsAuthenticatedForMutations, IsAuthenticatedUser
+
 from .models import AIToolUsage, AIToolOutput, AIToolQuota
 from .serializers import (
     AIToolUsageSerializer, AIToolOutputSerializer,
@@ -28,6 +31,11 @@ logger = logging.getLogger(__name__)
 class AIToolsViewSet(viewsets.GenericViewSet):
     """
     Standalone AI Tools API
+    
+    ✅ Auth Rules:
+    - All AI operations (generate, improve, summarize, code) require authentication
+    - Guests NOT allowed to use any AI features
+    - Guest limit checks enforced before authentication
 
     Endpoints:
     - POST /api/ai-tools/generate/
@@ -43,7 +51,8 @@ class AIToolsViewSet(viewsets.GenericViewSet):
     - GET  /api/ai-tools/quota/
     """
 
-    permission_classes = [AllowAny]  # Changed to allow guest access
+    # ✅ NEW: Require authentication for all AI operations
+    permission_classes = [IsAuthenticatedUser]
 
     def _check_guest_limit(self, request, tool_name):
         """Check if guest user can use the AI tool"""

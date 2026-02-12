@@ -38,6 +38,9 @@ from .ai_service import (
 # Import guest manager
 from accounts.guest_manager import GuestSessionManager
 
+# ✅ Import permission classes
+from accounts.permissions import IsAuthenticatedForMutations, IsAuthenticatedUser
+
 # Import optimization utilities
 from utils.query_optimization import QueryOptimizer, CacheOptimizer
 
@@ -45,9 +48,17 @@ logger = logging.getLogger(__name__)
 
 
 class NoteViewSet(viewsets.ModelViewSet):
-    """Note CRUD with chapters and topics - ⚡ OPTIMIZED"""
+    """
+    Note CRUD with chapters and topics - ⚡ OPTIMIZED
+    
+    ✅ Auth Rules:
+    - GET (list, retrieve): Allowed without authentication
+    - POST, PUT, DELETE: Require authentication
+    - Guests cannot create, edit, or delete notes
+    """
 
-    permission_classes = [permissions.AllowAny]  # Changed to allow guest access
+    # ✅ NEW: Enforce authentication for mutations
+    permission_classes = [IsAuthenticatedForMutations]
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -98,28 +109,10 @@ class NoteViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
     
     def create(self, request, *args, **kwargs):
-        """Create note using NoteService"""
-        # Check if guest user and enforce limits
-        is_guest = GuestSessionManager.is_guest(request)
-        
-        if is_guest:
-            # Check guest limit
-            if not GuestSessionManager.can_create_note(request):
-                return Response({
-                    'error': 'Guest limit reached',
-                    'message': 'Your free trial is complete. Please login or register to continue.',
-                    'limit_reached': True,
-                    'notes_created': GuestSessionManager.get_note_count(request),
-                    'max_notes': GuestSessionManager.MAX_NOTES
-                }, status=status.HTTP_403_FORBIDDEN)
-        
-        # Require authentication for non-guest users
-        if not is_guest and not request.user.is_authenticated:
-            return Response({
-                'error': 'Authentication required',
-                'message': 'Please login or register to create notes.'
-            }, status=status.HTTP_401_UNAUTHORIZED)
-        
+        """
+        Create note for authenticated users only.
+        ✅ Permission class handles authentication check before reaching this method.
+        """
         serializer = self.get_serializer(data=request.data, context={'request': request})
         
         if not serializer.is_valid():
@@ -127,28 +120,6 @@ class NoteViewSet(viewsets.ModelViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            # For guest users, return mock note without saving
-            if is_guest:
-                # Increment guest note count
-                GuestSessionManager.increment_note_count(request)
-                
-                # Return mock note data
-                mock_note = {
-                    'id': str(uuid4()),
-                    'title': serializer.validated_data.get('title', 'Guest Note'),
-                    'description': serializer.validated_data.get('description', ''),
-                    'status': 'draft',
-                    'is_guest_note': True,
-                    'chapters': [],
-                    'created_at': timezone.now().isoformat(),
-                    'updated_at': timezone.now().isoformat(),
-                    'can_create_more': GuestSessionManager.can_create_note(request),
-                    'notes_remaining': GuestSessionManager.MAX_NOTES - GuestSessionManager.get_note_count(request)
-                }
-                
-                logger.info(f"✅ Guest note created (not persisted)")
-                return Response(mock_note, status=status.HTTP_201_CREATED)
-            
             # Use NoteService to create note for authenticated users
             note = NoteService.create_note(
                 user=request.user,

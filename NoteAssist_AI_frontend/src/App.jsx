@@ -26,6 +26,7 @@ import TermsOfService from './pages/TermsOfService';
 import ProtectedRoute from '@/components/guards/ProtectedRoute';
 import GuestRoute from '@/components/guards/GuestRoute';
 import AdminRoute from '@/components/guards/AdminRoute';
+import PublicPageRoute from '@/components/guards/PublicPageRoute';
 
 // Lazy-loaded Pages (code splitting for better performance)
 // Profile & AI Tools - loaded on demand
@@ -115,42 +116,42 @@ function App() {
               </ProtectedRoute>
             } />
 
-            {/* Notes - Allow guest access */}
+            {/* Notes - Public page (viewable without auth, but actions require auth) */}
             <Route path="/notes" element={
-              <ProtectedRoute allowGuest={true}>
+              <PublicPageRoute>
                 <NotesPage />
-              </ProtectedRoute>
+              </PublicPageRoute>
             } />
 
-            {/* AI Tools Routes - Allow guest access */}
+            {/* AI Tools Routes - Public pages (viewable without auth, but actions require auth) */}
             <Route path="/ai-tools" element={
-              <ProtectedRoute allowGuest={true}>
+              <PublicPageRoute>
                 <AIToolsPage />
-              </ProtectedRoute>
+              </PublicPageRoute>
             } />
             
             <Route path="/ai-tools/generate" element={
-              <ProtectedRoute allowGuest={true}>
+              <PublicPageRoute>
                 <AIToolsGenerateTopicPage />
-              </ProtectedRoute>
+              </PublicPageRoute>
             } />
             
             <Route path="/ai-tools/improve" element={
-              <ProtectedRoute allowGuest={true}>
+              <PublicPageRoute>
                 <AIToolsImprovePage />
-              </ProtectedRoute>
+              </PublicPageRoute>
             } />
             
             <Route path="/ai-tools/summarize" element={
-              <ProtectedRoute allowGuest={true}>
+              <PublicPageRoute>
                 <AIToolsSummarizePage />
-              </ProtectedRoute>
+              </PublicPageRoute>
             } />
             
             <Route path="/ai-tools/code" element={
-              <ProtectedRoute allowGuest={true}>
+              <PublicPageRoute>
                 <AIToolsGenerateCodePage />
-              </ProtectedRoute>
+              </PublicPageRoute>
             } />
             
             <Route path="/ai-tools/history" element={
