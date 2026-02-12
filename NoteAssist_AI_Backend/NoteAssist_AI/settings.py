@@ -348,7 +348,7 @@ if DEBUG:
 else:
     CORS_ALLOW_ALL_ORIGINS = False
     CORS_ALLOWED_ORIGINS = [
-        'https://noteassist-frontend.vercel.app',
+        'https://noteassistai.vercel.app',
         'http://localhost:5173',
         'http://localhost:3000',
     ]
@@ -416,7 +416,7 @@ GZIP_COMPRESSION_LEVEL = 6
 GZIP_MINIMUM_SIZE = 1024
 
 # Email Configuration
-FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000' if DEBUG else 'https://noteassist-ai.vercel.app')
+FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000' if DEBUG else 'https://noteassistai.vercel.app')
 SENDGRID_API_KEY = config('SENDGRID_API_KEY', default='').strip()
 SENDGRID_FROM_EMAIL = config('SENDGRID_FROM_EMAIL', default='').strip()
 EMAIL_HOST = config('EMAIL_HOST', default='')
