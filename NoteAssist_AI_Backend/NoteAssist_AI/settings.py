@@ -145,10 +145,21 @@ else:
 # ============================================================================
 # Redis Configuration - For Caching & Celery (⚡ PRODUCTION OPTIMIZED)
 # ============================================================================
-REDIS_URL = config('REDIS_URL', default='redis://127.0.0.1:6379')
+REDIS_URL = config('REDIS_URL', default=None)
 
 # ⚡ INTELLIGENT CACHING STRATEGY (production-ready with advanced pooling)
-if ENVIRONMENT == 'production' and REDIS_URL and 'redis' in REDIS_URL:
+# Check if Redis is actually available (for Render free-tier compatibility)
+REDIS_AVAILABLE = False
+if REDIS_URL and 'redis' in REDIS_URL:
+    try:
+        import redis
+        r = redis.from_url(REDIS_URL, socket_connect_timeout=2, socket_timeout=2)
+        r.ping()
+        REDIS_AVAILABLE = True
+    except Exception:
+        REDIS_AVAILABLE = False
+
+if ENVIRONMENT == 'production' and REDIS_AVAILABLE:
     # Production: Redis for speed & scalability with pgbouncer-like pooling
     CACHES = {
         'default': {
@@ -217,6 +228,27 @@ if ENVIRONMENT == 'production' and REDIS_URL and 'redis' in REDIS_URL:
     # Use Redis sessions for production
     SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
     SESSION_CACHE_ALIAS = 'session'
+elif ENVIRONMENT == 'production':
+    # 🆓 Render Free-Tier: Database-backed caching (no Redis)
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+            'LOCATION': 'django_cache_table',
+            'TIMEOUT': 300,
+        },
+        'ai_cache': {
+            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+            'LOCATION': 'django_cache_table',
+            'TIMEOUT': 3600,
+        },
+        'session': {
+            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+            'LOCATION': 'django_cache_table',
+            'TIMEOUT': 2592000,
+        },
+    }
+    # Database sessions for free tier
+    SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 else:
     # Development: In-memory caching (no external dependencies)
     CACHES = {
@@ -380,8 +412,15 @@ CORS_ALLOW_HEADERS = [
 CORS_PREFLIGHT_MAX_AGE = 86400
 
 # Celery Configuration - ⚡ OPTIMIZED FOR RENDER FREE-TIER
-CELERY_BROKER_URL = REDIS_URL
-CELERY_RESULT_BACKEND = REDIS_URL
+if REDIS_AVAILABLE:
+    # Use Redis if available
+    CELERY_BROKER_URL = REDIS_URL
+    CELERY_RESULT_BACKEND = REDIS_URL
+else:
+    # 🆓 Free-tier: Use database as broker (slower but works)
+    CELERY_BROKER_URL = f"sqla+{DATABASE_URL}" if DATABASE_URL else 'sqla://sqlite:///celery.db'
+    CELERY_RESULT_BACKEND = f"db+{DATABASE_URL}" if DATABASE_URL else 'db+sqlite:///celery.db'
+
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
