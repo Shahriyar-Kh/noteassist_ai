@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { 
   Wand2, FileText, Loader, CheckCircle, Sparkles, Download, Cloud, AlertCircle,
   Home, ArrowLeft, LayoutDashboard, AlignLeft, Code
 } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import '@/styles/animations.css';
 import { noteService } from '@/services/note.service';
 import { toast } from 'react-hot-toast';
 import api from '@/services/api';
@@ -207,13 +209,13 @@ const handleAI = async (action) => {
       explanation: result.generated_content
     }));
     
-    showToast(`Explanation generated successfully (${learningLevel} level)!`, 'success');
+    showToast(`✨ Explanation generated successfully (${learningLevel} level)!`, 'success');
     
   } catch (error) {
     console.error('AI action failed:', error);
     const errorMessage = error.response?.data?.error || error.message || 'AI action failed';
     setError(errorMessage);
-    showToast(errorMessage, 'error');
+    showToast('❌ ' + errorMessage, 'error');
   } finally {
     setAiLoading(null);
   }
@@ -229,20 +231,29 @@ const showToast = (message, type = 'success') => {
 
 return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <Helmet>
+        <title>Generate Topic - AI Tools | NoteAssist AI</title>
+        <meta name="description" content="Generate comprehensive learning topics with AI-powered explanations. Choose your learning level and let AI create detailed, engaging content." />
+        <meta property="og:title" content="Generate Topic - AI Tools | NoteAssist AI" />
+        <meta property="og:description" content="Generate comprehensive learning topics with AI-powered explanations. Choose your learning level and let AI create detailed, engaging content." />
+        <meta name="twitter:title" content="Generate Topic - AI Tools | NoteAssist AI" />
+        <meta name="twitter:description" content="Generate comprehensive learning topics with AI-powered explanations." />
+      </Helmet>
+
       {/* Header Navigation */}
-      <header className="sticky top-0 z-30 bg-white/90 dark:bg-gray-900/90 backdrop-blur border-b border-gray-200 dark:border-gray-700">
+      <header className="sticky top-0 z-30 bg-white/90 dark:bg-gray-900/90 backdrop-blur border-b border-gray-200 dark:border-gray-700 animate-fadeInDown">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <button
               onClick={() => navigate('/ai-tools')}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all hover-lift"
             >
               <ArrowLeft size={16} />
               Back
             </button>
             <button
               onClick={() => navigate('/home')}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all hover-lift"
             >
               <Home size={16} />
               Home
@@ -251,28 +262,28 @@ return (
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => navigate('/dashboard')}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all hover-lift"
             >
               <LayoutDashboard size={16} />
               Dashboard
             </button>
             <button
               onClick={() => navigate('/ai-tools/improve')}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all hover-lift"
             >
               <Wand2 size={16} />
               Improve
             </button>
             <button
               onClick={() => navigate('/ai-tools/summarize')}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all hover-lift"
             >
               <AlignLeft size={16} />
               Summarize
             </button>
             <button
               onClick={() => navigate('/ai-tools/code')}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all hover-lift"
             >
               <Code size={16} />
               Generate Code
@@ -285,24 +296,31 @@ return (
         <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-6 space-y-6">
       {/* Error Message */}
       {error && (
-        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg animate-shake">
+          <p className="text-sm text-red-800 dark:text-red-200 flex items-start gap-2">
+            <AlertCircle size={18} className="flex-shrink-0 mt-0.5" />
+            {error}
+          </p>
         </div>
       )}
 
       {/* Topic Name */}
-      <div>
-        <label className="block text-sm font-medium mb-2">Topic Name *</label>
+      <div className="animate-fadeIn" style={{ animationDelay: '0.1s' }}>
+        <label className="flex text-sm font-medium mb-2 items-center gap-2">
+          <span className="text-lg">📝</span>
+          Topic Name *
+        </label>
         <input
           type="text"
           value={formData.name}
           onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
           placeholder="e.g., Binary Search Algorithm"
-          className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
         />
+        {!formData.name && <p className="text-xs text-gray-500 mt-1">Topic name is required to generate content</p>}
       </div>
       {/* Learning Level Selector - NEW */}
-<div className="border dark:border-gray-700 rounded-lg p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+<div className="border dark:border-gray-700 rounded-lg p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 animate-fadeIn" style={{ animationDelay: '0.2s' }}>
   <label className="flex text-sm font-medium mb-3 items-center gap-2">
     <span className="text-blue-700 dark:text-blue-300 text-base font-semibold">
       🎓 Learning Level
@@ -419,16 +437,16 @@ return (
 
 
       {/* Explanation Section with Rich Text Editor */}
-      <div className="border dark:border-gray-700 rounded-lg p-4">
+      <div className="border dark:border-gray-700 rounded-lg p-4 animate-fadeIn" style={{ animationDelay: '0.3s' }}>
         <div className="flex items-center justify-between mb-3">
-          <label className="text-sm font-medium flex items-center gap-2">
-            <FileText size={16} />
+        <label className="flex text-sm font-medium mb-2 items-center gap-2">
+            <FileText size={16} className="text-indigo-600 dark:text-indigo-400" />
             Explanation
           </label>
           <button
             onClick={() => handleAI('generate_explanation')}
             disabled={aiLoading || !formData.name.trim()}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 active:scale-95"
           >
             {aiLoading === 'generate_explanation' ? (
               <Loader className="w-4 h-4 animate-spin" />
@@ -457,9 +475,12 @@ return (
 
       {/* Export Buttons Section */}
       {formData.explanation && formData.name && (
-        <div className="border dark:border-gray-700 rounded-lg p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20">
+        <div className="border dark:border-gray-700 rounded-lg p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 animate-slideInUp" style={{ animationDelay: '0.4s' }}>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Export Your Content</h3>
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+              <Download size={16} className="text-green-600 dark:text-green-400" />
+              Export Your Content
+            </h3>
             {!driveStatus.checking && (
               <div className="flex items-center gap-2 px-3 py-1 bg-white dark:bg-gray-800 rounded-lg text-xs">
                 {driveStatus.connected ? (
@@ -481,7 +502,7 @@ return (
             {/* Export to PDF Button */}
             <button
               onClick={handleExportPDF}
-              className="flex-1 min-w-max flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all"
+              className="flex-1 min-w-max flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-lg hover:from-red-700 hover:to-pink-700 transition-all transform hover:scale-105 active:scale-95"
             >
               <Download size={18} />
               Export as PDF
@@ -491,10 +512,10 @@ return (
             <button
               onClick={handleUploadToGoogleDrive}
               disabled={uploadingToDrive}
-              className={`flex-1 min-w-max flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-all disabled:opacity-50 ${
+              className={`flex-1 min-w-max flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-all transform disabled:opacity-50 disabled:cursor-not-allowed ${
                 driveStatus.connected
-                  ? 'bg-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-orange-600 text-white hover:bg-orange-700'
+                  ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 hover:scale-105 active:scale-95'
+                  : 'bg-gradient-to-r from-orange-600 to-yellow-600 text-white hover:from-orange-700 hover:to-yellow-700 hover:scale-105 active:scale-95'
               }`}
             >
               {uploadingToDrive ? (
@@ -514,7 +535,7 @@ return (
       )}
 
       {/* Help Text */}
-      <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+      <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg animate-slideInUp" style={{ animationDelay: '0.5s' }}>
         <p className="text-sm text-yellow-800 dark:text-yellow-200">
           <strong>💡 Tip:</strong> Use the enhanced editor toolbar for headings, alignment, images, and more. Export your content as PDF with structured format or upload to Google Drive for backup.
         </p>
