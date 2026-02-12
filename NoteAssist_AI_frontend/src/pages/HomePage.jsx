@@ -63,8 +63,36 @@ const AnimatedCounter = ({ end, suffix = '', duration = 2000 }) => {
   };
 
   return (
-    <span ref={ref} className="font-black text-4xl md:text-5xl text-gray-900">
+    <span ref={ref} className="font-black text-4xl md:text-5xl text-white">
       {formatNumber(count)}{suffix}
+    </span>
+  );
+};
+
+// ============================================================================
+// Animated Text Component - Cycles through words with fade transitions
+// ============================================================================
+const AnimatedText = ({ words = [], duration = 3000 }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [fade, setFade] = useState('in');
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFade('out');
+      setTimeout(() => {
+        setCurrentIndex((prev) => (prev + 1) % words.length);
+        setFade('in');
+      }, 300);
+    }, duration);
+
+    return () => clearInterval(interval);
+  }, [words, duration]);
+
+  return (
+    <span
+      className={`transition-opacity duration-300 ${fade === 'in' ? 'opacity-100' : 'opacity-0'}`}
+    >
+      {words[currentIndex] || 'AI Intelligence'}
     </span>
   );
 };
@@ -438,32 +466,39 @@ const HomePage = () => {
             HERO SECTION - Premium intro with animations & CTA
             ================================================================ */}
         <section className="relative pt-40 pb-20 md:pt-48 md:pb-32 overflow-hidden">
-          {/* Decorative Background */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-violet-200 to-transparent rounded-full blur-3xl opacity-30"></div>
-            <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-blue-200 to-transparent rounded-full blur-3xl opacity-30"></div>
+          {/* Background image with overlay */}
+          <div className="absolute inset-0 z-0">
+            <img
+              src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+              alt="AI study technology background"
+              className="w-full h-full object-cover object-center"
+              loading="eager"
+              fetchpriority="high"
+            />
+            {/* Dark overlay for text readability */}
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
           </div>
 
           <div className="container relative z-10 mx-auto px-4">
             <div className="max-w-5xl mx-auto text-center">
               {/* Badge */}
               <div 
-                className="inline-flex items-center gap-2 mb-6 md:mb-8 px-4 md:px-5 py-2 md:py-2.5 rounded-full bg-gradient-to-r from-violet-500/10 to-blue-500/10 border border-violet-500/20 backdrop-blur-sm"
+                className="inline-flex items-center gap-2 mb-6 md:mb-8 px-4 md:px-5 py-2 md:py-2.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm"
                 style={{ 
                   animation: 'fadeInUp 0.6s ease-out',
                   transform: `translateY(${Math.min(scrollY * 0.3, 50)}px)`,
                   opacity: 1 - scrollY * 0.001
                 }}
               >
-                <Sparkles className="w-4 md:w-5 h-4 md:h-5 text-violet-600 flex-shrink-0" />
-                <span className="text-xs md:text-sm font-semibold bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-transparent">
+                <Sparkles className="w-4 md:w-5 h-4 md:h-5 text-white flex-shrink-0" />
+                <span className="text-xs md:text-sm font-semibold text-white">
                   AI-Powered Learning Platform
                 </span>
               </div>
 
               {/* Headline - Proper H1 */}
               <h1 
-                className="text-4xl md:text-6xl lg:text-7xl font-black text-gray-900 mb-4 md:mb-6 leading-tight md:leading-tight"
+                className="text-4xl md:text-6xl lg:text-7xl font-black text-white mb-4 md:mb-6 leading-tight md:leading-tight"
                 style={{ 
                   animation: 'fadeInUp 0.6s ease-out 0.2s both',
                   transform: `translateY(${Math.min(scrollY * 0.2, 30)}px)`,
@@ -472,20 +507,22 @@ const HomePage = () => {
               >
                 Learn Faster with{' '}
                 <span className="relative inline-block">
-                  <span className="absolute inset-0 bg-gradient-to-r from-violet-600 via-blue-600 to-cyan-600 blur-2xl opacity-30 animate-pulse"></span>
                   <span className="relative bg-gradient-to-r from-violet-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                    AI Intelligence
+                    <AnimatedText 
+                      words={['AI Intelligence', 'Smart Learning', 'Excellence']}
+                      duration={3000}
+                    />
                   </span>
                 </span>
               </h1>
 
               {/* Subheading - H2 semantic structure */}
               <p 
-                className="text-lg md:text-xl lg:text-2xl text-gray-600 mb-8 md:mb-10 max-w-3xl mx-auto leading-relaxed"
+                className="text-lg md:text-xl lg:text-2xl text-white/90 mb-8 md:mb-10 max-w-3xl mx-auto leading-relaxed"
                 style={{ animation: 'fadeInUp 0.6s ease-out 0.4s both' }}
               >
                 Generate comprehensive notes, improve content quality, and master any subject with 
-                <span className="font-semibold text-violet-600"> AI-powered study tools</span>
+                <span className="font-semibold text-cyan-300"> AI-powered study tools</span>
               </p>
 
               {/* CTA Buttons */}
@@ -507,7 +544,7 @@ const HomePage = () => {
                 
                 <Link 
                   to="/login" 
-                  className="w-full sm:w-auto px-6 md:px-8 py-3 md:py-4 bg-white text-gray-900 rounded-2xl font-bold text-base md:text-lg border-2 border-gray-200 hover:border-violet-500 hover:text-violet-600 transition-all hover:shadow-xl text-center"
+                  className="w-full sm:w-auto px-6 md:px-8 py-3 md:py-4 bg-white/10 text-white rounded-2xl font-bold text-base md:text-lg border-2 border-white/30 hover:border-white/60 hover:bg-white/20 transition-all hover:shadow-xl text-center backdrop-blur-sm"
                 >
                   Explore Platform
                 </Link>
@@ -521,17 +558,17 @@ const HomePage = () => {
                 {stats.map((stat, index) => (
                   <div 
                     key={index} 
-                    className="group p-4 md:p-6 rounded-2xl bg-white/50 backdrop-blur-sm border border-gray-200/50 hover:border-violet-500/50 transition-all hover:shadow-xl hover:scale-105"
+                    className="group p-4 md:p-6 rounded-2xl bg-white/20 backdrop-blur-md border border-white/40 hover:border-white/60 transition-all hover:shadow-xl hover:scale-105 hover:bg-white/30"
                   >
                     <div className="flex items-center justify-center mb-3">
-                      <div className="p-2 md:p-3 rounded-xl bg-gradient-to-r from-violet-500/10 to-blue-500/10 group-hover:from-violet-500/20 group-hover:to-blue-500/20 transition-all">
-                        <stat.icon className="w-5 md:w-6 h-5 md:h-6 text-violet-600" />
+                      <div className="p-2 md:p-3 rounded-xl bg-gradient-to-r from-violet-500/30 to-blue-500/30 group-hover:from-violet-500/50 group-hover:to-blue-500/50 transition-all">
+                        <stat.icon className="w-5 md:w-6 h-5 md:h-6 text-white" />
                       </div>
                     </div>
-                    <div className="text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 mb-1">
+                    <div className="text-2xl md:text-3xl lg:text-4xl font-black text-white mb-1">
                       <AnimatedCounter end={stat.value} suffix={stat.suffix} duration={2500} />
                     </div>
-                    <div className="text-xs md:text-sm text-gray-600 font-medium">
+                    <div className="text-xs md:text-sm text-white/80 font-medium">
                       {stat.label}
                     </div>
                   </div>

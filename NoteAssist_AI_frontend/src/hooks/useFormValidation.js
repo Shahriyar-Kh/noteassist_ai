@@ -258,5 +258,6 @@ export const useFormValidation = (
   };
 };
 
-// Export validators for standalone use
-export default validators;
+// Export validators and hook
+export { validators };
+export default useFormValidation;

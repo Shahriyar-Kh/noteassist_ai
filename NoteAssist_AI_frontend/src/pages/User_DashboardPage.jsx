@@ -163,7 +163,7 @@ const DashboardPage = () => {
                 </div>
                 <div>
                   <span className="text-xl font-bold bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-transparent block">
-                    StudyNotes
+                    NoteAssist AI
                   </span>
                   <span className="text-xs text-gray-500">AI Powered</span>
                 </div>
@@ -431,7 +431,7 @@ const DashboardPage = () => {
             {/* Right Sidebar - Quick Actions & AI Tools */}
             <div className="space-y-6">
               {/* AI Quick Actions */}
-              <div className="bg-gradient-to-br from-violet-600 to-blue-600 rounded-2xl p-6 text-white shadow-xl">
+              <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-cyan-600 rounded-2xl p-6 text-white shadow-xl">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-3 bg-white/20 rounded-xl">
                     <Brain className="w-6 h-6" />
@@ -454,11 +454,11 @@ const DashboardPage = () => {
                       <Link
                         key={idx}
                         to={tool.path}
-                        className="flex items-center gap-3 p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all backdrop-blur-sm border border-white/20"
+                        className="flex items-center gap-3 p-3 bg-white/15 hover:bg-white/30 rounded-xl transition-all backdrop-blur-sm border border-white/30 text-white"
                       >
-                        <ToolIcon className="w-5 h-5" />
-                        <span className="font-semibold text-sm">{tool.label}</span>
-                        <ArrowRight className="w-4 h-4 ml-auto" />
+                        <ToolIcon className="w-5 h-5 text-white" />
+                        <span className="font-semibold text-sm text-white">{tool.label}</span>
+                        <ArrowRight className="w-4 h-4 ml-auto text-white" />
                       </Link>
                     );
                   })}

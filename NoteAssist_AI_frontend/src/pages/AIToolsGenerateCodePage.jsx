@@ -3,11 +3,13 @@
 // ============================================================================
 
 import { useState, useRef } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
 import {
   Code, Play, Download, Upload, Loader2, AlertCircle, CheckCircle,
-  Copy, ArrowLeft, Home, Terminal, RotateCcw
+  Copy, ArrowLeft, Home, Terminal, RotateCcw, Sparkles, Wand2, FileText, LayoutDashboard, AlignLeft
 } from 'lucide-react';
+import '@/styles/animations.css';
 import { noteService } from '@/services/note.service';
 import { exportCodeToPDF } from '@/utils/pdfExport';
 import { toast } from 'react-hot-toast';
@@ -45,7 +47,7 @@ const AIToolsGenerateCodePage = () => {
 
   const generateCode = async () => {
     if (!topic.trim()) {
-      toast.error('Please enter a code topic or requirement');
+      toast.error('❌ Please enter a code topic or requirement');
       return;
     }
 
@@ -61,10 +63,10 @@ const AIToolsGenerateCodePage = () => {
       setEditableCode(result.generated_content);
       setHistoryId(result.history_id);
       setExecutionOutput('');
-      toast.success('Code generated successfully!');
+      toast.success('✨ Code generated successfully!');
     } catch (error) {
       console.error('Generation error:', error);
-      toast.error(error.message || 'Failed to generate code');
+      toast.error('❌ ' + (error.message || 'Failed to generate code'));
     } finally {
       setLoading(false);
     }
@@ -72,7 +74,7 @@ const AIToolsGenerateCodePage = () => {
 
   const executeCode = async () => {
     if (!editableCode.trim()) {
-      toast.error('No code to execute');
+      toast.error('❌ No code to execute');
       return;
     }
 
@@ -100,7 +102,7 @@ const AIToolsGenerateCodePage = () => {
 
   const exportToPDFHandler = async () => {
     if (!generatedCode) {
-      toast.error('No code to export');
+      toast.error('❌ No code to export');
       return;
     }
 
@@ -111,26 +113,26 @@ const AIToolsGenerateCodePage = () => {
         language,
         { 'Topic': topic }
       );
-      toast.success('PDF exported successfully!');
+      toast.success('✨ PDF exported successfully!');
     } catch (error) {
       console.error('PDF export error:', error);
-      toast.error(error.message || 'Failed to export PDF');
+      toast.error('❌ ' + (error.message || 'Failed to export PDF'));
     }
   };
 
   const uploadToGoogleDrive = async () => {
     if (!historyId) {
-      toast.error('No code to upload');
+      toast.error('❌ No code to upload');
       return;
     }
 
     try {
       setLoading(true);
       await noteService.exportAIHistoryToDrive(historyId);
-      toast.success('Uploaded to Google Drive successfully!');
+      toast.success('✨ Uploaded to Google Drive successfully!');
     } catch (error) {
       console.error('Google Drive upload error:', error);
-      toast.error(error.message || 'Failed to upload to Google Drive');
+      toast.error('❌ ' + (error.message || 'Failed to upload to Google Drive'));
     } finally {
       setLoading(false);
     }
@@ -138,7 +140,7 @@ const AIToolsGenerateCodePage = () => {
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(editableCode);
-    toast.success('Code copied to clipboard!');
+    toast.success('✨ Code copied to clipboard!');
   };
 
   const downloadCode = () => {
@@ -150,29 +152,45 @@ const AIToolsGenerateCodePage = () => {
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
-    toast.success('Code downloaded!');
+    toast.success('✨ Code downloaded!');
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-orange-50">
+      <Helmet>
+        <title>Generate & Execute Code - AI Tools | NoteAssist AI</title>
+        <meta name="description" content="Generate code in any programming language using AI. Execute code with instant output in a terminal-like environment. Download or export your code." />
+        <meta property="og:title" content="Generate & Execute Code - AI Tools | NoteAssist AI" />
+        <meta property="og:description" content="Generate code in any programming language using AI. Execute code with instant output in a terminal-like environment." />
+        <meta name="twitter:title" content="Generate & Execute Code - AI Tools | NoteAssist AI" />
+        <meta name="twitter:description" content="Generate and execute code in any programming language with AI." />
+      </Helmet>
+
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-30">
+      <header className="bg-white/80 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-30 animate-fadeInDown">
         <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate('/ai-tools')}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-all transform hover:scale-110 active:scale-95"
                 title="Back to AI Tools"
               >
                 <ArrowLeft className="w-6 h-6 text-gray-600" />
               </button>
               <button
-                onClick={() => navigate('/')}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                onClick={() => navigate('/home')}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-all transform hover:scale-110 active:scale-95"
                 title="Home"
               >
                 <Home className="w-6 h-6 text-gray-600" />
+              </button>
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-all transform hover:scale-110 active:scale-95"
+                title="Dashboard"
+              >
+                <LayoutDashboard className="w-6 h-6 text-gray-600" />
               </button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
@@ -181,6 +199,29 @@ const AIToolsGenerateCodePage = () => {
                 </h1>
               </div>
             </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate('/ai-tools/generate')}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition-all hover:scale-110 active:scale-95"
+              >
+                <Sparkles size={16} />
+                Generate
+              </button>
+              <button
+                onClick={() => navigate('/ai-tools/improve')}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition-all hover:scale-110 active:scale-95"
+              >
+                <Wand2 size={16} />
+                Improve
+              </button>
+              <button
+                onClick={() => navigate('/ai-tools/summarize')}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition-all hover:scale-110 active:scale-95"
+              >
+                <AlignLeft size={16} />
+                Summarize
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -188,9 +229,10 @@ const AIToolsGenerateCodePage = () => {
       <div className="container mx-auto px-6 py-8">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Input Section */}
-          <div className="bg-white rounded-2xl border-2 border-gray-200 p-8 space-y-6">
+          <div className="bg-white rounded-2xl border-2 border-gray-200 p-8 space-y-6 animate-fadeIn" style={{ animationDelay: '0.1s' }}>
             <div>
-              <label className="block text-sm font-bold text-gray-900 mb-2">
+              <label className="flex text-sm font-bold text-gray-900 mb-2 items-center gap-2">
+                <span className="text-lg">💡</span>
                 Code Topic or Requirement
               </label>
               <input
@@ -203,10 +245,11 @@ const AIToolsGenerateCodePage = () => {
               />
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-3 gap-6 animate-fadeIn" style={{ animationDelay: '0.2s' }}>
               {/* Language Selection */}
               <div>
-                <label className="block text-sm font-bold text-gray-900 mb-2">
+                <label className="flex text-sm font-bold text-gray-900 mb-2 items-center gap-2">
+                  <span className="text-lg">🔤</span>
                   Programming Language
                 </label>
                 <select
@@ -225,7 +268,8 @@ const AIToolsGenerateCodePage = () => {
 
               {/* Level */}
               <div>
-                <label className="block text-sm font-bold text-gray-900 mb-2">
+                <label className="flex text-sm font-bold text-gray-900 mb-2 items-center gap-2">
+                  <span className="text-lg">🎯</span>
                   Complexity Level
                 </label>
                 <select
@@ -247,7 +291,7 @@ const AIToolsGenerateCodePage = () => {
                 <button
                   onClick={generateCode}
                   disabled={loading || !topic.trim()}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white font-bold rounded-xl hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white font-bold rounded-xl hover:shadow-xl transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <>
@@ -267,10 +311,10 @@ const AIToolsGenerateCodePage = () => {
 
           {/* Code Editor Section */}
           {generatedCode && (
-            <div className="grid lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="grid lg:grid-cols-2 gap-6 animate-slideInUp" style={{ animationDelay: '0.3s' }}>
               {/* Code Editor */}
               <div className="bg-white rounded-2xl border-2 border-gray-200 overflow-hidden flex flex-col">
-                <div className="bg-gray-900 text-white px-6 py-4 flex items-center justify-between">
+                <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white px-6 py-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Code className="w-5 h-5" />
                     <span className="font-semibold">Code Editor</span>
@@ -278,14 +322,14 @@ const AIToolsGenerateCodePage = () => {
                   <div className="flex gap-2">
                     <button
                       onClick={copyToClipboard}
-                      className="p-1.5 hover:bg-gray-700 rounded transition-colors"
+                      className="p-1.5 hover:bg-gray-700 rounded transition-all transform hover:scale-110 active:scale-95"
                       title="Copy code"
                     >
                       <Copy className="w-4 h-4" />
                     </button>
                     <button
                       onClick={downloadCode}
-                      className="p-1.5 hover:bg-gray-700 rounded transition-colors"
+                      className="p-1.5 hover:bg-gray-700 rounded transition-all transform hover:scale-110 active:scale-95"
                       title="Download code"
                     >
                       <Download className="w-4 h-4" />
@@ -302,14 +346,14 @@ const AIToolsGenerateCodePage = () => {
 
               {/* Output Terminal */}
               <div className="bg-white rounded-2xl border-2 border-gray-200 overflow-hidden flex flex-col">
-                <div className="bg-gray-900 text-white px-6 py-4 flex items-center justify-between">
+                <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white px-6 py-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Terminal className="w-5 h-5" />
                     <span className="font-semibold">Execution Output</span>
                   </div>
                   <button
                     onClick={() => setExecutionOutput('')}
-                    className="p-1.5 hover:bg-gray-700 rounded transition-colors"
+                    className="p-1.5 hover:bg-gray-700 rounded transition-all transform hover:scale-110 active:scale-95"
                     title="Clear output"
                   >
                     <RotateCcw className="w-4 h-4" />
@@ -330,11 +374,11 @@ const AIToolsGenerateCodePage = () => {
 
           {/* Execution & Export Buttons */}
           {generatedCode && (
-            <div className="flex gap-4 flex-wrap">
+            <div className="flex gap-4 flex-wrap animate-slideInUp" style={{ animationDelay: '0.4s' }}>
               <button
                 onClick={executeCode}
                 disabled={executing || !editableCode.trim()}
-                className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-all disabled:opacity-50"
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50"
               >
                 {executing ? (
                   <>
@@ -351,7 +395,7 @@ const AIToolsGenerateCodePage = () => {
               <button
                 onClick={exportToPDFHandler}
                 disabled={loading}
-                className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition-all disabled:opacity-50"
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50"
               >
                 <Download className="w-5 h-5" />
                 Export as PDF
@@ -359,7 +403,7 @@ const AIToolsGenerateCodePage = () => {
               <button
                 onClick={uploadToGoogleDrive}
                 disabled={loading}
-                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all disabled:opacity-50"
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50"
               >
                 <Upload className="w-5 h-5" />
                 Upload to Drive
@@ -368,7 +412,7 @@ const AIToolsGenerateCodePage = () => {
           )}
 
           {generatedCode && (
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3">
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3 animate-slideInUp" style={{ animationDelay: '0.5s' }}>
               <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-blue-800">
                 <strong>Note:</strong> You can edit the code in the editor. Click "Run Code" to execute it in the terminal. This content is not saved to your notes unless you export or upload it.

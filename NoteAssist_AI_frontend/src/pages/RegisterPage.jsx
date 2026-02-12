@@ -1,9 +1,21 @@
-// FILE: src/pages/RegisterPage.jsx - FIXED WITH PROPER REDIRECT
-// ============================================================================
+/**
+ * RegisterPage - SaaS-Grade User Registration
+ * 
+ * Features:
+ * - Production-ready form with full validation
+ * - Mobile-first responsive design
+ * - Design system integration
+ * - Smooth animations
+ * - Accessibility (WCAG 2.1 AA)
+ * - SEO optimized
+ */
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, Globe, GraduationCap, BookOpen, Eye, EyeOff, CheckCircle, AlertCircle, ArrowRight, Shield } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
+import { Mail, Lock, User, Globe, GraduationCap, BookOpen, Eye, EyeOff, CheckCircle, AlertCircle, ArrowRight, Shield, ChevronLeft } from 'lucide-react';
+import { Button, Card, FormInput, PageContainer } from '@/components/design-system';
+import { useFormValidation, validators } from '@/hooks/useFormValidation';
 import { API_BASE_URL } from '@/utils/constants';
 
 const EDUCATION_LEVELS = [
@@ -14,545 +26,434 @@ const EDUCATION_LEVELS = [
   { value: 'professional', label: 'Professional' },
 ];
 
-const RegisterPage = () => {
+export default function RegisterPage() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    password_confirm: '',
-    full_name: '',
-    country: '',
-    education_level: 'undergraduate',
-    field_of_study: '',
-    terms_accepted: false,
-  });
+  const [submitError, setSubmitError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [message, setMessage] = useState({ type: '', text: '' });
-  const [touchedFields, setTouchedFields] = useState({});
+  const [authError, setAuthError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-    
-    if (errors[name]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
+  // Form validation
+  const { 
+    values, 
+    errors, 
+    touched, 
+    handleChange, 
+    handleBlur, 
+    handleSubmit: handleValidation,
+    getFieldProps,
+  } = useFormValidation(
+    {
+      email: '',
+      password: '',
+      password_confirm: '',
+      full_name: '',
+      country: '',
+      education_level: 'undergraduate',
+      field_of_study: '',
+      terms_accepted: false,
+    },
+    async (data) => {
+      setIsSubmitting(true);
+      setAuthError('');
+      setSubmitError('');
 
-  const handleBlur = (fieldName) => {
-    setTouchedFields(prev => ({ ...prev, [fieldName]: true }));
-    validateField(fieldName, formData[fieldName]);
-  };
-
-  const validateField = (fieldName, value) => {
-    const newErrors = { ...errors };
-    
-    switch (fieldName) {
-      case 'email':
-        if (!value) {
-          newErrors.email = 'Email is required';
-        } else if (!/\S+@\S+\.\S+/.test(value)) {
-          newErrors.email = 'Please enter a valid email';
-        } else {
-          delete newErrors.email;
-        }
-        break;
-      case 'password':
-        if (!value) {
-          newErrors.password = 'Password is required';
-        } else if (value.length < 8) {
-          newErrors.password = 'Must be at least 8 characters';
-        } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) {
-          newErrors.password = 'Include uppercase, lowercase, and number';
-        } else {
-          delete newErrors.password;
-        }
-        break;
-      case 'password_confirm':
-        if (value !== formData.password) {
-          newErrors.password_confirm = 'Passwords do not match';
-        } else {
-          delete newErrors.password_confirm;
-        }
-        break;
-      case 'full_name':
-        if (!value || value.trim().length < 2) {
-          newErrors.full_name = 'Please enter your full name';
-        } else {
-          delete newErrors.full_name;
-        }
-        break;
-      case 'country':
-        if (!value) {
-          newErrors.country = 'Country is required';
-        } else {
-          delete newErrors.country;
-        }
-        break;
-      case 'field_of_study':
-        if (!value) {
-          newErrors.field_of_study = 'Field of study is required';
-        } else {
-          delete newErrors.field_of_study;
-        }
-        break;
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const validateForm = () => {
-    const newErrors = {};
-    
-    if (!formData.email) newErrors.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid';
-    
-    if (!formData.password) newErrors.password = 'Password is required';
-    else if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
-    
-    if (formData.password !== formData.password_confirm) {
-      newErrors.password_confirm = 'Passwords do not match';
-    }
-    
-    if (!formData.full_name) newErrors.full_name = 'Full name is required';
-    if (!formData.country) newErrors.country = 'Country is required';
-    if (!formData.field_of_study) newErrors.field_of_study = 'Field of study is required';
-    if (!formData.terms_accepted) newErrors.terms_accepted = 'You must accept the terms';
-    
-    return newErrors;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Mark all fields as touched
-    const allFields = Object.keys(formData);
-    const touched = {};
-    allFields.forEach(field => touched[field] = true);
-    setTouchedFields(touched);
-    
-    // Validate
-    const validationErrors = validateForm();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      setMessage({ type: 'error', text: 'Please fix the errors in the form' });
-      return;
-    }
-    
-    setLoading(true);
-    setErrors({});
-    setMessage({ type: '', text: '' });
-    
-    try {
-      console.log('[Registration] Submitting:', formData.email);
-      
-      const response = await fetch(`${API_BASE_URL}/api/auth/register/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email.toLowerCase().trim(),
-          password: formData.password,
-          password_confirm: formData.password_confirm,
-          full_name: formData.full_name.trim(),
-          country: formData.country.trim(),
-          education_level: formData.education_level,
-          field_of_study: formData.field_of_study.trim(),
-          terms_accepted: formData.terms_accepted,
-        }),
-      });
-
-      const data = await response.json();
-      console.log('[Registration] Response:', data);
-
-      if (response.ok && data.success) {
-        // ✅ FIXED: Store tokens if provided
-        if (data.tokens) {
-          localStorage.setItem('accessToken', data.tokens.access);
-          localStorage.setItem('token', data.tokens.access);
-          localStorage.setItem('refreshToken', data.tokens.refresh);
-          localStorage.setItem('user', JSON.stringify(data.user));
-        }
-
-        setMessage({
-          type: 'success',
-          text: data.message || 'Registration successful! Redirecting to login...',
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/register/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            email: data.email.toLowerCase().trim(),
+            password: data.password,
+            password_confirm: data.password_confirm,
+            full_name: data.full_name.trim(),
+            country: data.country.trim(),
+            education_level: data.education_level,
+            field_of_study: data.field_of_study.trim(),
+            terms_accepted: data.terms_accepted,
+          }),
         });
 
-        // ✅ FIXED: Redirect to login page after 2 seconds
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000);
+        const responseData = await response.json();
 
-      } else {
-        // Handle validation errors from backend
-        if (data.errors) {
-          setErrors(data.errors);
-          setMessage({
-            type: 'error',
-            text: 'Please fix the errors below',
-          });
+        if (response.ok && responseData.success) {
+          // Store tokens if provided
+          if (responseData.tokens) {
+            localStorage.setItem('accessToken', responseData.tokens.access);
+            localStorage.setItem('token', responseData.tokens.access);
+            localStorage.setItem('refreshToken', responseData.tokens.refresh);
+            localStorage.setItem('user', JSON.stringify(responseData.user));
+          }
+
+          setSuccessMessage('Account created successfully! Redirecting to login...');
+
+          // Redirect after 2 seconds
+          setTimeout(() => {
+            navigate('/login');
+          }, 2000);
         } else {
-          setMessage({
-            type: 'error',
-            text: data.detail || data.error || 'Registration failed. Please try again.',
-          });
+          setAuthError(responseData.detail || responseData.error || 'Registration failed. Please try again.');
         }
+      } catch (error) {
+        console.error('[Registration] Error:', error);
+        setAuthError('Cannot connect to server. Please check your connection.');
+      } finally {
+        setIsSubmitting(false);
       }
-    } catch (error) {
-      console.error('[Registration] Error:', error);
-      setMessage({
-        type: 'error',
-        text: 'Cannot connect to server. Please check your connection.',
-      });
-    } finally {
-      setLoading(false);
+    },
+    {
+      email: validators.email,
+      password: (v) => validators.password(v, 8),
+      password_confirm: (v) => validators.match(v, values.password, 'Passwords'),
+      full_name: (v) => validators.name(v),
+      country: validators.required,
+      field_of_study: validators.required,
+      terms_accepted: (v) => v ? null : 'You must accept the terms',
     }
-  };
+  );
 
-  const getFieldError = (fieldName) => {
-    return touchedFields[fieldName] && errors[fieldName];
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    handleValidation(e);
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4 relative overflow-hidden">
+    <>
+      <Helmet>
+        <title>Create Account | NoteAssist AI</title>
+        <meta name="description" content="Join NoteAssist AI and start learning smarter with AI-powered note-taking and document analysis tools." />
+        <meta name="keywords" content="sign up, registration, create account, join, NoteAssist, AI tools" />
+        <meta name="og:title" content="Create Account | NoteAssist AI" />
+        <meta name="og:description" content="Join thousands of students using AI-powered note-taking." />
+        <meta name="twitter:title" content="Create Account | NoteAssist AI" />
+        <meta name="twitter:description" content="Join thousands of students using AI-powered note-taking." />
+      </Helmet>
 
-      <div className="w-full max-w-2xl relative z-10">
-        <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-gray-100">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-2 mb-6">
-              <div className="p-3 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl shadow-lg">
+      <PageContainer bgGradient center minHeight>
+        {/* Back Button (Mobile) */}
+        <button
+          onClick={() => navigate('/')}
+          className="lg:hidden mb-4 flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium transition-colors"
+        >
+          <ChevronLeft className="w-5 h-5" />
+          Back
+        </button>
+
+        {/* Main Content */}
+        <div className="w-full max-w-2xl mx-auto">
+          {/* Header Card */}
+          <Card 
+            variant="elevated" 
+            className="animate-fade-in-up mb-8 text-center"
+          >
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <div className="p-3 bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl shadow-lg">
                 <BookOpen className="w-8 h-8 text-white" />
               </div>
-              <span className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent">
                 NoteAssist AI
-              </span>
+              </h1>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Your Account</h1>
-            <p className="text-gray-600">Join thousands of learners on their journey to success</p>
-          </div>
-          
-          {/* Message Display */}
-          {message.text && (
-            <div className={`mb-6 p-4 rounded-xl ${
-              message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
-              'bg-red-50 text-red-800 border border-red-200'
-            }`}>
-              <div className="flex items-center gap-2">
-                {message.type === 'success' ? (
-                  <CheckCircle className="w-5 h-5" />
-                ) : (
-                  <AlertCircle className="w-5 h-5" />
-                )}
-                <span className="font-medium">{message.text}</span>
+            
+            <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
+              Create Your Account
+            </h2>
+            <p className="text-gray-600 mb-4">
+              Join thousands of learners on their journey to success
+            </p>
+
+            {/* Features List (Desktop) */}
+            <div className="hidden lg:grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-gray-200">
+              <div className="text-sm">
+                <div className="text-primary-600 font-bold mb-1">✨ Smart Notes</div>
+                <p className="text-gray-600 text-xs">AI-powered organization</p>
+              </div>
+              <div className="text-sm">
+                <div className="text-primary-600 font-bold mb-1">🚀 Quick Tools</div>
+                <p className="text-gray-600 text-xs">Generate & improve instantly</p>
+              </div>
+              <div className="text-sm">
+                <div className="text-primary-600 font-bold mb-1">🎯 Better Grades</div>
+                <p className="text-gray-600 text-xs">Smarter studying</p>
               </div>
             </div>
-          )}
-          
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Personal Information */}
-            <div className="grid md:grid-cols-2 gap-4">
-              {/* Full Name */}
+          </Card>
+
+          {/* Form Card */}
+          <Card variant="default" className="animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+            {/* Success Message */}
+            {successMessage && (
+              <div className="mb-6 p-4 bg-success-50 border border-success-200 rounded-xl flex items-center gap-3 animate-fade-in-up">
+                <CheckCircle className="w-5 h-5 text-success-600 flex-shrink-0" />
+                <p className="text-success-800 font-medium text-sm">{successMessage}</p>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {authError && (
+              <div className="mb-6 p-4 bg-error-50 border border-error-200 rounded-xl flex items-center gap-3 animate-fade-in-up">
+                <AlertCircle className="w-5 h-5 text-error-600 flex-shrink-0" />
+                <p className="text-error-800 font-medium text-sm">{authError}</p>
+              </div>
+            )}
+
+            {/* Registration Form */}
+            <form onSubmit={handleFormSubmit} className="space-y-5">
+              {/* Personal Information Section */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name *
-                </label>
-                <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
+                <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                  <User className="w-4 h-4 text-primary-600" />
+                  Personal Information
+                </h3>
+                
+                <div className="grid md:grid-cols-2 gap-4">
+                  {/* Full Name */}
+                  <FormInput
+                    {...getFieldProps('full_name')}
+                    label="Full Name"
                     type="text"
-                    name="full_name"
-                    value={formData.full_name}
-                    onChange={handleChange}
-                    onBlur={() => handleBlur('full_name')}
-                    className={`w-full pl-12 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                      getFieldError('full_name') ? 'border-red-500' : 'border-gray-200'
-                    }`}
                     placeholder="John Doe"
-                    disabled={loading}
+                    icon={User}
+                    error={touched.full_name ? errors.full_name : ''}
+                    required
                   />
-                </div>
-                {getFieldError('full_name') && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" />
-                    {errors.full_name}
-                  </p>
-                )}
-              </div>
-              
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address *
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
+
+                  {/* Email */}
+                  <FormInput
+                    {...getFieldProps('email')}
+                    label="Email Address"
                     type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    onBlur={() => handleBlur('email')}
-                    className={`w-full pl-12 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                      getFieldError('email') ? 'border-red-500' : 'border-gray-200'
-                    }`}
                     placeholder="your@email.com"
-                    autoComplete="email"
-                    disabled={loading}
+                    icon={Mail}
+                    error={touched.email ? errors.email : ''}
+                    required
                   />
                 </div>
-                {getFieldError('email') && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" />
-                    {errors.email}
-                  </p>
-                )}
               </div>
-            </div>
-            
-            {/* Password Fields */}
-            <div className="grid md:grid-cols-2 gap-4">
-              {/* Password */}
+
+              {/* Password Section */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Password *
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    onBlur={() => handleBlur('password')}
-                    className={`w-full pl-12 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                      getFieldError('password') ? 'border-red-500' : 'border-gray-200'
-                    }`}
-                    placeholder="••••••••"
-                    disabled={loading}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    disabled={loading}
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
+                <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-primary-600" />
+                  Password
+                </h3>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  {/* Password Input */}
+                  <div>
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                      Password <span className="text-error-600">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        {...getFieldProps('password')}
+                        placeholder="••••••••"
+                        className={`w-full px-4 py-3 border rounded-lg transition-all focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                          touched.password && errors.password 
+                            ? 'border-error-300 bg-error-50' 
+                            : 'border-gray-300 hover:border-gray-400'
+                        }`}
+                        disabled={isSubmitting}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        disabled={isSubmitting}
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                    {touched.password && errors.password && (
+                      <p className="text-error-600 text-sm mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-4 h-4" />
+                        {errors.password}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">Min 8 chars, uppercase, lowercase, number</p>
+                  </div>
+
+                  {/* Confirm Password */}
+                  <div>
+                    <label htmlFor="password_confirm" className="block text-sm font-medium text-gray-700 mb-2">
+                      Confirm Password <span className="text-error-600">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="password_confirm"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        {...getFieldProps('password_confirm')}
+                        placeholder="••••••••"
+                        className={`w-full px-4 py-3 border rounded-lg transition-all focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                          touched.password_confirm && errors.password_confirm 
+                            ? 'border-error-300 bg-error-50' 
+                            : 'border-gray-300 hover:border-gray-400'
+                        }`}
+                        disabled={isSubmitting}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        disabled={isSubmitting}
+                      >
+                        {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                    {touched.password_confirm && errors.password_confirm && (
+                      <p className="text-error-600 text-sm mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-4 h-4" />
+                        {errors.password_confirm}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                {getFieldError('password') && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" />
-                    {errors.password}
-                  </p>
-                )}
               </div>
-              
-              {/* Confirm Password */}
+
+              {/* Academic Information Section */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Confirm Password *
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    name="password_confirm"
-                    value={formData.password_confirm}
-                    onChange={handleChange}
-                    onBlur={() => handleBlur('password_confirm')}
-                    className={`w-full pl-12 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                      getFieldError('password_confirm') ? 'border-red-500' : 'border-gray-200'
-                    }`}
-                    placeholder="••••••••"
-                    disabled={loading}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    disabled={loading}
-                  >
-                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-                {getFieldError('password_confirm') && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" />
-                    {errors.password_confirm}
-                  </p>
-                )}
-              </div>
-            </div>
-            
-            {/* Academic Information */}
-            <div className="grid md:grid-cols-2 gap-4">
-              {/* Country */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Country *
-                </label>
-                <div className="relative">
-                  <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
+                <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4 text-primary-600" />
+                  Academic Information
+                </h3>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  {/* Country */}
+                  <FormInput
+                    {...getFieldProps('country')}
+                    label="Country"
                     type="text"
-                    name="country"
-                    value={formData.country}
-                    onChange={handleChange}
-                    onBlur={() => handleBlur('country')}
-                    className={`w-full pl-12 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                      getFieldError('country') ? 'border-red-500' : 'border-gray-200'
-                    }`}
                     placeholder="United States"
-                    disabled={loading}
+                    icon={Globe}
+                    error={touched.country ? errors.country : ''}
+                    required
+                  />
+
+                  {/* Education Level */}
+                  <div>
+                    <label htmlFor="education_level" className="block text-sm font-medium text-gray-700 mb-2">
+                      Education Level <span className="text-error-600">*</span>
+                    </label>
+                    <select
+                      id="education_level"
+                      {...getFieldProps('education_level')}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
+                      disabled={isSubmitting}
+                    >
+                      {EDUCATION_LEVELS.map((level) => (
+                        <option key={level.value} value={level.value}>
+                          {level.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Field of Study */}
+                <div className="mt-4">
+                  <FormInput
+                    {...getFieldProps('field_of_study')}
+                    label="Field of Study"
+                    type="text"
+                    placeholder="Computer Science, Business, Medicine, etc."
+                    icon={BookOpen}
+                    error={touched.field_of_study ? errors.field_of_study : ''}
+                    required
                   />
                 </div>
-                {getFieldError('country') && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" />
-                    {errors.country}
-                  </p>
-                )}
               </div>
-              
-              {/* Education Level */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Education Level *
-                </label>
-                <div className="relative">
-                  <GraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none z-10" />
-                  <select
-                    name="education_level"
-                    value={formData.education_level}
-                    onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none bg-white"
-                    disabled={loading}
-                  >
-                    {EDUCATION_LEVELS.map((level) => (
-                      <option key={level.value} value={level.value}>
-                        {level.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-            
-            {/* Field of Study */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Field of Study *
-              </label>
-              <div className="relative">
-                <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  name="field_of_study"
-                  value={formData.field_of_study}
-                  onChange={handleChange}
-                  onBlur={() => handleBlur('field_of_study')}
-                  className={`w-full pl-12 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                    getFieldError('field_of_study') ? 'border-red-500' : 'border-gray-200'
-                  }`}
-                  placeholder="Computer Science, Business, Medicine, etc."
-                  disabled={loading}
-                />
-              </div>
-              {getFieldError('field_of_study') && (
-                <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                  <AlertCircle className="w-4 h-4" />
-                  {errors.field_of_study}
-                </p>
-              )}
-            </div>
-            
-            {/* Terms and Conditions */}
-            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-              <div className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  id="terms"
-                  name="terms_accepted"
-                  checked={formData.terms_accepted}
-                  onChange={handleChange}
-                  className="w-5 h-5 mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                  disabled={loading}
-                />
-                <label htmlFor="terms" className="text-sm text-gray-700 cursor-pointer">
-                  I agree to the{' '}
-                  <span className="text-blue-600 hover:text-blue-700 font-medium">
-                    Terms of Service
-                  </span>{' '}
-                  and{' '}
-                  <span className="text-blue-600 hover:text-blue-700 font-medium">
-                    Privacy Policy
+
+              {/* Terms and Conditions */}
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <label htmlFor="terms_accepted" className="flex items-start gap-3 cursor-pointer group">
+                  <input
+                    id="terms_accepted"
+                    type="checkbox"
+                    {...getFieldProps('terms_accepted')}
+                    className="w-5 h-5 mt-0.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer focus:ring-2 transition-all"
+                    disabled={isSubmitting}
+                  />
+                  <span className="text-sm text-gray-700 group-hover:text-gray-900">
+                    I agree to the{' '}
+                    <button 
+                      type="button" 
+                      onClick={() => window.open('/terms', '_blank')}
+                      className="text-primary-600 hover:text-primary-700 font-medium underline"
+                    >
+                      Terms of Service
+                    </button>
+                    {' '}and{' '}
+                    <button 
+                      type="button" 
+                      onClick={() => window.open('/privacy', '_blank')}
+                      className="text-primary-600 hover:text-primary-700 font-medium underline"
+                    >
+                      Privacy Policy
+                    </button>
                   </span>
                 </label>
+                {touched.terms_accepted && errors.terms_accepted && (
+                  <p className="text-error-600 text-sm mt-3 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    {errors.terms_accepted}
+                  </p>
+                )}
               </div>
-              {errors.terms_accepted && touchedFields.terms_accepted && (
-                <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
-                  <AlertCircle className="w-4 h-4" />
-                  {errors.terms_accepted}
-                </p>
-              )}
-            </div>
-            
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Creating Account...
-                </>
-              ) : (
-                <>
-                  Create Account
-                  <ArrowRight className="w-5 h-5" />
-                </>
-              )}
-            </button>
-          </form>
-          
-          {/* Security Badge */}
-          <div className="mt-6 flex items-center justify-center gap-2 text-sm text-gray-500">
-            <Shield className="w-4 h-4" />
-            <span>Your information is secure and encrypted</span>
-          </div>
-          
-          {/* Sign In Link */}
-          <p className="text-center mt-6 text-gray-600">
-            Already have an account?{' '}
-            <button
-              onClick={() => navigate('/login')}
-              className="text-blue-600 hover:text-blue-700 font-semibold"
-              disabled={loading}
-            >
-              Sign in
-            </button>
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
 
-export default RegisterPage;
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                fullWidth
+                isLoading={isSubmitting}
+                disabled={isSubmitting}
+                icon={isSubmitting ? undefined : ArrowRight}
+                iconPosition="right"
+                className="mt-6"
+              >
+                {isSubmitting ? 'Creating Account...' : 'Create Account'}
+              </Button>
+            </form>
+
+            {/* Security Info */}
+            <div className="mt-6 pt-6 border-t border-gray-200 flex items-center justify-center gap-2 text-sm text-gray-500">
+              <Shield className="w-4 h-4" />
+              <span>Your information is secure and encrypted with 256-bit SSL</span>
+            </div>
+
+            {/* Sign In Link */}
+            <p className="text-center mt-6 text-gray-600">
+              Already have an account?{' '}
+              <button
+                onClick={() => navigate('/login')}
+                className="text-primary-600 hover:text-primary-700 font-semibold hover-lift"
+                disabled={isSubmitting}
+              >
+                Sign in here
+              </button>
+            </p>
+          </Card>
+
+          {/* Footer Links (Mobile) */}
+          <div className="lg:hidden mt-6 flex justify-center gap-4 text-xs text-gray-500">
+            <button onClick={() => window.open('/terms', '_blank')} className="hover:text-gray-700">
+              Terms
+            </button>
+            <span>•</span>
+            <button onClick={() => window.open('/privacy', '_blank')} className="hover:text-gray-700">
+              Privacy
+            </button>
+          </div>
+        </div>
+      </PageContainer>
+    </>
+  );
+}

@@ -1,149 +1,125 @@
-// FILE: src/pages/ResetPasswordPage.jsx
-// ============================================================================
+/**
+ * ResetPasswordPage - Password Reset Form
+ * 
+ * Features:
+ * - Token validation
+ * - Password strength requirements
+ * - Two-step UX (form → confirmation)
+ * - Design system integration
+ * - Authentication data cleanup
+ * - Mobile responsive
+ */
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Lock, Eye, EyeOff, BookOpen, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
+import { Lock, Eye, EyeOff, BookOpen, CheckCircle, AlertCircle, ArrowRight, Shield } from 'lucide-react';
+import { Button, Card, PageContainer } from '@/components/design-system';
+import { useFormValidation, validators } from '@/hooks/useFormValidation';
 import { API_BASE_URL } from '@/utils/constants';
 
-const ResetPasswordPage = () => {
+export default function ResetPasswordPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
-
-  const [formData, setFormData] = useState({
-    new_password: '',
-    new_password_confirm: '',
-  });
+  
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
   const [resetSuccess, setResetSuccess] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const [tokenValid, setTokenValid] = useState(!!token);
 
   useEffect(() => {
-    // Check if token exists
     if (!token) {
-      setMessage({
-        type: 'error',
-        text: 'Invalid reset link. Please request a new password reset.',
-      });
+      setTokenValid(false);
+      setAuthError('Invalid or expired reset link. Please request a new password reset.');
     }
   }, [token]);
 
-  const validatePassword = (password) => {
-    const errors = [];
-    if (password.length < 8) {
-      errors.push('Password must be at least 8 characters');
-    }
-    if (!/[A-Z]/.test(password)) {
-      errors.push('Include at least one uppercase letter');
-    }
-    if (!/[a-z]/.test(password)) {
-      errors.push('Include at least one lowercase letter');
-    }
-    if (!/[0-9]/.test(password)) {
-      errors.push('Include at least one number');
-    }
-    return errors;
+  // Password strength validator
+  const validatePasswordStrength = (password) => {
+    if (!password) return 'Password is required';
+    if (password.length < 8) return 'Password must be at least 8 characters';
+    if (!/[A-Z]/.test(password)) return 'Include at least one uppercase letter';
+    if (!/[a-z]/.test(password)) return 'Include at least one lowercase letter';
+    if (!/[0-9]/.test(password)) return 'Include at least one number';
+    return null;
   };
 
   const clearAuthData = () => {
-    // Clear all authentication data from localStorage
-    localStorage.removeItem('authToken');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
+    localStorage.removeItem('authToken');
     localStorage.removeItem('userRole');
     localStorage.removeItem('isAuthenticated');
     
-    // Clear sessionStorage as well
     sessionStorage.removeItem('authToken');
     sessionStorage.removeItem('refreshToken');
     sessionStorage.removeItem('user');
     sessionStorage.removeItem('userRole');
     sessionStorage.removeItem('isAuthenticated');
-    
-    // Clear any cookies that might be set
-    document.cookie.split(";").forEach((c) => {
-      document.cookie = c
-        .replace(/^ +/, "")
-        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-    });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const { 
+    values, 
+    errors, 
+    touched,
+    handleSubmit: handleValidation,
+    getFieldProps,
+  } = useFormValidation(
+    {
+      new_password: '',
+      new_password_confirm: '',
+    },
+    async (data) => {
+      setAuthError('');
 
-    // Validate passwords match
-    if (formData.new_password !== formData.new_password_confirm) {
-      setMessage({ type: 'error', text: 'Passwords do not match' });
-      return;
-    }
-
-    // Validate password strength
-    const validationErrors = validatePassword(formData.new_password);
-    if (validationErrors.length > 0) {
-      setMessage({ type: 'error', text: validationErrors.join('. ') });
-      return;
-    }
-
-    if (!token) {
-      setMessage({ type: 'error', text: 'Invalid reset token' });
-      return;
-    }
-
-    setLoading(true);
-    setMessage({ type: '', text: '' });
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/reset_password/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          token: token,
-          new_password: formData.new_password,
-          new_password_confirm: formData.new_password_confirm,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Clear all authentication data before showing success
-        clearAuthData();
-        
-        setResetSuccess(true);
-        setMessage({
-          type: 'success',
-          text: data.message || 'Password reset successful! Redirecting to login...',
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/reset_password/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            token: token,
+            new_password: data.new_password,
+            new_password_confirm: data.new_password_confirm,
+          }),
         });
 
-        // Clear any pending timeouts to prevent multiple redirects
-        const existingTimeout = setTimeout(() => {}, 0);
-        clearTimeout(existingTimeout);
+        const responseData = await response.json();
 
-        // Redirect to login after 3 seconds
-        setTimeout(() => {
-          navigate('/login', { replace: true });
-        }, 3000);
-      } else {
-        setMessage({
-          type: 'error',
-          text: data.error || 'Failed to reset password. The link may have expired.',
-        });
+        if (response.ok) {
+          clearAuthData();
+          setResetSuccess(true);
+
+          // Redirect to login after 3 seconds
+          setTimeout(() => {
+            navigate('/login', { replace: true });
+          }, 3000);
+        } else {
+          setAuthError(
+            responseData.error || 'Failed to reset password. The link may have expired.'
+          );
+        }
+      } catch (error) {
+        console.error('[Reset Password] Error:', error);
+        setAuthError('Cannot connect to server. Please check your connection.');
       }
-    } catch (error) {
-      console.error('Reset password error:', error);
-      setMessage({
-        type: 'error',
-        text: 'Cannot connect to server. Please check your connection.',
-      });
-    } finally {
-      setLoading(false);
+    },
+    {
+      new_password: validatePasswordStrength,
+      new_password_confirm: (v) => 
+        validators.match(v, values.new_password, 'Passwords'),
     }
+  );
+
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    handleValidation(e);
   };
 
   const handleGoToLogin = () => {
@@ -152,159 +128,246 @@ const ResetPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4 relative overflow-hidden">
+    <>
+      <Helmet>
+        <title>Reset Password | NoteAssist AI</title>
+        <meta name="description" content="Reset your NoteAssist AI password." />
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
 
-      <div className="w-full max-w-md relative z-10">
-        <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-gray-100">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-2 mb-6">
-              <div className="p-2 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl">
-                <BookOpen className="w-6 h-6 text-white" />
+      <PageContainer center minHeight bgGradient>
+        <div className="w-full max-w-md">
+          {/* Main Card */}
+          <Card 
+            variant="elevated" 
+            className="animate-fade-in-up"
+          >
+            {/* Logo and Heading */}
+            <div className="text-center mb-8">
+              <div className="flex items-center justify-center gap-3 mb-6">
+                <div className="p-3 bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl">
+                  <BookOpen className="w-8 h-8 text-white" />
+                </div>
+                <span className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent">
+                  NoteAssist AI
+                </span>
               </div>
-              <span className="text-2xl font-bold text-gray-900">NoteAssist AI</span>
+
+              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
+                {resetSuccess ? 'Password Updated!' : 'Reset Your Password'}
+              </h1>
+              <p className="text-gray-600">
+                {resetSuccess 
+                  ? 'Your password has been successfully reset'
+                  : 'Create a new secure password for your account'}
+              </p>
             </div>
 
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Reset Password</h2>
-            <p className="text-gray-600">
-              {resetSuccess ? 'Password updated successfully!' : 'Create a new secure password'}
+            {/* Error Message */}
+            {authError && (
+              <div className="mb-6 p-4 bg-error-50 border border-error-200 rounded-lg flex items-center gap-3 animate-fade-in-up">
+                <AlertCircle className="w-5 h-5 text-error-600 flex-shrink-0" />
+                <p className="text-error-800 font-medium text-sm">{authError}</p>
+              </div>
+            )}
+
+            {/* Reset Form */}
+            {!resetSuccess && tokenValid && (
+              <form onSubmit={handleFormSubmit} className="space-y-6">
+                {/* Password Requirements Info */}
+                <div className="bg-info-50 border border-info-200 rounded-lg p-3 text-xs text-info-700">
+                  <p className="font-semibold mb-2">Password must include:</p>
+                  <ul className="space-y-1 ml-4 list-disc">
+                    <li>At least 8 characters</li>
+                    <li>One uppercase letter (A-Z)</li>
+                    <li>One lowercase letter (a-z)</li>
+                    <li>One number (0-9)</li>
+                  </ul>
+                </div>
+
+                {/* New Password Input */}
+                <div>
+                  <label htmlFor="new_password" className="block text-sm font-medium text-gray-700 mb-2">
+                    New Password <span className="text-error-600">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <input
+                      id="new_password"
+                      type={showPassword ? 'text' : 'password'}
+                      {...getFieldProps('new_password')}
+                      placeholder="••••••••"
+                      className={`w-full pl-12 pr-12 py-3 border rounded-lg transition-all focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                        touched.new_password && errors.new_password 
+                          ? 'border-error-300 bg-error-50' 
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  {touched.new_password && errors.new_password && (
+                    <p className="text-error-600 text-sm mt-2 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {errors.new_password}
+                    </p>
+                  )}
+                </div>
+
+                {/* Confirm Password Input */}
+                <div>
+                  <label htmlFor="new_password_confirm" className="block text-sm font-medium text-gray-700 mb-2">
+                    Confirm Password <span className="text-error-600">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <input
+                      id="new_password_confirm"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      {...getFieldProps('new_password_confirm')}
+                      placeholder="••••••••"
+                      className={`w-full pl-12 pr-12 py-3 border rounded-lg transition-all focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                        touched.new_password_confirm && errors.new_password_confirm 
+                          ? 'border-error-300 bg-error-50' 
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  {touched.new_password_confirm && errors.new_password_confirm && (
+                    <p className="text-error-600 text-sm mt-2 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {errors.new_password_confirm}
+                    </p>
+                  )}
+                </div>
+
+                {/* Submit Button */}
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  fullWidth
+                  icon={ArrowRight}
+                  iconPosition="right"
+                >
+                  Reset Password
+                </Button>
+
+                {/* Security Info */}
+                <div className="flex items-center justify-center gap-2 text-xs text-gray-500 pt-4 border-t border-gray-200">
+                  <Shield className="w-4 h-4" />
+                  <span>Secured with 256-bit SSL encryption</span>
+                </div>
+              </form>
+            )}
+
+            {/* Success State */}
+            {resetSuccess && (
+              <div className="space-y-6 animate-fade-in-up text-center">
+                {/* Success Icon */}
+                <div className="flex justify-center">
+                  <div className="p-4 bg-success-100 rounded-full">
+                    <CheckCircle className="w-8 h-8 text-success-600" />
+                  </div>
+                </div>
+
+                {/* Success Message */}
+                <div className="space-y-2">
+                  <p className="text-gray-700 font-medium">
+                    Your password has been successfully reset!
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    You can now sign in with your new password. Redirecting to login...
+                  </p>
+                </div>
+
+                {/* Action Button */}
+                <Button
+                  variant="primary"
+                  size="lg"
+                  fullWidth
+                  onClick={handleGoToLogin}
+                  icon={ArrowRight}
+                  iconPosition="right"
+                >
+                  Go to Login
+                </Button>
+              </div>
+            )}
+
+            {/* Invalid Token State */}
+            {!tokenValid && (
+              <div className="space-y-6 text-center">
+                {/* Error Icon */}
+                <div className="flex justify-center">
+                  <div className="p-4 bg-error-100 rounded-full">
+                    <AlertCircle className="w-8 h-8 text-error-600" />
+                  </div>
+                </div>
+
+                {/* Error Message */}
+                <div>
+                  <p className="text-gray-700 font-medium mb-2">
+                    Invalid or Expired Link
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    The password reset link is no longer valid. Please request a new one.
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="space-y-3">
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    fullWidth
+                    onClick={() => navigate('/forgot-password')}
+                  >
+                    Request New Link
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    fullWidth
+                    onClick={() => navigate('/login')}
+                  >
+                    Back to Login
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Card>
+
+          {/* Footer Links */}
+          <div className="mt-6 text-center text-sm text-gray-600">
+            <p>
+              Need help?{' '}
+              <button
+                onClick={() => window.open('/contact', '_blank')}
+                className="text-primary-600 hover:text-primary-700 font-semibold"
+              >
+                Contact Support
+              </button>
             </p>
           </div>
-
-          {/* Message Display */}
-          {message.text && (
-            <div
-              className={`mb-6 p-4 rounded-xl ${
-                message.type === 'success'
-                  ? 'bg-green-50 text-green-800 border border-green-200'
-                  : 'bg-red-50 text-red-800 border border-red-200'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                {message.type === 'success' ? (
-                  <CheckCircle className="w-5 h-5" />
-                ) : (
-                  <AlertCircle className="w-5 h-5" />
-                )}
-                <span className="font-medium">{message.text}</span>
-              </div>
-            </div>
-          )}
-
-          {!resetSuccess && token && (
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {/* New Password Input */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  New Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={formData.new_password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, new_password: e.target.value })
-                    }
-                    className="w-full pl-12 pr-12 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
-                    placeholder="••••••••"
-                    required
-                    disabled={loading}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    disabled={loading}
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Must be 8+ characters with uppercase, lowercase, and numbers
-                </p>
-              </div>
-
-              {/* Confirm Password Input */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Confirm New Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    value={formData.new_password_confirm}
-                    onChange={(e) =>
-                      setFormData({ ...formData, new_password_confirm: e.target.value })
-                    }
-                    className="w-full pl-12 pr-12 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
-                    placeholder="••••••••"
-                    required
-                    disabled={loading}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    disabled={loading}
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                ) : (
-                  <>
-                    Reset Password
-                    <ArrowRight className="w-5 h-5" />
-                  </>
-                )}
-              </button>
-            </form>
-          )}
-
-          {resetSuccess && (
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-green-600" />
-              </div>
-              <p className="text-gray-600 mb-4">Redirecting to login page...</p>
-              <button
-                onClick={handleGoToLogin}
-                className="text-blue-600 hover:text-blue-700 font-semibold"
-              >
-                Go to Login Now
-              </button>
-            </div>
-          )}
-
-          {!token && (
-            <div className="text-center">
-              <button
-                onClick={() => navigate('/forgot-password')}
-                className="text-blue-600 hover:text-blue-700 font-semibold"
-              >
-                Request New Reset Link
-              </button>
-            </div>
-          )}
         </div>
-      </div>
-    </div>
+      </PageContainer>
+    </>
   );
-};
-
-export default ResetPasswordPage;
+}
