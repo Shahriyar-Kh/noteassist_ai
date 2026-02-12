@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { 
   Save, X, Wand2, Code, Link, Plus, Trash2, 
-  FileText, Loader, CheckCircle, Sparkles, Play, Terminal
+  FileText, Loader, CheckCircle, Sparkles, Play, Terminal,
+  AlertCircle
 } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import Editor from '@monaco-editor/react';
 import ReactMarkdown from 'react-markdown';
 import { noteService } from '@/services/note.service';
+import '../../styles/animations.css';
 
 // InputModal Component - Add this at the top after imports
 const InputModal = ({ open, value, onChange, onClose, onRun }) => {
@@ -424,57 +427,77 @@ const showToast = (message, type = 'success') => {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-6 space-y-6 max-h-[90vh] overflow-y-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between pt-4 sticky top-0 z-10 bg-white dark:bg-gray-800 pb-4 border-b dark:border-gray-700">
-        <h3 className="text-xl font-bold flex items-center gap-2">
-          <FileText size={24} className="text-blue-600" />
-          {topic?.id ? 'Edit Topic' : 'New Topic'}
-        </h3>
-        <div className="flex items-center gap-2">
+    <>
+      <Helmet>
+        <title>{topic?.id ? 'Edit Topic' : 'Create New Topic'} - NoteAssist AI</title>
+        <meta name="description" content="Comprehensive topic editor with AI-powered content generation, rich text formatting, and code execution" />
+      </Helmet>
+      <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 p-6 space-y-6 max-h-[90vh] overflow-y-auto shadow-xl">
+        {/* Header with Enhanced Animation */}
+        <div className="flex items-center justify-between pt-4 sticky top-0 z-10 bg-white dark:bg-gray-800 pb-4 border-b dark:border-gray-700 animate-fade-in-down">
+          <h1 className="text-2xl font-bold flex items-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            <div className="p-2 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-lg">
+              <FileText size={24} className="text-blue-600" />
+            </div>
+            {topic?.id ? '✏️ Edit Topic' : '✨ Create New Topic'}
+          </h1>
+        <div className="flex items-center gap-2 animate-fade-in-up">
           {saved && (
-            <span className="flex items-center gap-1 text-green-600 text-sm">
-              <CheckCircle size={16} />
-              Saved!
-            </span>
+            <div className="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg text-green-700 dark:text-green-300 text-sm font-semibold animate-bounce-in">
+              <CheckCircle size={18} className="text-green-500" />
+              <span>Saved successfully!</span>
+            </div>
           )}
           <button
             onClick={handleSave}
             disabled={loading || !formData.name}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 hover:shadow-lg font-semibold shadow-md"
           >
             {loading ? <Loader size={16} className="animate-spin" /> : <Save size={16} />}
-            Save Topic
+            {loading ? 'Saving...' : 'Save Topic'}
           </button>
           <button
             onClick={onCancel}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 transform hover:scale-110"
           >
             <X size={20} />
           </button>
         </div>
       </div>
 
-      {/* Error Message */}
+      {/* Error Message with Animation */}
       {error && (
-        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg animate-shake flex items-start gap-3">
+          <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-red-800 dark:text-red-200 flex-1">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="text-red-600 hover:text-red-700 transition-colors"
+          >
+            <X size={16} />
+          </button>
         </div>
       )}
 
-      {/* Topic Name */}
-      <div>
-        <label className="block text-sm font-medium mb-2">Topic Name *</label>
+      {/* Topic Name with Enhanced Styling */}
+      <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+        <label className="flex text-sm font-bold mb-3 text-gray-900 dark:text-white items-center gap-2">
+          <span className="text-lg">📝</span>
+          Topic Name <span className="text-red-500">*</span>
+        </label>
         <input
           type="text"
           value={formData.name}
           onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
           placeholder="e.g., Binary Search Algorithm"
-          className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 font-medium"
         />
+        {!formData.name.trim() && (
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">ℹ️ Topic name is required</p>
+        )}
       </div>
       {/* Learning Level Selector - NEW */}
-<div className="border dark:border-gray-700 rounded-lg p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+<div className="border dark:border-gray-700 rounded-xl p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 shadow-lg animate-fade-in" style={{ animationDelay: '0.2s' }}>
   <label className="flex text-sm font-medium mb-3 items-center gap-2">
     <span className="text-blue-700 dark:text-blue-300 text-base font-semibold">
       🎓 Learning Level
@@ -591,7 +614,7 @@ const showToast = (message, type = 'success') => {
 
 
       {/* Explanation Section with Rich Text Editor */}
-      <div className="border dark:border-gray-700 rounded-lg p-4">
+      <div className="border dark:border-gray-700 rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow duration-300 animate-fade-in" style={{ animationDelay: '0.3s' }}>
         <div className="flex items-center justify-between mb-3">
           <label className="text-sm font-medium flex items-center gap-2">
             <FileText size={16} />
@@ -654,7 +677,7 @@ const showToast = (message, type = 'success') => {
       </div>
 
       {/* Code Snippet Section with Monaco Editor and Run Button */}
-      <div className="border dark:border-gray-700 rounded-lg p-4">
+      <div className="border dark:border-gray-700 rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow duration-300 animate-fade-in" style={{ animationDelay: '0.4s' }}>
         <div className="flex items-center justify-between mb-3">
           <label className="text-sm font-medium flex items-center gap-2">
             <Code size={16} />
@@ -740,7 +763,7 @@ const showToast = (message, type = 'success') => {
       </div>
 
       {/* Source/Reference Section */}
-      <div className="border dark:border-gray-700 rounded-lg p-4">
+      <div className="border dark:border-gray-700 rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow duration-300 animate-fade-in" style={{ animationDelay: '0.5s' }}>
         <label className="text-sm font-medium flex items-center gap-2 mb-3">
           <Link size={16} />
           Source/Reference (Optional)
@@ -782,7 +805,7 @@ const showToast = (message, type = 'success') => {
       </div>
 
       {/* Help Text */}
-      <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+      <div className="p-6 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 border-l-4 border-yellow-500 rounded-lg animate-fade-in" style={{ animationDelay: '0.6s' }}>
         <div className="prose prose-sm dark:prose-invert">
           <p className="text-sm text-yellow-800 dark:text-yellow-200">
             <strong>💡 Tip:</strong> Each topic is saved independently. Use the rich text editor for formatted explanations and the code editor for syntax-highlighted code examples. Use AI tools to quickly generate content. Add sources for proper citation in PDF exports.
@@ -805,6 +828,7 @@ const showToast = (message, type = 'success') => {
         }}
       />
     </div>
+    </>
   );
 };
 
