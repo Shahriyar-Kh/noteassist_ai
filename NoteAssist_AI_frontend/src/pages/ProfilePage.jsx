@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Mail, MapPin, BookOpen, Globe, Clock, Target, Bell, Lock, Camera, Save, X, Calendar, TrendingUp, FileText, Award, Loader2 } from 'lucide-react';
+import { User, Mail, MapPin, BookOpen, Globe, Clock, Target, Bell, Lock, Camera, Save, X, Calendar, TrendingUp, FileText, Award, Loader2, Loader } from 'lucide-react';
 import { profileService } from '@/services/profile.service';
 import { toast } from 'react-hot-toast';
 
@@ -10,6 +10,14 @@ const ProfilePage = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  
+  // Loading states for different actions
+  const [loadingSaveProfile, setLoadingSaveProfile] = useState(false);
+  const [loadingSavePreferences, setLoadingSavePreferences] = useState(false);
+  const [loadingSaveNotifications, setLoadingSaveNotifications] = useState(false);
+  const [loadingChangePassword, setLoadingChangePassword] = useState(false);
+  const [loadingDeleteAccount, setLoadingDeleteAccount] = useState(false);
+  const [loadingUploadAvatar, setLoadingUploadAvatar] = useState(false);
   
   // Real user data from API
   const [userData, setUserData] = useState({
@@ -155,7 +163,7 @@ const ProfilePage = () => {
 
   const handleSaveProfile = async () => {
     try {
-      setSaving(true);
+      setLoadingSaveProfile(true);
       const response = await profileService.updateProfile({
         fullName: userData.fullName,
         country: userData.country,
@@ -165,20 +173,20 @@ const ProfilePage = () => {
       });
 
       if (response.success) {
-        toast.success('Profile updated successfully!');
+        toast.success('✨ Profile updated successfully!');
         setIsEditing(false);
       }
     } catch (error) {
       console.error('Error saving profile:', error);
-      toast.error(error.response?.data?.error || 'Failed to update profile');
+      toast.error('❌ ' + (error.response?.data?.error || 'Failed to update profile'));
     } finally {
-      setSaving(false);
+      setLoadingSaveProfile(false);
     }
   };
 
   const handleSavePreferences = async () => {
     try {
-      setSaving(true);
+      setLoadingSavePreferences(true);
       const response = await profileService.updatePreferences({
         learningGoal: userData.learningGoal,
         preferredStudyHours: userData.preferredStudyHours,
@@ -187,29 +195,29 @@ const ProfilePage = () => {
       });
 
       if (response.success) {
-        toast.success('Preferences updated successfully!');
+        toast.success('✨ Preferences updated successfully!');
       }
     } catch (error) {
       console.error('Error saving preferences:', error);
-      toast.error(error.response?.data?.error || 'Failed to update preferences');
+      toast.error('❌ ' + (error.response?.data?.error || 'Failed to update preferences'));
     } finally {
-      setSaving(false);
+      setLoadingSavePreferences(false);
     }
   };
 
   const handleSaveNotifications = async () => {
     try {
-      setSaving(true);
+      setLoadingSaveNotifications(true);
       const response = await profileService.updateNotifications(notifications);
 
       if (response.success) {
-        toast.success('Notification settings updated!');
+        toast.success('✨ Notification settings updated!');
       }
     } catch (error) {
       console.error('Error saving notifications:', error);
-      toast.error('Failed to update notification settings');
+      toast.error('❌ Failed to update notification settings');
     } finally {
-      setSaving(false);
+      setLoadingSaveNotifications(false);
     }
   };
 
@@ -217,21 +225,21 @@ const ProfilePage = () => {
     e.preventDefault();
 
     if (passwordData.new_password !== passwordData.new_password_confirm) {
-      toast.error('New passwords do not match');
+      toast.error('❌ New passwords do not match');
       return;
     }
 
     if (passwordData.new_password.length < 8) {
-      toast.error('Password must be at least 8 characters');
+      toast.error('❌ Password must be at least 8 characters');
       return;
     }
 
     try {
-      setSaving(true);
+      setLoadingChangePassword(true);
       const response = await profileService.changePassword(passwordData);
 
       if (response.success) {
-        toast.success('Password changed successfully!');
+        toast.success('✨ Password changed successfully!');
         setPasswordData({
           old_password: '',
           new_password: '',
@@ -240,9 +248,9 @@ const ProfilePage = () => {
       }
     } catch (error) {
       console.error('Error changing password:', error);
-      toast.error(error.response?.data?.errors?.old_password?.[0] || 'Failed to change password');
+      toast.error('❌ ' + (error.response?.data?.errors?.old_password?.[0] || 'Failed to change password'));
     } finally {
-      setSaving(false);
+      setLoadingChangePassword(false);
     }
   };
 
@@ -442,11 +450,20 @@ const ProfilePage = () => {
                       <div className="flex gap-2">
                         <button
                           onClick={handleSaveProfile}
-                          disabled={saving}
-                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                          disabled={loadingSaveProfile}
+                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                          Save Changes
+                          {loadingSaveProfile ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>Saving...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Save className="w-4 h-4" />
+                              <span>Save Changes</span>
+                            </>
+                          )}
                         </button>
                         <button
                           onClick={() => setIsEditing(false)}
@@ -633,11 +650,20 @@ const ProfilePage = () => {
 
                     <button 
                       onClick={handleSavePreferences}
-                      disabled={saving}
-                      className="w-full md:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                      disabled={loadingSavePreferences}
+                      className="w-full md:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                      Save Preferences
+                      {loadingSavePreferences ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span>Saving...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-5 h-5" />
+                          <span>Save Preferences</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -667,9 +693,10 @@ const ProfilePage = () => {
                             setNotifications(newNotifications);
                             handleSaveNotifications();
                           }}
+                          disabled={loadingSaveNotifications}
                           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                             value ? 'bg-blue-600' : 'bg-gray-300'
-                          }`}
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           <span
                             className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -729,11 +756,17 @@ const ProfilePage = () => {
                         </div>
                         <button 
                           type="submit"
-                          disabled={saving}
-                          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                          disabled={loadingChangePassword}
+                          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
-                          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                          Update Password
+                          {loadingChangePassword ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>Updating...</span>
+                            </>
+                          ) : (
+                            <span>Update Password</span>
+                          )}
                         </button>
                       </form>
                     </div>
