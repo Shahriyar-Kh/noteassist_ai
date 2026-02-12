@@ -17,6 +17,7 @@ import NoteStructure from '@/components/notes/NoteStructure';
 import TopicEditor from '@/components/notes/TopicEditor';
 import ExportButtons from '@/components/notes/ExportButtons';
 import DailyReportModal from '@/components/notes/DailyReportModal';
+import '../styles/animations.css';
 
 const NotesPage = () => {
   // State from old functional file
@@ -27,6 +28,12 @@ const NotesPage = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewMode, setViewMode] = useState('grid');
+  
+  // Loading states for different actions
+  const [loadingCreateNote, setLoadingCreateNote] = useState(false);
+  const [loadingDeleteNote, setLoadingDeleteNote] = useState(false);
+  const [loadingCreateChapter, setLoadingCreateChapter] = useState(false);
+  const [loadingUpdateTitle, setLoadingUpdateTitle] = useState(false);
   
   // Modals (from old file)
   const [showNewNoteModal, setShowNewNoteModal] = useState(false);
@@ -99,6 +106,7 @@ const NotesPage = () => {
       return;
     }
     
+    setLoadingCreateNote(true);
     try {
       const newNote = await noteService.createNote({ 
         title: newNoteTitle.trim(), 
@@ -109,11 +117,13 @@ const NotesPage = () => {
       setNoteTitleValue(newNote.title);
       setNewNoteTitle('');
       setShowNewNoteModal(false);
-      showToast('Note created successfully!');
+      showToast('✨ Note created successfully!', 'success');
     } catch (error) {
       console.error('Error creating note:', error);
       const errorMessage = error.response?.data?.error || 'Failed to create note';
-      showToast(errorMessage, 'error');
+      showToast('❌ ' + errorMessage, 'error');
+    } finally {
+      setLoadingCreateNote(false);
     }
   };
 
@@ -129,18 +139,21 @@ const NotesPage = () => {
       return;
     }
     
+    setLoadingUpdateTitle(true);
     try {
       await noteService.updateNote(selectedNote.id, { title: noteTitleValue });
       setSelectedNote({ ...selectedNote, title: noteTitleValue });
       await fetchNotes();
       setEditingNoteTitle(false);
-      showToast('Note title updated successfully!');
+      showToast('✨ Note title updated successfully!', 'success');
     } catch (error) {
       console.error('Error updating note title:', error);
       const errorMessage = error.response?.data?.error || 'Failed to update note title';
-      showToast(errorMessage, 'error');
+      showToast('❌ ' + errorMessage, 'error');
       setNoteTitleValue(selectedNote.title);
       setEditingNoteTitle(false);
+    } finally {
+      setLoadingUpdateTitle(false);
     }
   };
 
@@ -150,6 +163,7 @@ const NotesPage = () => {
       return;
     }
     
+    setLoadingCreateChapter(true);
     try {
       await noteService.createChapter({ 
         note_id: selectedNote.id, 
@@ -158,11 +172,13 @@ const NotesPage = () => {
       await fetchNoteDetail(selectedNote.id);
       setNewChapterTitle('');
       setShowNewChapterModal(false);
-      showToast('Chapter created successfully!');
+      showToast('✨ Chapter created successfully!', 'success');
     } catch (error) {
       console.error('Error creating chapter:', error);
       const errorMessage = error.response?.data?.error || 'Failed to create chapter';
-      showToast(errorMessage, 'error');
+      showToast('❌ ' + errorMessage, 'error');
+    } finally {
+      setLoadingCreateChapter(false);
     }
   };
 
@@ -290,32 +306,34 @@ const NotesPage = () => {
   const confirmDelete = async () => {
     if (!deleteConfirm) return;
     
+    setLoadingDeleteNote(true);
     try {
       if (deleteConfirm.type === 'note') {
         await noteService.deleteNote(deleteConfirm.id);
         setSelectedNote(null);
         setNoteTitleValue('');
         await fetchNotes();
-        showToast('Note deleted successfully!');
+        showToast('✨ Note deleted successfully!', 'success');
       } else if (deleteConfirm.type === 'chapter') {
         await noteService.deleteChapter(deleteConfirm.id);
         if (selectedNote) {
           await fetchNoteDetail(selectedNote.id);
         }
-        showToast('Chapter deleted successfully!');
+        showToast('✨ Chapter deleted successfully!', 'success');
       } else if (deleteConfirm.type === 'topic') {
         await noteService.deleteTopic(deleteConfirm.id);
         if (selectedNote) {
           await fetchNoteDetail(selectedNote.id);
         }
-        showToast('Topic deleted successfully!');
+        showToast('✨ Topic deleted successfully!', 'success');
       }
     } catch (error) {
       console.error('Error deleting:', error);
       const errorMessage = error.response?.data?.error || 'Failed to delete';
-      showToast(errorMessage, 'error');
+      showToast('❌ ' + errorMessage, 'error');
     } finally {
       setDeleteConfirm(null);
+      setLoadingDeleteNote(false);
     }
   };
 
@@ -356,12 +374,12 @@ const NotesPage = () => {
         )}
 
         {/* Hero Header */}
-        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-2xl">
+        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-2xl animate-fade-in-down">
           <div className="container mx-auto px-6 py-12">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-8 gap-6">
-              <div className="space-y-2">
+              <div className="space-y-2 animate-fade-in-up">
                 <h1 className="text-4xl lg:text-5xl font-black tracking-tight flex items-center gap-4">
-                  <BookOpen className="w-10 h-10 lg:w-12 lg:h-12" />
+                  <BookOpen className="w-10 h-10 lg:w-12 lg:h-12 animate-bounce" />
                   Full Study Notes
                 </h1>
                 <p className="text-blue-100 text-lg font-medium">
@@ -371,14 +389,16 @@ const NotesPage = () => {
               <div className="flex flex-wrap gap-3">
                 <button
                   onClick={() => setShowDailyReport(true)}
-                  className="group flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-lg rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-2xl border border-white/20"
+                  className="group flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-lg rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-2xl border border-white/20 animate-fade-in-up hover-lift"
+                  style={{ animationDelay: '0.1s' }}
                 >
                   <BarChart3 className="w-5 h-5 group-hover:rotate-12 transition-transform" />
                   <span className="font-semibold">Daily Report</span>
                 </button>
                 <button
                   onClick={() => setShowNewNoteModal(true)}
-                  className="group flex items-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-2xl font-bold"
+                  className="group flex items-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-2xl font-bold animate-fade-in-up hover-lift"
+                  style={{ animationDelay: '0.2s' }}
                 >
                   <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
                   Create Note
@@ -397,7 +417,8 @@ const NotesPage = () => {
               ].map((stat, index) => (
                 <div
                   key={index}
-                  className="group bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20 hover:bg-white/20 transition-all duration-300 transform hover:scale-105 cursor-pointer"
+                  className="group bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20 hover:bg-white/20 transition-all duration-300 transform hover:scale-105 cursor-pointer animate-fade-in hover-lift"
+                  style={{ animationDelay: `${0.3 + index * 0.1}s` }}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <stat.icon className="w-5 h-5 lg:w-6 lg:h-6 text-white/80 group-hover:scale-110 transition-transform" />
@@ -413,7 +434,7 @@ const NotesPage = () => {
         </div>
 
         {/* Search & Filters */}
-        <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 shadow-lg">
+        <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 shadow-lg animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
           <div className="container mx-auto px-4 lg:px-6 py-4 lg:py-6">
             <div className="flex flex-col lg:flex-row lg:items-center gap-4">
               <div className="flex-1 relative">
@@ -441,7 +462,7 @@ const NotesPage = () => {
                 <div className="flex gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
                   <button
                     onClick={() => setViewMode('grid')}
-                    className={`p-2 rounded-lg transition-all ${
+                    className={`p-2 rounded-lg transition-all hover-lift ${
                       viewMode === 'grid'
                         ? 'bg-white dark:bg-gray-700 shadow-md text-blue-600'
                         : 'text-gray-600 hover:text-blue-600'
@@ -451,7 +472,7 @@ const NotesPage = () => {
                   </button>
                   <button
                     onClick={() => setViewMode('list')}
-                    className={`p-2 rounded-lg transition-all ${
+                    className={`p-2 rounded-lg transition-all hover-lift ${
                       viewMode === 'list'
                         ? 'bg-white dark:bg-gray-700 shadow-md text-blue-600'
                         : 'text-gray-600 hover:text-blue-600'
@@ -501,19 +522,27 @@ const NotesPage = () => {
                           }}
                           className="flex-1 px-4 py-3 text-2xl lg:text-3xl font-bold border-2 border-blue-500 rounded-xl focus:ring-4 focus:ring-blue-500/20"
                           autoFocus
+                          disabled={loadingUpdateTitle}
                         />
                         <button 
                           onClick={handleUpdateNoteTitle}
-                          className="p-3 text-green-600 hover:bg-green-50 rounded-xl transition-colors"
+                          disabled={loadingUpdateTitle}
+                          className="p-3 text-green-600 hover:bg-green-50 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={loadingUpdateTitle ? "Saving..." : "Save"}
                         >
-                          <Save size={20} />
+                          {loadingUpdateTitle ? (
+                            <Loader className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <Save size={20} />
+                          )}
                         </button>
                         <button
                           onClick={() => {
                             setEditingNoteTitle(false);
                             setNoteTitleValue(selectedNote.title);
                           }}
-                          className="p-3 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                          disabled={loadingUpdateTitle}
+                          className="p-3 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <X size={20} />
                         </button>
@@ -574,22 +603,23 @@ const NotesPage = () => {
               </div>
             </div>
           ) : loading ? (
-            <div className="flex flex-col items-center justify-center py-20">
+            <div className="flex flex-col items-center justify-center py-20 animate-fade-in">
               <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
               <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">Loading your notes...</p>
             </div>
           ) : filteredNotes.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <div className="w-32 h-32 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-full flex items-center justify-center mb-6">
+            <div className="flex flex-col items-center justify-center py-20 animate-fade-in">
+              <div className="w-32 h-32 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-full flex items-center justify-center mb-6 animate-bounce">
                 <FileText className="w-16 h-16 text-blue-600" />
               </div>
-              <h3 className="text-3xl font-bold mb-3">No Notes Found</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-8 text-lg">
+              <h3 className="text-3xl font-bold mb-3 animate-fade-in-down">No Notes Found</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-8 text-lg animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
                 {search ? 'Try a different search term' : 'Create your first note to get started'}
               </p>
               <button
                 onClick={() => setShowNewNoteModal(true)}
-                className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold shadow-lg hover:shadow-2xl transition-all transform hover:scale-105"
+                className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold shadow-lg hover:shadow-2xl transition-all transform hover:scale-105 animate-fade-in-up"
+                style={{ animationDelay: '0.2s' }}
               >
                 <Plus size={20} />
                 Create Your First Note
@@ -600,13 +630,14 @@ const NotesPage = () => {
               ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
               : 'space-y-4'
             }>
-              {filteredNotes.map((note) => (
+              {filteredNotes.map((note, index) => (
                 <div
                   key={note.id}
                   onClick={() => fetchNoteDetail(note.id)}
-                  className={`group bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] ${
+                  className={`group bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] animate-fade-in hover-lift ${
                     viewMode === 'list' ? 'flex items-center p-6' : 'p-6'
                   }`}
+                  style={{ animationDelay: `${index * 0.05}s` }}
                 >
                   {viewMode === 'grid' ? (
                     <>
@@ -697,8 +728,8 @@ const NotesPage = () => {
         
         {/* New Note Modal */}
         {showNewNoteModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-scale-in">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
@@ -706,7 +737,7 @@ const NotesPage = () => {
                   </div>
                   <h3 className="text-xl font-bold">Create New Note</h3>
                 </div>
-                <button onClick={() => setShowNewNoteModal(false)} className="text-gray-400 hover:text-gray-600">
+                <button onClick={() => setShowNewNoteModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
                   <X size={24} />
                 </button>
               </div>
@@ -717,17 +748,27 @@ const NotesPage = () => {
                 onChange={(e) => setNewNoteTitle(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleCreateNote()}
                 placeholder="Enter note title..."
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl mb-6 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl mb-6 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 autoFocus
               />
               
               <div className="flex gap-3">
                 <button
                   onClick={handleCreateNote}
-                  disabled={!newNoteTitle.trim()}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!newNoteTitle.trim() || loadingCreateNote}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Create Note
+                  {loadingCreateNote ? (
+                    <>
+                      <Loader className="w-5 h-5 animate-spin" />
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-5 h-5" />
+                      <span>Create Note</span>
+                    </>
+                  )}
                 </button>
                 <button 
                   onClick={() => setShowNewNoteModal(false)}
@@ -742,8 +783,8 @@ const NotesPage = () => {
 
         {/* New Chapter Modal */}
         {showNewChapterModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-scale-in">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
@@ -751,7 +792,7 @@ const NotesPage = () => {
                   </div>
                   <h3 className="text-xl font-bold">Create New Chapter</h3>
                 </div>
-                <button onClick={() => setShowNewChapterModal(false)} className="text-gray-400 hover:text-gray-600">
+                <button onClick={() => setShowNewChapterModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
                   <X size={24} />
                 </button>
               </div>
@@ -762,17 +803,27 @@ const NotesPage = () => {
                 onChange={(e) => setNewChapterTitle(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleCreateChapter()}
                 placeholder="Enter chapter title..."
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl mb-6 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl mb-6 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 autoFocus
               />
               
               <div className="flex gap-3">
                 <button
                   onClick={handleCreateChapter}
-                  disabled={!newChapterTitle.trim()}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!newChapterTitle.trim() || loadingCreateChapter}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Create Chapter
+                  {loadingCreateChapter ? (
+                    <>
+                      <Loader className="w-5 h-5 animate-spin" />
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FolderPlus className="w-5 h-5" />
+                      <span>Create Chapter</span>
+                    </>
+                  )}
                 </button>
                 <button 
                   onClick={() => setShowNewChapterModal(false)}
@@ -787,8 +838,8 @@ const NotesPage = () => {
 
         {/* Topic Editor Modal */}
         {showTopicEditor && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto animate-fade-in">
+            <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-scale-in">
               <TopicEditor
                 topic={selectedTopic?.id ? selectedTopic : null}
                 onSave={handleSaveTopic}
@@ -804,8 +855,8 @@ const NotesPage = () => {
 
         {/* Delete Confirmation Modal */}
         {deleteConfirm && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-scale-in">
               <div className="flex items-start gap-4 mb-6">
                 <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
                   <AlertCircle className="w-6 h-6 text-red-600" />
@@ -819,15 +870,27 @@ const NotesPage = () => {
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={() => setDeleteConfirm(null)}
-                  className="px-6 py-3 bg-gray-200 dark:bg-gray-700 rounded-xl font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                  disabled={loadingDeleteNote}
+                  className="px-6 py-3 bg-gray-200 dark:bg-gray-700 rounded-xl font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmDelete}
-                  className="px-6 py-3 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl font-semibold hover:from-red-700 hover:to-rose-700 transition-all"
+                  disabled={loadingDeleteNote}
+                  className="px-6 py-3 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl font-semibold hover:from-red-700 hover:to-rose-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Delete
+                  {loadingDeleteNote ? (
+                    <>
+                      <Loader className="w-5 h-5 animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-5 h-5" />
+                      <span>Delete</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
