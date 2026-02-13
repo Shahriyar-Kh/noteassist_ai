@@ -229,22 +229,27 @@ if ENVIRONMENT == 'production' and REDIS_AVAILABLE:
     SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
     SESSION_CACHE_ALIAS = 'session'
 elif ENVIRONMENT == 'production':
-    # 🆓 Render Free-Tier: Database-backed caching (no Redis)
+    # 🆓 Render Free-Tier: Temporarily use in-memory cache (will scale to database later)
+    # Database cache table migration still pending verification
     CACHES = {
         'default': {
-            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-            'LOCATION': 'django_cache_table',
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'noteassist-prod-cache',
             'TIMEOUT': 300,
+            'OPTIONS': {
+                'MAX_ENTRIES': 10000
+            }
         },
         'ai_cache': {
-            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-            'LOCATION': 'django_cache_table',
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'noteassist-prod-ai-cache',
             'TIMEOUT': 3600,
+            'OPTIONS': {
+                'MAX_ENTRIES': 5000
+            }
         },
         'session': {
-            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-            'LOCATION': 'django_cache_table',
-            'TIMEOUT': 2592000,
+            'BACKEND': 'django.contrib.sessions.backends.db',  # Keep sessions in database
         },
     }
     # Database sessions for free tier
@@ -329,15 +334,17 @@ REST_FRAMEWORK = {
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
     ],
-    'DEFAULT_THROTTLE_CLASSES': [
-        'utils.throttling.BurstRateThrottle',
-        'utils.throttling.SustainedRateThrottle',
-    ],
-    'DEFAULT_THROTTLE_RATES': {
-        'burst': '100/min',            # ⚡ Increased for better UX
-        'sustained': '10000/day',      # ⚡ Increased for scaling
-        'ai_tools': '30/hour',          # ⚡ Increased for AI tools
-    },
+    # ⚡ TEMPORARILY DISABLED: Throttling caused cache table issues
+    # Will re-enable after cache table is working properly
+    # 'DEFAULT_THROTTLE_CLASSES': [
+    #     'utils.throttling.BurstRateThrottle',
+    #     'utils.throttling.SustainedRateThrottle',
+    # ],
+    # 'DEFAULT_THROTTLE_RATES': {
+    #     'burst': '100/min',
+    #     'sustained': '10000/day',
+    #     'ai_tools': '30/hour',
+    # },
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ] if not DEBUG else [
@@ -412,14 +419,19 @@ CORS_ALLOW_HEADERS = [
 CORS_PREFLIGHT_MAX_AGE = 86400
 
 # Celery Configuration - ⚡ OPTIMIZED FOR RENDER FREE-TIER
-if REDIS_AVAILABLE:
-    # Use Redis if available
-    CELERY_BROKER_URL = REDIS_URL
-    CELERY_RESULT_BACKEND = REDIS_URL
-else:
-    # 🆓 Free-tier: Use database as broker (slower but works)
-    CELERY_BROKER_URL = f"sqla+{DATABASE_URL}" if DATABASE_URL else 'sqla://sqlite:///celery.db'
-    CELERY_RESULT_BACKEND = f"db+{DATABASE_URL}" if DATABASE_URL else 'db+sqlite:///celery.db'
+# ⚡ TEMPORARILY DISABLED: Redis broker caused issues, re-examine when infrastructure is ready
+# if REDIS_AVAILABLE:
+#     # Use Redis if available
+#     CELERY_BROKER_URL = REDIS_URL
+#     CELERY_RESULT_BACKEND = REDIS_URL
+# else:
+#     # 🆓 Free-tier: Use database as broker (slower but works)
+#     CELERY_BROKER_URL = f"sqla+{DATABASE_URL}" if DATABASE_URL else 'sqla://sqlite:///celery.db'
+#     CELERY_RESULT_BACKEND = f"db+{DATABASE_URL}" if DATABASE_URL else 'db+sqlite:///celery.db'
+
+# For now, use simple in-memory broker for testing
+CELERY_BROKER_URL = 'memory://'
+CELERY_RESULT_BACKEND = 'cache+locmem://'
 
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
