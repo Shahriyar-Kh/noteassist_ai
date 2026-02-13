@@ -4,14 +4,17 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import { Mail, Lock, Eye, EyeOff, BookOpen, ArrowRight, Shield, CheckCircle, AlertCircle, Sparkles, ArrowLeft } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
+import { login } from '@/store/slices/authSlice';
 import { API_BASE_URL } from '@/utils/constants';
 import { Button, FormInput, PageContainer, Card } from '@/components/design-system';
 import { useFormValidation, validators } from '@/hooks/useFormValidation';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [googleInitialized, setGoogleInitialized] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -122,9 +125,19 @@ const LoginPage = () => {
         localStorage.setItem('user', JSON.stringify(data.user));
       }
 
+      // ✅ CRITICAL: Update Redux store immediately for instant Navbar update
+      dispatch(login.fulfilled({
+        user: data.user,
+        access: data.tokens.access,
+        refresh: data.tokens.refresh,
+        redirect: data.redirect || '/dashboard',
+      }, '', {}));
+
+      console.log('[Google OAuth] Auth state updated, navigating to:', data.redirect || '/dashboard');
+
       setTimeout(() => {
         navigate(data.redirect || '/dashboard');
-      }, 500);
+      }, 300);
     } catch (error) {
       console.error('[Google OAuth] Error:', error);
       setSubmitError(error.message || 'Google authentication failed. Please try email login.');
@@ -158,9 +171,19 @@ const LoginPage = () => {
         localStorage.setItem('refreshToken', data.refresh);
         localStorage.setItem('user', JSON.stringify(data.user));
 
+        // ✅ CRITICAL: Update Redux store immediately for instant Navbar update
+        dispatch(login.fulfilled({
+          user: data.user,
+          access: data.access,
+          refresh: data.refresh,
+          redirect: data.redirect || '/dashboard',
+        }, '', {}));
+
+        console.log('[Email Login] Auth state updated, navigating to:', data.redirect || '/dashboard');
+
         setTimeout(() => {
           navigate(data.redirect || '/dashboard');
-        }, 500);
+        }, 300);
       } else {
         const errorType = data.error_type;
         const errorDetail = data.detail;

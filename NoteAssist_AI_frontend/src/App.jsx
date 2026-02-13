@@ -4,7 +4,10 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './store';
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense } from 'react';
+
+// ⚡ CRITICAL: Auth Hydration Hook - Syncs Redux with localStorage on app load
+import { useAuthHydration } from '@/hooks/useAuthHydration';
 
 // ⚡ PERFORMANCE: Toast notification system
 import ToastContainer from './components/common/Toast';
@@ -27,6 +30,9 @@ import ProtectedRoute from '@/components/guards/ProtectedRoute';
 import GuestRoute from '@/components/guards/GuestRoute';
 import AdminRoute from '@/components/guards/AdminRoute';
 import PublicPageRoute from '@/components/guards/PublicPageRoute';
+
+// Layouts
+import MainLayout from '@/components/layout/MainLayout';
 
 // Lazy-loaded Pages (code splitting for better performance)
 // Profile & AI Tools - loaded on demand
@@ -52,25 +58,20 @@ const PageLoader = () => (
 );
 
 function App() {
-  useEffect(() => {
-    // Log current auth state for debugging
-    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
-    
-    console.log('[App] Auth State:', {
-      hasToken: !!token,
-      hasUser: !!userStr,
-      user: userStr ? JSON.parse(userStr) : null
-    });
-  }, []);
+  // ✅ Hydrate Redux auth state from localStorage on app mount
+  // This ensures Navbar immediately shows after login without refresh
+  useAuthHydration();
 
   return (
     <Provider store={store}>
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         {/* ⚡ Global Toast Notification System */}
         <ToastContainer maxToasts={5} />
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
+        
+        {/* ✅ Main Layout - Provides Navbar + Content Area */}
+        <MainLayout>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
             {/* Public Routes */}
             <Route path="/" element={
               <GuestRoute>
@@ -202,7 +203,8 @@ function App() {
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </Suspense>
+            </Suspense>
+        </MainLayout>
       </Router>
     </Provider>
   );
