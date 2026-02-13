@@ -2,6 +2,8 @@
 // ============================================================================
 
 import { useState, useEffect, useRef } from 'react';
+import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { 
   Plus, FileText, Search, Filter, Grid, List as ListIcon,
@@ -9,10 +11,9 @@ import {
   Edit, Eye, BarChart3, Download, Share2, Save, X,
   AlertCircle, CheckCircle2, Info, ChevronRight, ChevronDown,
   Loader, ExternalLink, Copy, MoreVertical, Calendar,
-  FolderPlus, Folder, FileCode, Link, Upload, ArrowLeft
+  FolderPlus, Folder, FileCode, Link, Upload, ArrowLeft, LogIn
 } from 'lucide-react';
 import { noteService } from '@/services/note.service';
-import Navbar from '@/components/layout/Navbar';
 import NoteStructure from '@/components/notes/NoteStructure';
 import TopicEditor from '@/components/notes/TopicEditor';
 import ExportButtons from '@/components/notes/ExportButtons';
@@ -20,6 +21,10 @@ import DailyReportModal from '@/components/notes/DailyReportModal';
 import '../styles/animations.css';
 
 const NotesPage = () => {
+  // ✅ Check auth status
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
+  
   // State from old functional file
   const [notes, setNotes] = useState([]);
   const [selectedNote, setSelectedNote] = useState(null);
@@ -67,8 +72,14 @@ const NotesPage = () => {
   // ================ FUNCTIONALITY FROM OLD FILE ================
 
   useEffect(() => {
+    // ✅ Skip loading if user is not authenticated (guest)
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+    
     fetchNotes();
-  }, [statusFilter]);
+  }, [statusFilter, isAuthenticated]);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -345,6 +356,50 @@ const NotesPage = () => {
 
   // ================ RENDER ================
 
+  // ✅ Show login message for guests
+  if (!isAuthenticated) {
+    return (
+      <>
+        <Helmet>
+          <title>Study Notes - NoteAssist AI | Organize Your Learning</title>
+        </Helmet>
+        
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-blue-900/10 dark:to-indigo-900/10 flex items-center justify-center px-4">
+          <div className="max-w-lg text-center space-y-6 animate-fade-in-up">
+            <div className="space-y-4">
+              <BookOpen className="w-16 h-16 mx-auto text-blue-600 dark:text-blue-400" />
+              <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Study Notes</h1>
+              <p className="text-gray-600 dark:text-gray-300 text-lg">
+                Create, organize, and manage your study notes with AI assistance
+              </p>
+            </div>
+            
+            <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-xl p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <LogIn className="w-6 h-6 text-blue-600" />
+                <p className="text-gray-700 dark:text-gray-200 font-medium text-left">
+                  Sign in to create and manage your notes
+                </p>
+              </div>
+              
+              <button
+                onClick={() => navigate('/login')}
+                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+              >
+                <LogIn size={20} />
+                Sign In
+              </button>
+              
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Don't have an account? <button onClick={() => navigate('/register')} className="text-blue-600 hover:text-blue-700 font-semibold">Sign up</button>
+              </p>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <Helmet>
@@ -353,7 +408,6 @@ const NotesPage = () => {
       </Helmet>
 
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-blue-900/10 dark:to-indigo-900/10">
-        <Navbar hideLinks={['notes']} />
         
         {/* Toast Notifications */}
         {toast && (

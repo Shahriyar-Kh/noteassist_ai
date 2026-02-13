@@ -3,13 +3,11 @@
 
 import { Link } from 'react-router-dom';
 import { Shield, Lock, Eye, FileText, Mail, ArrowLeft } from 'lucide-react';
-import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 
 const PrivacyPolicy = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
-      <Navbar />
       
       <div className="container mx-auto px-4 py-12 pt-24">
         <div className="max-w-4xl mx-auto">

@@ -12,19 +12,21 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { Helmet } from 'react-helmet-async';
 import { 
   Sparkles, Wand2, FileText, Code, Trash2,
   Clock, ArrowRight, Zap, Loader2, AlertCircle,
-  TrendingUp, Award, Brain
+  TrendingUp, Award, Brain, LogIn
 } from 'lucide-react';
 import { Button, Card, PageContainer, FormInput } from '@/components/design-system';
 import { noteService } from '@/services/note.service';
 import toast from 'react-hot-toast';
-import Navbar from '@/components/layout/Navbar';
 
 const AIToolsPage = () => {
   const navigate = useNavigate();
+  // ✅ Check auth status
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
   // State management
   const [loading, setLoading] = useState(false);
@@ -37,8 +39,12 @@ const AIToolsPage = () => {
   const [loadingSaveHistoryId, setLoadingSaveHistoryId] = useState(null);
 
   useEffect(() => {
+    // ✅ Skip loading stats if not authenticated
+    if (!isAuthenticated) {
+      return;
+    }
     fetchStats();
-  }, []);
+  }, [isAuthenticated]);
 
   // Fetch AI generation history
   const fetchHistory = async () => {
@@ -175,9 +181,43 @@ const AIToolsPage = () => {
     return true;
   });
 
+  // ✅ Show login prompt for guests
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="text-center space-y-6 px-4">
+          <div className="flex justify-center">
+            <div className="p-4 bg-gradient-to-r from-violet-100 to-purple-100 rounded-2xl">
+              <Sparkles className="w-12 h-12 text-violet-600" />
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900">Unlock AI Tools</h1>
+          <p className="text-lg text-gray-600 max-w-md mx-auto">
+            Sign in to access our powerful AI tools for content generation, summarization, improvement, and code creation.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button 
+              onClick={() => navigate('/login')}
+              className="bg-gradient-to-r from-violet-600 to-purple-600 text-white hover:shadow-lg"
+            >
+              <LogIn className="w-4 h-4 mr-2" />
+              Sign In
+            </Button>
+            <Button 
+              onClick={() => navigate('/register')}
+              variant="outlined"
+              className="text-gray-900 border-gray-300 hover:bg-gray-50"
+            >
+              Create Account
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
-      <Navbar />
       <PageContainer>
         <Helmet>
           <title>AI Tools - NoteAssist</title>
