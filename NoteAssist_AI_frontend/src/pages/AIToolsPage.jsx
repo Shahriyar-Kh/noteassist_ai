@@ -210,19 +210,11 @@ const AIToolsPage = () => {
         {/* Guest Banner */}
         {!isAuthenticated && (
           <div className="mb-6 bg-amber-50 border-2 border-amber-200 rounded-xl p-4 animate-fade-in">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
-                <p className="text-amber-900 font-medium">
-                  You're viewing as a guest. <span className="font-bold">Sign in to use AI tools and generate content.</span>
-                </p>
-              </div>
-              <button
-                onClick={() => navigate('/login')}
-                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold transition-colors flex-shrink-0"
-              >
-                Sign In
-              </button>
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+              <p className="text-amber-900 font-medium">
+                You're viewing as a guest. <span className="font-bold">Sign in to use AI tools and generate content.</span>
+              </p>
             </div>
           </div>
         )}
