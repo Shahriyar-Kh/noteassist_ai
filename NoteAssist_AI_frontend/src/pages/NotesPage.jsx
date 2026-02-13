@@ -356,49 +356,27 @@ const NotesPage = () => {
 
   // ================ RENDER ================
 
-  // ✅ Show login message for guests
-  if (!isAuthenticated) {
-    return (
-      <>
-        <Helmet>
-          <title>Study Notes - NoteAssist AI | Organize Your Learning</title>
-        </Helmet>
-        
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-blue-900/10 dark:to-indigo-900/10 flex items-center justify-center px-4">
-          <div className="max-w-lg text-center space-y-6 animate-fade-in-up">
-            <div className="space-y-4">
-              <BookOpen className="w-16 h-16 mx-auto text-blue-600 dark:text-blue-400" />
-              <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Study Notes</h1>
-              <p className="text-gray-600 dark:text-gray-300 text-lg">
-                Create, organize, and manage your study notes with AI assistance
-              </p>
-            </div>
-            
-            <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-xl p-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <LogIn className="w-6 h-6 text-blue-600" />
-                <p className="text-gray-700 dark:text-gray-200 font-medium text-left">
-                  Sign in to create and manage your notes
-                </p>
-              </div>
-              
-              <button
-                onClick={() => navigate('/login')}
-                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
-              >
-                <LogIn size={20} />
-                Sign In
-              </button>
-              
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Don't have an account? <button onClick={() => navigate('/register')} className="text-blue-600 hover:text-blue-700 font-semibold">Sign up</button>
-              </p>
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  }
+  // Helper function to handle guest clicks
+  const handleGuestAction = (action) => {
+    if (!isAuthenticated) {
+      showToast('Please sign in to use this feature', 'info');
+      setTimeout(() => navigate('/login'), 1500);
+      return false;
+    }
+    return true;
+  };
+
+  const handleCreateNoteClick = () => {
+    if (handleGuestAction('create')) {
+      setShowNewNoteModal(true);
+    }
+  };
+
+  const handleDailyReportClick = () => {
+    if (handleGuestAction('report')) {
+      setShowDailyReport(true);
+    }
+  };
 
   return (
     <>
@@ -427,6 +405,28 @@ const NotesPage = () => {
           </div>
         )}
 
+        {/* Guest Banner */}
+        {!isAuthenticated && (
+          <div className="bg-amber-50 border-b-2 border-amber-200 animate-fade-in">
+            <div className="container mx-auto px-4 lg:px-6 py-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                  <p className="text-amber-900 font-medium">
+                    You're viewing as a guest. <span className="font-bold">Sign in to create and manage your notes.</span>
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate('/login')}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold transition-colors flex-shrink-0"
+                >
+                  Sign In
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Hero Header */}
         <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-2xl animate-fade-in-down">
           <div className="container mx-auto px-6 py-12">
@@ -442,20 +442,30 @@ const NotesPage = () => {
               </div>
               <div className="flex flex-wrap gap-3">
                 <button
-                  onClick={() => setShowDailyReport(true)}
-                  className="group flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-lg rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-2xl border border-white/20 animate-fade-in-up hover-lift"
+                  onClick={handleDailyReportClick}
+                  className={`group flex items-center gap-2 px-4 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-2xl border animate-fade-in-up hover-lift ${
+                    !isAuthenticated 
+                      ? 'bg-white/10 hover:bg-white/20 backdrop-blur-lg border-white/20 opacity-75 cursor-not-allowed'
+                      : 'bg-white/10 hover:bg-white/20 backdrop-blur-lg border-white/20'
+                  }`}
                   style={{ animationDelay: '0.1s' }}
+                  disabled={!isAuthenticated}
                 >
                   <BarChart3 className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                  <span className="font-semibold">Daily Report</span>
+                  <span className="font-semibold">{!isAuthenticated ? 'Daily Report (Sign in)' : 'Daily Report'}</span>
                 </button>
                 <button
-                  onClick={() => setShowNewNoteModal(true)}
-                  className="group flex items-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-2xl font-bold animate-fade-in-up hover-lift"
+                  onClick={handleCreateNoteClick}
+                  className={`group flex items-center gap-2 px-6 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-2xl font-bold animate-fade-in-up hover-lift ${
+                    !isAuthenticated 
+                      ? 'bg-white text-blue-600 bg-opacity-50 cursor-not-allowed'
+                      : 'bg-white text-blue-600'
+                  }`}
                   style={{ animationDelay: '0.2s' }}
+                  disabled={!isAuthenticated}
                 >
                   <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
-                  Create Note
+                  {!isAuthenticated ? 'Create Note (Sign in)' : 'Create Note'}
                 </button>
               </div>
             </div>
@@ -671,12 +681,16 @@ const NotesPage = () => {
                 {search ? 'Try a different search term' : 'Create your first note to get started'}
               </p>
               <button
-                onClick={() => setShowNewNoteModal(true)}
-                className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold shadow-lg hover:shadow-2xl transition-all transform hover:scale-105 animate-fade-in-up"
+                onClick={handleCreateNoteClick}
+                className={`flex items-center gap-2 px-8 py-4 rounded-xl font-bold shadow-lg hover:shadow-2xl transition-all transform hover:scale-105 animate-fade-in-up ${
+                  !isAuthenticated
+                    ? 'bg-gradient-to-r from-blue-600/50 to-indigo-600/50 text-white cursor-not-allowed'
+                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white'
+                }`}
                 style={{ animationDelay: '0.2s' }}
               >
                 <Plus size={20} />
-                Create Your First Note
+                {!isAuthenticated ? 'Sign In to Create Notes' : 'Create Your First Note'}
               </button>
             </div>
           ) : (

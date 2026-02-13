@@ -181,40 +181,23 @@ const AIToolsPage = () => {
     return true;
   });
 
-  // ✅ Show login prompt for guests
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="text-center space-y-6 px-4">
-          <div className="flex justify-center">
-            <div className="p-4 bg-gradient-to-r from-violet-100 to-purple-100 rounded-2xl">
-              <Sparkles className="w-12 h-12 text-violet-600" />
-            </div>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900">Unlock AI Tools</h1>
-          <p className="text-lg text-gray-600 max-w-md mx-auto">
-            Sign in to access our powerful AI tools for content generation, summarization, improvement, and code creation.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button 
-              onClick={() => navigate('/login')}
-              className="bg-gradient-to-r from-violet-600 to-purple-600 text-white hover:shadow-lg"
-            >
-              <LogIn className="w-4 h-4 mr-2" />
-              Sign In
-            </Button>
-            <Button 
-              onClick={() => navigate('/register')}
-              variant="outlined"
-              className="text-gray-900 border-gray-300 hover:bg-gray-50"
-            >
-              Create Account
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Helper functions for guest actions
+  const handleGuestAction = (actionType) => {
+    if (!isAuthenticated) {
+      // Show toast message
+      toast.promise(
+        new Promise(resolve => setTimeout(resolve, 1500)),
+        {
+          loading: 'Please sign in to use AI tools',
+          success: 'Redirecting to sign in...',
+          error: 'Error'
+        }
+      );
+      setTimeout(() => navigate('/login'), 1500);
+      return false;
+    }
+    return true;
+  };
 
   return (
     <>
@@ -223,6 +206,26 @@ const AIToolsPage = () => {
           <title>AI Tools - NoteAssist</title>
           <meta name="description" content="Explore AI-powered tools for content generation, summarization, improvement, and code generation" />
         </Helmet>
+
+        {/* Guest Banner */}
+        {!isAuthenticated && (
+          <div className="mb-6 bg-amber-50 border-2 border-amber-200 rounded-xl p-4 animate-fade-in">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                <p className="text-amber-900 font-medium">
+                  You're viewing as a guest. <span className="font-bold">Sign in to use AI tools and generate content.</span>
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/login')}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold transition-colors flex-shrink-0"
+              >
+                Sign In
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Page Header */}
       <div className="mb-12 animate-fade-in-up">
@@ -280,17 +283,25 @@ const AIToolsPage = () => {
             <div className="grid md:grid-cols-2 gap-6">
               {aiTools.map((tool, idx) => {
                 const Icon = tool.icon;
+                const handleToolClick = (e) => {
+                  if (!isAuthenticated) {
+                    e.preventDefault();
+                    handleGuestAction('aiTool');
+                  }
+                };
+                
                 return (
                   <Link
                     key={tool.id}
-                    to={tool.route}
-                    className="group animate-fade-in-up"
+                    to={isAuthenticated ? tool.route : '#'}
+                    onClick={handleToolClick}
+                    className={`group animate-fade-in-up ${!isAuthenticated ? 'pointer-events-none' : ''}`}
                     style={{ animationDelay: `${idx * 0.1}s` }}
                   >
                     <Card 
                       variant="elevated"
-                      hover
-                      className="h-full cursor-pointer"
+                      hover={isAuthenticated}
+                      className={`h-full ${isAuthenticated ? 'cursor-pointer' : 'cursor-not-allowed opacity-75'}`}
                     >
                       <div className="flex items-start justify-between mb-4">
                         <div className={`p-4 bg-gradient-to-r ${tool.gradient} rounded-xl`}>
@@ -311,7 +322,7 @@ const AIToolsPage = () => {
                       </p>
 
                       <div className="flex items-center gap-2 text-violet-600 font-semibold group-hover:gap-4 transition-all">
-                        <span>Try Now</span>
+                        <span>{!isAuthenticated ? 'Sign In to Try' : 'Try Now'}</span>
                         <ArrowRight className="w-4 h-4" />
                       </div>
                     </Card>
