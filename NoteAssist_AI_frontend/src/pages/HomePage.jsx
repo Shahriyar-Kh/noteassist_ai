@@ -9,7 +9,8 @@ import { useDispatch } from 'react-redux';
 import { 
   Sparkles, Brain, Zap, FileText, Code, TrendingUp,
   ArrowRight, CheckCircle, Star, Users, BookOpen,
-  MessageSquare, BarChart3, Shield, Globe, Menu, X, Lightbulb, Rocket
+  MessageSquare, BarChart3, Shield, Globe, Menu, X, Lightbulb, Rocket,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import Footer from '@/components/layout/Footer';
@@ -167,6 +168,7 @@ const HomePage = () => {
   const [scrollY, setScrollY] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [guestLoading, setGuestLoading] = useState(false);
+  const [carouselIndex, setCarouselIndex] = useState(0);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -181,6 +183,14 @@ const HomePage = () => {
     const interval = setInterval(() => {
       setActiveFeature((prev) => (prev + 1) % aiFeatures.length);
     }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Auto-rotate testimonials carousel every 6 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCarouselIndex((prev) => (prev + 1) % Math.ceil(testimonials.length / 3));
+    }, 6000);
     return () => clearInterval(interval);
   }, []);
 
@@ -328,6 +338,22 @@ const HomePage = () => {
     } finally {
       setGuestLoading(false);
     }
+  };
+
+  // Carousel helper functions
+  const testimonialsPerPage = 3;
+  const totalPages = Math.ceil(testimonials.length / testimonialsPerPage);
+  const visibleTestimonials = testimonials.slice(
+    carouselIndex * testimonialsPerPage,
+    carouselIndex * testimonialsPerPage + testimonialsPerPage
+  );
+
+  const goToPreviousSlide = () => {
+    setCarouselIndex((prev) => (prev - 1 + totalPages) % totalPages);
+  };
+
+  const goToNextSlide = () => {
+    setCarouselIndex((prev) => (prev + 1) % totalPages);
   };
 
   return (
@@ -716,7 +742,7 @@ const HomePage = () => {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 max-w-7xl mx-auto">
+            <div className="grid md:grid-cols-2 mx-6 lg:grid-cols-3 gap-6 md:gap-8 max-w-7xl">
               {features.map((feature, index) => (
                 <div
                   key={index}
@@ -766,40 +792,86 @@ const HomePage = () => {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 max-w-7xl mx-auto">
-              {testimonials.map((testimonial, index) => (
-                <div
-                  key={index}
-                  className="p-6 md:p-8 rounded-2xl bg-white border-2 border-gray-200 hover:border-violet-500 transition-all hover:shadow-xl hover:translate-y-1"
-                  style={{ animation: `fadeInUp 0.6s ease-out ${0.1 * index}s both` }}
-                >
-                  {/* Star Rating */}
-                  <div className="flex items-center gap-1 mb-4">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="w-4 md:w-5 h-4 md:h-5 fill-yellow-400 text-yellow-400" />
+            <div className="max-w-7xl mx-auto">
+              {/* Carousel Container */}
+              <div className="relative">
+                {/* Testimonials Grid - 3 columns */}
+                <div className="grid md:grid-cols-3 gap-6 md:gap-8">
+                  {visibleTestimonials.map((testimonial, index) => (
+                    <div
+                      key={index}
+                      className="p-6 md:p-8 rounded-2xl bg-white border-2 border-gray-200 hover:border-violet-500 transition-all hover:shadow-xl hover:translate-y-1 animate-fade-in"
+                      style={{ animation: `fadeInUp 0.6s ease-out ${0.1 * index}s both` }}
+                    >
+                      {/* Star Rating */}
+                      <div className="flex items-center gap-1 mb-4">
+                        {[...Array(testimonial.rating)].map((_, i) => (
+                          <Star key={i} className="w-4 md:w-5 h-4 md:h-5 fill-yellow-400 text-yellow-400" />
+                        ))}
+                      </div>
+                      
+                      <p className="text-gray-700 text-sm md:text-base mb-4 md:mb-6 italic">
+                        "{testimonial.quote}"
+                      </p>
+                      
+                      {/* Author Info */}
+                      <div className="flex items-center gap-3">
+                        <div className="text-2xl md:text-3xl">
+                          {testimonial.image}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-bold text-gray-900 text-sm md:text-base">
+                            {testimonial.name}
+                          </div>
+                          <div className="text-xs md:text-sm text-gray-600">
+                            {testimonial.role}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Navigation Buttons */}
+                <div className="flex items-center justify-center gap-4 mt-8 md:mt-12">
+                  <button
+                    onClick={goToPreviousSlide}
+                    className="p-3 md:p-4 rounded-full bg-violet-100 hover:bg-violet-200 text-violet-600 transition-all hover:scale-110 active:scale-95"
+                    aria-label="Previous testimonials"
+                  >
+                    <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
+                  </button>
+
+                  {/* Dot Indicators */}
+                  <div className="flex items-center gap-2">
+                    {Array.from({ length: totalPages }).map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setCarouselIndex(idx)}
+                        className={`h-2 md:h-3 rounded-full transition-all ${
+                          idx === carouselIndex
+                            ? 'bg-violet-600 w-6 md:w-8'
+                            : 'bg-gray-300 w-2 md:w-3 hover:bg-gray-400'
+                        }`}
+                        aria-label={`Go to slide ${idx + 1}`}
+                      />
                     ))}
                   </div>
-                  
-                  <p className="text-gray-700 text-sm md:text-base mb-4 md:mb-6 italic">
-                    "{testimonial.quote}"
-                  </p>
-                  
-                  {/* Author Info */}
-                  <div className="flex items-center gap-3">
-                    <div className="text-2xl md:text-3xl">
-                      {testimonial.image}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-bold text-gray-900 text-sm md:text-base">
-                        {testimonial.name}
-                      </div>
-                      <div className="text-xs md:text-sm text-gray-600">
-                        {testimonial.role}
-                      </div>
-                    </div>
-                  </div>
+
+                  <button
+                    onClick={goToNextSlide}
+                    className="p-3 md:p-4 rounded-full bg-violet-100 hover:bg-violet-200 text-violet-600 transition-all hover:scale-110 active:scale-95"
+                    aria-label="Next testimonials"
+                  >
+                    <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
+                  </button>
                 </div>
-              ))}
+
+                {/* Auto-rotation Indicator */}
+                <p className="text-center text-sm text-gray-500 mt-6">
+                  Auto-rotating every 6 seconds
+                </p>
+              </div>
             </div>
           </div>
         </section>
