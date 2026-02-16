@@ -190,7 +190,7 @@ const HomePage = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setCarouselIndex((prev) => (prev + 1) % Math.ceil(testimonials.length / 3));
-    }, 6000);
+    }, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -800,7 +800,7 @@ const HomePage = () => {
                   {visibleTestimonials.map((testimonial, index) => (
                     <div
                       key={index}
-                      className="p-6 md:p-8 rounded-2xl bg-white border-2 border-gray-200 hover:border-violet-500 transition-all hover:shadow-xl hover:translate-y-1 animate-fade-in"
+                      className="h-full p-6 md:p-8 rounded-2xl bg-white border-2 border-gray-200 hover:border-violet-500 transition-all hover:shadow-xl hover:translate-y-1 animate-fade-in flex flex-col"
                       style={{ animation: `fadeInUp 0.6s ease-out ${0.1 * index}s both` }}
                     >
                       {/* Star Rating */}
@@ -815,7 +815,7 @@ const HomePage = () => {
                       </p>
                       
                       {/* Author Info */}
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 mt-auto">
                         <div className="text-2xl md:text-3xl">
                           {testimonial.image}
                         </div>
@@ -868,9 +868,7 @@ const HomePage = () => {
                 </div>
 
                 {/* Auto-rotation Indicator */}
-                <p className="text-center text-sm text-gray-500 mt-6">
-                  Auto-rotating every 6 seconds
-                </p>
+              
               </div>
             </div>
           </div>

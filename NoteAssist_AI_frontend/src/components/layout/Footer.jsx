@@ -106,8 +106,8 @@ const Footer = () => {
         
         {/* Footer Bottom */}
         <div className="pt-8 border-t border-gray-800">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-gray-400 text-center md:text-left">
+          <div className="flex flex-row flex-wrap items-center justify-center gap-4 text-center">
+            <p className="text-gray-400">
               &copy; {currentYear} NoteAssist AI. All rights reserved.
             </p>
             
@@ -122,7 +122,7 @@ const Footer = () => {
                 to="/terms-of-service"
                 className="text-gray-400 hover:text-primary-400 transition-colors text-sm"
               >
-                Terms of Service
+              Terms of Service
               </Link>
             </div>
           </div>
