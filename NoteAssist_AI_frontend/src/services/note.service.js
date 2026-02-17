@@ -504,6 +504,21 @@ exportAIHistoryToDrive: async (historyId) => {
   const response = await api.post(`/api/ai-tools/outputs/${historyId}/upload-to-drive/`);
   return response.data;
 },
+
+// Upload AI history PDF to Google Drive
+uploadAIHistoryPdfToDrive: async (historyId, file, filename) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (filename) {
+    formData.append('filename', filename);
+  }
+  const response = await api.post(
+    `/api/ai-tools/outputs/${historyId}/upload-to-drive/`,
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } }
+  );
+  return response.data;
+},
 };
 
 

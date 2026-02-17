@@ -16,7 +16,7 @@ import '@/styles/animations.css';
 import { noteService } from '@/services/note.service';
 import { toast } from 'react-hot-toast';
 import api from '@/services/api';
-import { exportToPDF } from '@/utils/pdfExport';
+import { exportToPDF, exportToPDFBlob } from '@/utils/pdfExport';
 
 /* ─── Nav pill ──────────────────────────────────────────────────────────── */
 const NavPill = ({ onClick, to, icon: Icon, label, variant = 'default' }) => {
@@ -41,6 +41,7 @@ const AIToolsGenerateTopicPage = ({ topic, onSave, onCancel, onAIAction }) => {
   const [learningLevel, setLearningLevel]       = useState('beginner');
   const [uploadingToDrive, setUploadingToDrive] = useState(false);
   const [driveStatus, setDriveStatus]           = useState({ connected: false, checking: true });
+  const [historyId, setHistoryId]               = useState(null);
   const [formData, setFormData]                 = useState({
     name:        topic?.name || '',
     explanation: topic?.explanation?.content || '',
@@ -97,13 +98,30 @@ const AIToolsGenerateTopicPage = ({ topic, onSave, onCancel, onAIAction }) => {
   };
 
   const handleUploadToGoogleDrive = async () => {
-    if (!formData.explanation || !formData.name) { toast.error('Please generate content first'); return; }
-    if (!driveStatus.connected) { handleConnectDrive(); return; }
+    if (!historyId) { toast.error('❌ Please generate content first'); return; }
     setUploadingToDrive(true);
     try {
-      toast.success('✨ Content uploaded to Google Drive successfully!');
-    } catch { toast.error('❌ Failed to upload to Google Drive'); }
-    finally { setUploadingToDrive(false); }
+      const filename = `${formData.name.replace(/\s+/g, '_')}.pdf`;
+      const { blob, filename: resolvedName } = await exportToPDFBlob(
+        formData.explanation,
+        filename,
+        formData.name,
+        { 'Learning Level': learningLevel, 'Topic': formData.name }
+      );
+      const file = new File([blob], resolvedName, { type: 'application/pdf' });
+      const result = await noteService.uploadAIHistoryPdfToDrive(historyId, file, resolvedName);
+      if (result?.success) {
+        toast.success('✨ Content uploaded to Google Drive successfully!');
+      } else if (result?.needs_auth) {
+        toast.error('❌ Please connect Google Drive to continue');
+        handleConnectDrive();
+      } else {
+        toast.error('❌ ' + (result?.error || 'Failed to upload to Google Drive'));
+      }
+    } catch (error) {
+      console.error('Drive export error:', error);
+      toast.error('❌ ' + (error.message || 'Failed to upload to Google Drive'));
+    } finally { setUploadingToDrive(false); }
   };
 
   const handleExportPDF = async () => {
@@ -128,19 +146,20 @@ const AIToolsGenerateTopicPage = ({ topic, onSave, onCancel, onAIAction }) => {
         const programmingKeywords = ['function','class','loop','array','variable','algorithm','code','programming','python','javascript','java','c++','syntax','method','object','string','integer','boolean','recursion','sorting','database','api','framework'];
         requestData.subject_area = programmingKeywords.some(kw => input.toLowerCase().includes(kw)) ? 'programming' : 'general';
       }
-      const result = await noteService.performStandaloneAIAction(requestData);
+      const result = await noteService.aiToolExplain({
+        title: requestData.topic_name,
+        level: learningLevel,
+        subject_area: requestData.subject_area
+      });
       setFormData(prev => ({ ...prev, explanation: result.generated_content }));
-      showToast(`✨ Explanation generated successfully (${learningLevel} level)!`, 'success');
+      setHistoryId(result.history_id || null);
+      toast.success(`✨ Explanation generated successfully (${learningLevel} level)!`);
     } catch (error) {
       console.error('AI action failed:', error);
       const errorMessage = error.response?.data?.error || error.message || 'AI action failed';
       setError(errorMessage);
-      showToast('❌ ' + errorMessage, 'error');
+      toast.error('❌ ' + errorMessage);
     } finally { setAiLoading(null); }
-  };
-
-  const showToast = (message, type = 'success') => {
-    window.dispatchEvent(new CustomEvent('show-toast', { detail: { message, type } }));
   };
 
   const levels = [

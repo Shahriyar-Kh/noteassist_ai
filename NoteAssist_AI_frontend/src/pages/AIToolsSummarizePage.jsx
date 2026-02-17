@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import '@/styles/animations.css';
 import { noteService } from '@/services/note.service';
-import { exportToPDF } from '@/utils/pdfExport';
+import { exportToPDF, exportToPDFBlob } from '@/utils/pdfExport';
 import { toast } from 'react-hot-toast';
 
 /* ─── Reusable header nav pill ─────────────────────────────────────────── */
@@ -82,8 +82,22 @@ const AIToolsSummarizePage = () => {
     if (!historyId) { toast.error('❌ No content to upload'); return; }
     try {
       setLoadingUpload(true);
-      await noteService.exportAIHistoryToDrive(historyId);
-      toast.success('✨ Uploaded to Google Drive successfully!');
+      const filename = 'summary.pdf';
+      const { blob, filename: resolvedName } = await exportToPDFBlob(
+        summarizedContent,
+        filename,
+        'Summary',
+        { 'Length': summaryLength }
+      );
+      const file = new File([blob], resolvedName, { type: 'application/pdf' });
+      const result = await noteService.uploadAIHistoryPdfToDrive(historyId, file, resolvedName);
+      if (result?.success) {
+        toast.success('✨ Uploaded to Google Drive successfully!');
+      } else if (result?.needs_auth) {
+        toast.error('❌ Please connect Google Drive to continue');
+      } else {
+        toast.error('❌ ' + (result?.error || 'Failed to upload to Google Drive'));
+      }
       setTimeout(() => setLoadingUpload(false), 800);
     } catch (error) {
       console.error('Google Drive upload error:', error);

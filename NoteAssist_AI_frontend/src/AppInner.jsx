@@ -12,6 +12,7 @@ import { useAuthHydration } from '@/hooks/useAuthHydration';
 
 // ⚡ PERFORMANCE: Toast notification system
 import ToastContainer from './components/common/Toast';
+import { Toaster } from 'react-hot-toast';
 
 // Main Pages (loaded immediately for faster initial load)
 import HomePage from './pages/HomePage';
@@ -68,6 +69,7 @@ function AppInner() {
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       {/* ⚡ Global Toast Notification System */}
       <ToastContainer maxToasts={5} />
+      <Toaster position="top-right" />
       
       {/* ✅ Main Layout - Provides Navbar + Content Area */}
       <MainLayout>

@@ -240,6 +240,95 @@ class GoogleDriveService:
                 'success': False,
                 'error': error_msg
             }
+
+    def upload_or_update_text(self, text_content, filename, existing_file_id=None, mime_type='text/plain'):
+        """
+        Upload or update a text/markdown file in Drive.
+
+        Args:
+            text_content: str or bytes
+            filename: target filename
+            existing_file_id: update existing file if provided
+            mime_type: MIME type for the upload
+        """
+        try:
+            if isinstance(text_content, str):
+                text_content = text_content.encode('utf-8')
+
+            folder_id = self.get_or_create_folder()
+            media = MediaIoBaseUpload(
+                BytesIO(text_content),
+                mimetype=mime_type,
+                resumable=True
+            )
+
+            if existing_file_id:
+                try:
+                    file = self.service.files().update(
+                        fileId=existing_file_id,
+                        media_body=media,
+                        fields='id, webViewLink, webContentLink, modifiedTime'
+                    ).execute()
+
+                    logger.info(f"✅ Updated text file {existing_file_id} for user {self.user.id}")
+
+                    return {
+                        'id': file['id'],
+                        'webViewLink': file.get('webViewLink'),
+                        'webContentLink': file.get('webContentLink'),
+                        'modifiedTime': file.get('modifiedTime'),
+                        'success': True,
+                        'updated': True
+                    }
+                except HttpError as e:
+                    if e.resp.status == 404:
+                        logger.warning(f"⚠️ File {existing_file_id} not found, creating new for user {self.user.id}")
+                        existing_file_id = None
+                    else:
+                        raise
+
+            file_metadata = {
+                'name': filename,
+                'parents': [folder_id],
+                'mimeType': mime_type
+            }
+
+            file = self.service.files().create(
+                body=file_metadata,
+                media_body=media,
+                fields='id, webViewLink, webContentLink, createdTime'
+            ).execute()
+
+            self.service.permissions().create(
+                fileId=file['id'],
+                body={'type': 'anyone', 'role': 'reader'}
+            ).execute()
+
+            logger.info(f"✅ Created new text file for user {self.user.id}")
+
+            return {
+                'id': file['id'],
+                'webViewLink': file.get('webViewLink'),
+                'webContentLink': file.get('webContentLink'),
+                'createdTime': file.get('createdTime'),
+                'success': True,
+                'updated': False
+            }
+
+        except HttpError as e:
+            error_msg = f"HTTP Error uploading to Drive: {e}"
+            logger.error(f"❌ {error_msg} for user {self.user.id}")
+            return {
+                'success': False,
+                'error': error_msg
+            }
+        except Exception as e:
+            error_msg = f"Error uploading to Drive: {str(e)}"
+            logger.error(f"❌ {error_msg} for user {self.user.id}")
+            return {
+                'success': False,
+                'error': error_msg
+            }
         except Exception as e:
             error_msg = f"Error uploading to Drive: {str(e)}"
             logger.error(f"❌ {error_msg} for user {self.user.id}")

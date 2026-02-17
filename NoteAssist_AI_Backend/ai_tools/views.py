@@ -673,65 +673,106 @@ class AIToolsViewSet(viewsets.GenericViewSet):
         """
         try:
             ai_output = self.get_object_or_404(AIToolOutput, id=pk, user=request.user)
-        except:
+        except Exception:
             return Response(
                 {'error': 'Output not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Check if user has Google OAuth token
-        if not hasattr(request.user, 'profile') or not request.user.profile.google_access_token:
-            return Response(
-                {'error': 'Google OAuth not configured. Please authenticate with Google first.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
         try:
             from notes.google_drive_service import GoogleDriveService
-            from google.auth.transport.requests import Request
-            from google.oauth2.credentials import Credentials
 
-            # Prepare credentials
-            credentials = Credentials(
-                token=request.user.profile.google_access_token,
-                refresh_token=request.user.profile.google_refresh_token,
-                token_uri='https://oauth2.googleapis.com/token',
-                client_id='YOUR_GOOGLE_CLIENT_ID',  # From env
-                client_secret='YOUR_GOOGLE_CLIENT_SECRET',  # From env
+            drive_service = GoogleDriveService(request.user)
+
+            uploaded_file = request.FILES.get('file')
+            if uploaded_file:
+                filename = request.data.get('filename') or uploaded_file.name or f"ai_output_{ai_output.id}.pdf"
+                if not filename.lower().endswith('.pdf'):
+                    filename = f"{filename}.pdf"
+
+                result = drive_service.upload_or_update_pdf(
+                    uploaded_file,
+                    filename,
+                    existing_file_id=ai_output.drive_file_id
+                )
+
+                if not result.get('success'):
+                    return Response(
+                        {'error': result.get('error', 'Upload failed')},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+
+                ai_output.drive_file_id = result.get('id')
+                ai_output.drive_url = result.get('webViewLink')
+                ai_output.save(update_fields=['drive_file_id', 'drive_url'])
+
+                logger.info(f"AI output {pk} uploaded PDF to Google Drive: {result.get('id')}")
+
+                return Response({
+                    'success': True,
+                    'drive_file_id': result.get('id'),
+                    'message': 'Successfully uploaded to Google Drive',
+                    'web_view_link': result.get('webViewLink', ''),
+                    'updated': result.get('updated', False)
+                })
+
+            safe_title = (ai_output.title or f"ai_output_{ai_output.id}").strip()
+            safe_title = "_".join(safe_title.split())
+            filename = f"{safe_title}.md"
+
+            header_lines = [
+                f"# {ai_output.title}",
+                "",
+                f"Tool: {ai_output.usage.tool_type}",
+                f"Generated: {ai_output.created_at.strftime('%Y-%m-%d %H:%M')} UTC",
+                ""
+            ]
+
+            if ai_output.language:
+                content_body = f"```{ai_output.language}\n{ai_output.content}\n```"
+            else:
+                content_body = ai_output.content
+
+            formatted_content = "\n".join(header_lines) + content_body
+
+            result = drive_service.upload_or_update_text(
+                formatted_content,
+                filename,
+                existing_file_id=ai_output.drive_file_id,
+                mime_type='text/markdown'
             )
 
-            drive_service = GoogleDriveService(credentials)
-            
-            filename = f"{ai_output.title.replace(' ', '_')}.txt"
-            file_metadata = {
-                'name': filename,
-                'mimeType': 'text/plain',
-                'parents': [request.query_params.get('folder_id', 'root')]
-            }
+            if not result.get('success'):
+                return Response(
+                    {'error': result.get('error', 'Upload failed')},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
-            drive_file = drive_service.upload_file(
-                file_metadata=file_metadata,
-                content=ai_output.content.encode('utf-8'),
-                mime_type='text/plain'
-            )
+            ai_output.drive_file_id = result.get('id')
+            ai_output.drive_url = result.get('webViewLink')
+            ai_output.save(update_fields=['drive_file_id', 'drive_url'])
 
-            # Store the Google Drive file ID
-            ai_output.drive_file_id = drive_file['id']
-            ai_output.save()
-
-            logger.info(f"AI output {pk} uploaded to Google Drive: {drive_file['id']}")
+            logger.info(f"AI output {pk} uploaded to Google Drive: {result.get('id')}")
 
             return Response({
                 'success': True,
-                'drive_file_id': drive_file['id'],
+                'drive_file_id': result.get('id'),
                 'message': 'Successfully uploaded to Google Drive',
-                'web_view_link': drive_file.get('webViewLink', ''),
+                'web_view_link': result.get('webViewLink', ''),
+                'updated': result.get('updated', False)
             })
 
         except Exception as e:
-            logger.error(f"Failed to upload AI output to Google Drive: {str(e)}")
+            error_msg = str(e)
+            if 'authentication required' in error_msg.lower():
+                return Response(
+                    {'error': 'Google Drive authentication required', 'needs_auth': True},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+
+            logger.error(f"Failed to upload AI output to Google Drive: {error_msg}")
             return Response(
-                {'error': f'Failed to upload to Drive: {str(e)}'},
+                {'error': f'Failed to upload to Drive: {error_msg}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 

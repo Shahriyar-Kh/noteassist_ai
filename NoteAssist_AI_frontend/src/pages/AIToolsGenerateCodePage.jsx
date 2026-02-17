@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import '@/styles/animations.css';
 import { noteService } from '@/services/note.service';
-import { exportCodeToPDF } from '@/utils/pdfExport';
+import { exportCodeToPDF, exportCodeToPDFBlob } from '@/utils/pdfExport';
 import { toast } from 'react-hot-toast';
 
 /* ─── Nav pill ──────────────────────────────────────────────────────────── */
@@ -107,8 +107,22 @@ const AIToolsGenerateCodePage = () => {
     if (!historyId) { toast.error('❌ No code to upload'); return; }
     try {
       setLoading(true);
-      await noteService.exportAIHistoryToDrive(historyId);
-      toast.success('✨ Uploaded to Google Drive successfully!');
+      const filename = `code_${topic.replace(/\s+/g, '_')}.pdf`;
+      const { blob, filename: resolvedName } = await exportCodeToPDFBlob(
+        editableCode,
+        filename,
+        language,
+        { 'Topic': topic }
+      );
+      const file = new File([blob], resolvedName, { type: 'application/pdf' });
+      const result = await noteService.uploadAIHistoryPdfToDrive(historyId, file, resolvedName);
+      if (result?.success) {
+        toast.success('✨ Uploaded to Google Drive successfully!');
+      } else if (result?.needs_auth) {
+        toast.error('❌ Please connect Google Drive to continue');
+      } else {
+        toast.error('❌ ' + (result?.error || 'Failed to upload to Google Drive'));
+      }
     } catch (error) {
       console.error('Google Drive upload error:', error);
       toast.error('❌ ' + (error.message || 'Failed to upload to Google Drive'));
