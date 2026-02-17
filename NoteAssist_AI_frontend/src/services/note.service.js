@@ -430,6 +430,7 @@ aiToolSummarize: async (data) => {
   const payload = {
     content: data.input_content,
     max_length: data.max_length || 'medium',
+    level: data.level || 'beginner',  // Add level parameter
   };
   const response = await api.post('/api/ai-tools/summarize/', payload);
   const output = response.data?.output;

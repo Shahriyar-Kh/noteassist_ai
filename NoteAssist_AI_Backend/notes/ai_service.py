@@ -512,13 +512,181 @@ Maintain the SAME complexity level and structure."""
             logger.error(f"Improvement error: {e}")
             raise
     
-    def summarize_explanation(self, explanation: str) -> str:
-        """Summarize to key points"""
+    def summarize_explanation(self, explanation: str, level: str = 'beginner', max_length: str = 'medium') -> str:
+        """
+        Summarize content with level-based and length-based accuracy control
+        
+        Args:
+            explanation: Content to summarize
+            level: 'beginner', 'intermediate', 'advanced', 'expert'
+            max_length: 'short', 'medium', 'long'
+        
+        Returns:
+            Formatted summary adhering to specified level and length
+        """
         if not self.client:
             return "## Summary\n\nConfigure GROQ_API_KEY to enable summarization"
         
         text_content = re.sub(r'<[^>]+>', ' ', explanation)
         text_content = re.sub(r'\s+', ' ', text_content).strip()
+        
+        # Define level-based system prompts with clear differentiators
+        level_prompts = {
+            'beginner': """You are creating a BEGINNER-LEVEL summary for someone new to this topic.
+
+YOUR SUMMARY MUST:
+- Use VERY SIMPLE vocabulary (no technical jargon)
+- Explain concepts in 1-2 sentences each
+- Focus on WHAT it is and basic USE
+- Avoid advanced details entirely
+- Use everyday examples
+
+EXACT FORMAT:
+## 🎯 Main Idea
+1 simple sentence explaining the core concept
+
+## 💡 Why It Matters
+2-3 simple sentences about why it's important
+
+## 📌 Key Points
+- **Concept 1:** One sentence explanation
+- **Concept 2:** One sentence explanation
+- **Concept 3:** One sentence explanation
+(Exactly 3 points for BEGINNER level)
+
+## 🔍 Simple Example
+One real-world example in plain English (no code)
+
+TONE: Encouraging, simple, non-technical""",
+            
+            'intermediate': """You are creating an INTERMEDIATE-LEVEL summary for someone with basic knowledge.
+
+YOUR SUMMARY MUST:
+- Balance technical terms with clear explanations
+- Include HOW IT WORKS with some detail
+- Mention WHEN and WHERE it's used
+- Include one practical consideration
+
+EXACT FORMAT:
+## 🎯 Overview
+2 sentences: what it is and its main purpose
+
+## ⚙️ How It Works
+3-4 sentences explaining the mechanism with some technical depth
+
+## 📌 Key Concepts
+- **Concept 1:** Brief technical explanation (2 sentences)
+- **Concept 2:** Brief technical explanation (2 sentences)  
+- **Concept 3:** Brief technical explanation (2 sentences)
+(3-4 concepts for INTERMEDIATE level)
+
+## 💼 Practical Considerations
+2-3 points about when/where to use it
+
+## 🔍 Real-World Usage
+One practical scenario showing application
+
+TONE: Informative, slightly technical, balanced""",
+            
+            'advanced': """You are creating an ADVANCED-LEVEL summary for technical professionals.
+
+YOUR SUMMARY MUST:
+- Use precise technical terminology
+- Explain INTERNALS and mechanisms in depth
+- Cover edge cases and limitations
+- Include performance or architectural implications
+- Assume strong foundational knowledge
+
+EXACT FORMAT:
+## 🎯 Technical Overview
+2 sentences: precise definition and scope
+
+## 🔧 Implementation Details
+4-5 sentences covering internals, algorithms, or architecture
+
+## 📌 Advanced Concepts
+- **Concept 1:** Technical deep-dive with implications (2-3 sentences)
+- **Concept 2:** Technical deep-dive with implications (2-3 sentences)
+- **Concept 3:** Technical deep-dive with implications (2-3 sentences)
+(3-5 concepts for ADVANCED level)
+
+## ⚠️ Limitations & Trade-offs
+2-3 important constraints or design trade-offs
+
+## 🎯 When to Use vs Alternatives
+Comparison with similar approaches (1-2 concepts)
+
+TONE: Technical, precise, professional""",
+            
+            'expert': """You are creating an EXPERT-LEVEL summary for advanced practitioners and architects.
+
+YOUR SUMMARY MUST:
+- Use sophisticated technical terminology
+- Cover formal definitions and theoretical foundations
+- Include production considerations, scalability, and optimization
+- Address boundary conditions and complex interactions
+- Assume expert-level domain knowledge
+
+EXACT FORMAT:
+## 🎯 Formal Definition
+1 sentence: mathematical/formal definition if applicable
+
+## 🔬 Theoretical Foundation
+3-4 sentences covering underlying principles, formal models, or theoretical background
+
+## 🏗️ Architecture & Design Patterns
+- **Pattern 1:** Architecture explanation (2-3 sentences with implications)
+- **Pattern 2:** Architecture explanation (2-3 sentences with implications)
+- **Pattern 3:** Architecture explanation (2-3 sentences with implications)
+(3-5 advanced patterns for EXPERT level)
+
+## 📊 Performance Characteristics
+Big-O analysis, scalability metrics, or performance implications (2-3 items)
+
+## 🔐 Production Considerations
+Security, resilience, monitoring, or compliance aspects (2-3 items)
+
+## 📚 Further Exploration
+Advanced topics or related research areas (1-2 items)
+
+TONE: Expert, sophisticated, comprehensive"""
+        }
+        
+        # Define length-based constraints
+        length_constraints = {
+            'short': {
+                'description': '2-4 concise sentences maximum',
+                'max_tokens': 300,
+                'point_count': '2-3 points max',
+                'instruction': 'Create an ULTRA-CONCISE summary. Every sentence must count. Remove all non-essential information.'
+            },
+            'medium': {
+                'description': '1-2 structured paragraphs',
+                'max_tokens': 600,
+                'point_count': '3-4 points',
+                'instruction': 'Create a BALANCED summary. Include main concepts but keep focused and concise.'
+            },
+            'long': {
+                'description': 'Detailed structured summary with multiple paragraphs',
+                'max_tokens': 1200,
+                'point_count': '4-6 points',
+                'instruction': 'Create a COMPREHENSIVE summary. Include detailed explanations and multiple perspectives.'
+            }
+        }
+        
+        level = level.lower() if level else 'beginner'
+        max_length = max_length.lower() if max_length else 'medium'
+        
+        level_prompt = level_prompts.get(level, level_prompts['beginner'])
+        length_config = length_constraints.get(max_length, length_constraints['medium'])
+        
+        # Build the combined system prompt
+        system_prompt = f"""{level_prompt}
+
+LENGTH CONSTRAINT:
+{length_config['instruction']}
+Summary must be: {length_config['description']}
+Use {length_config['point_count']} for your key points."""
         
         try:
             response = self.client.chat.completions.create(
@@ -526,27 +694,15 @@ Maintain the SAME complexity level and structure."""
                 messages=[
                     {
                         "role": "system",
-                        "content": """Create a concise summary.
-
-Structure:
-## 🎯 Main Idea
-One clear sentence
-
-## 📌 Key Points
-- Point 1
-- Point 2
-- Point 3
-(3-5 points max)
-
-Keep it SHORT and FOCUSED."""
+                        "content": system_prompt
                     },
                     {
                         "role": "user",
-                        "content": f"Summarize:\n\n{text_content}"
+                        "content": f"Create a {level}-level summary ({max_length} length) of this content:\n\n{text_content}"
                     }
                 ],
                 temperature=0.5,
-                max_tokens=800,
+                max_tokens=length_config['max_tokens'],
                 stream=False
             )
             

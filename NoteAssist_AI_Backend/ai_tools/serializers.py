@@ -74,6 +74,11 @@ class AISummarizeRequestSerializer(serializers.Serializer):
         choices=['short', 'medium', 'long'],
         default='medium'
     )
+    level = serializers.ChoiceField(
+        choices=['beginner', 'intermediate', 'advanced', 'expert'],
+        default='beginner',
+        required=False
+    )
 
 
 class AICodeRequestSerializer(serializers.Serializer):

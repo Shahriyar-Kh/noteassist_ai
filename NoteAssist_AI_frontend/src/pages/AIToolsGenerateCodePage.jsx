@@ -146,6 +146,16 @@ const AIToolsGenerateCodePage = () => {
     toast.success('✨ Code downloaded!');
   };
 
+  const handleGenerateAnother = () => {
+    setGeneratedCode('');
+    setEditableCode('');
+    setExecutionOutput('');
+    setHistoryId(null);
+    setLoading(false);
+    setExecuting(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // ── Render ───────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-orange-50/40">
@@ -311,6 +321,18 @@ const AIToolsGenerateCodePage = () => {
               className="flex-1 min-w-[140px] flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
               {loading ? <><Loader2 size={15} className="animate-spin" /> Uploading…</> : <><Upload size={15} /> Upload to Drive</>}
+            </button>
+          </div>
+        )}
+
+        {/* Generate Another button */}
+        {generatedCode && (
+          <div className="flex flex-col gap-3 pt-2 border-t border-gray-100 animate-slideInUp">
+            <button
+              onClick={handleGenerateAnother}
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-300 text-orange-700 font-semibold rounded-xl hover:bg-orange-50 hover:shadow-md hover:shadow-orange-500/15 transition-all duration-200 active:scale-[.98] text-sm"
+            >
+              <Code size={15} /> Generate Another Code
             </button>
           </div>
         )}

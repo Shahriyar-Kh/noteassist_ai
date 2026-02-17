@@ -32,7 +32,7 @@ from .daily_report_service import DailyNotesReportService
 from .pdf_service import export_note_to_pdf
 from .ai_service import (
     generate_ai_explanation, improve_explanation, 
-    summarize_explanation, generate_ai_code
+    summarize_explanation, generate_ai_code, AIService
 )
 
 # Import guest manager
@@ -1129,7 +1129,18 @@ class AIToolsViewSet(viewsets.ViewSet):
     def summarize(self, request):
         title = request.data.get('title', '').strip()
         input_content = request.data.get('input_content', '').strip()
+        level = request.data.get('level', 'beginner').strip().lower()
+        max_length = request.data.get('max_length', 'medium').strip().lower()
         save_to_history = request.data.get('save_to_history', True)
+        
+        # Validate level and length parameters
+        valid_levels = ['beginner', 'intermediate', 'advanced', 'expert']
+        valid_lengths = ['short', 'medium', 'long']
+        
+        if level not in valid_levels:
+            level = 'beginner'
+        if max_length not in valid_lengths:
+            max_length = 'medium'
         
         if not input_content:
             return Response({
@@ -1138,7 +1149,8 @@ class AIToolsViewSet(viewsets.ViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            generated_content = summarize_explanation(input_content)
+            ai_service = AIService()
+            generated_content = ai_service.summarize_explanation(input_content, level=level, max_length=max_length)
             
             history_item = None
             if save_to_history:
@@ -1156,7 +1168,9 @@ class AIToolsViewSet(viewsets.ViewSet):
                 'title': title,
                 'generated_content': generated_content,
                 'history_id': history_item.id if history_item else None,
-                'message': 'Content summarized successfully'
+                'message': f'Content summarized successfully ({level.capitalize()} level, {max_length} length)',
+                'level': level,
+                'max_length': max_length
             })
             
         except Exception as e:

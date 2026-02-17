@@ -174,6 +174,14 @@ const AIToolsGenerateTopicPage = ({ topic, onSave, onCancel, onAIAction }) => {
   ];
   const currentLevel = levels.find(l => l.value === learningLevel);
 
+  const handleGenerateAnother = () => {
+    setFormData(prev => ({ ...prev, explanation: '' }));
+    setHistoryId(null);
+    setError(null);
+    setUploadingToDrive(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // ── Render ───────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-violet-50/40">
@@ -345,6 +353,18 @@ const AIToolsGenerateTopicPage = ({ topic, onSave, onCancel, onAIAction }) => {
                     : <><Cloud size={15} /> {driveStatus.connected ? 'Upload to Drive' : 'Connect Drive'}</>}
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Generate Another button */}
+          {formData.explanation && formData.name && (
+            <div className="flex flex-col gap-3 pt-2 border-t border-gray-100">
+              <button
+                onClick={handleGenerateAnother}
+                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-purple-300 text-purple-700 font-semibold rounded-xl hover:bg-purple-50 hover:shadow-md hover:shadow-purple-500/15 transition-all duration-200 active:scale-[.98] text-sm"
+              >
+                <Sparkles size={15} /> Generate Another Topic
+              </button>
             </div>
           )}
 

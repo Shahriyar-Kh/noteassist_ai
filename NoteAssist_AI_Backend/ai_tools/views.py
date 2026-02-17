@@ -282,7 +282,7 @@ class AIToolsViewSet(viewsets.GenericViewSet):
 
     @action(detail=False, methods=['post'])
     def summarize(self, request):
-        """Summarize content using AI"""
+        """Summarize content using AI with level and length control"""
         # Check guest limit first
         guest_limit_response = self._check_guest_limit(request, 'summarize_topic')
         if guest_limit_response:
@@ -293,13 +293,21 @@ class AIToolsViewSet(viewsets.GenericViewSet):
 
         is_guest = GuestSessionManager.is_guest(request)
         quota = None if is_guest else self._check_quota(request.user)
+        
         content = serializer.validated_data['content']
+        max_length = serializer.validated_data.get('max_length', 'medium')
+        
+        # Get level from request (default to beginner if not provided)
+        level = request.data.get('level', 'beginner').strip().lower()
+        if level not in ['beginner', 'intermediate', 'advanced', 'expert']:
+            level = 'beginner'
 
         try:
             ai_service = AIService()
             start_time = time.time()
 
-            summary = ai_service.summarize_explanation(content)
+            # Call summarize with both level and length parameters
+            summary = ai_service.summarize_explanation(content, level=level, max_length=max_length)
             response_time = time.time() - start_time
             
             # For guest users, return mock data without saving
@@ -320,8 +328,10 @@ class AIToolsViewSet(viewsets.GenericViewSet):
                 return Response({
                     'success': True,
                     'output': mock_output,
-                    'message': 'Content summarized successfully',
-                    'is_guest': True
+                    'message': f'Content summarized successfully ({level.capitalize()} level, {max_length} length)',
+                    'is_guest': True,
+                    'level': level,
+                    'max_length': max_length
                 })
 
             usage = AIToolUsage.objects.create(
@@ -347,7 +357,9 @@ class AIToolsViewSet(viewsets.GenericViewSet):
             return Response({
                 'success': True,
                 'output': output_serializer.data,
-                'message': 'Content summarized successfully'
+                'message': f'Content summarized successfully ({level.capitalize()} level, {max_length} length)',
+                'level': level,
+                'max_length': max_length
             })
 
         except Exception as e:

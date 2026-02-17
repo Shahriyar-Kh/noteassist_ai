@@ -136,6 +136,14 @@ const AIToolsImprovePage = () => {
     toast.success('✨ Content copied to clipboard!');
   };
 
+  const handleGenerateAnother = () => {
+    setImprovedContent('');
+    setHistoryId(null);
+    setLoadingPdf(false);
+    setLoadingUpload(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // ── Render ───────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/40">
@@ -261,6 +269,18 @@ const AIToolsImprovePage = () => {
               className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
               {loadingUpload ? <><Loader2 size={15} className="animate-spin" /> Uploading…</> : <><Upload size={15} /> Upload to Drive</>}
+            </button>
+          </div>
+        )}
+
+        {/* Generate Another button */}
+        {improvedContent && (
+          <div className="flex flex-col gap-3 pt-2 border-t border-gray-100 animate-slideInUp">
+            <button
+              onClick={handleGenerateAnother}
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-300 text-blue-700 font-semibold rounded-xl hover:bg-blue-50 hover:shadow-md hover:shadow-blue-500/15 transition-all duration-200 active:scale-[.98] text-sm"
+            >
+              <Wand2 size={15} /> Improve Another Content
             </button>
           </div>
         )}
