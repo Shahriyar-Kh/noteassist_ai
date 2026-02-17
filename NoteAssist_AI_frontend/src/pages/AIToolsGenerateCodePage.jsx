@@ -7,7 +7,7 @@ import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
 import {
   Code, Play, Download, Upload, Loader2, AlertCircle, CheckCircle,
-  Copy, ArrowLeft, Home, Terminal, RotateCcw, Sparkles, Wand2, FileText, LayoutDashboard, AlignLeft
+  Copy, ArrowLeft, Terminal, RotateCcw, Sparkles, Wand2, FileText
 } from 'lucide-react';
 import '@/styles/animations.css';
 import { noteService } from '@/services/note.service';
@@ -177,20 +177,6 @@ const AIToolsGenerateCodePage = () => {
                 title="Back to AI Tools"
               >
                 <ArrowLeft className="w-6 h-6 text-gray-600" />
-              </button>
-              <button
-                onClick={() => navigate('/home')}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-all transform hover:scale-110 active:scale-95"
-                title="Home"
-              >
-                <Home className="w-6 h-6 text-gray-600" />
-              </button>
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-all transform hover:scale-110 active:scale-95"
-                title="Dashboard"
-              >
-                <LayoutDashboard className="w-6 h-6 text-gray-600" />
               </button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">

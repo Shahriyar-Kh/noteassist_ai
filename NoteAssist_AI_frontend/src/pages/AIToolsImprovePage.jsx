@@ -7,7 +7,7 @@ import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
 import {
   Wand2, Download, Upload, Loader2, AlertCircle, CheckCircle,
-  Copy, ArrowLeft, Home, LayoutDashboard, AlignLeft, Code, Sparkles, FileText, Loader
+  Copy, ArrowLeft, AlignLeft, Code, Sparkles, FileText, Loader
 } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -145,22 +145,8 @@ const AIToolsImprovePage = () => {
               <ArrowLeft size={16} />
               Back
             </button>
-            <button
-              onClick={() => navigate('/home')}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all hover-lift"
-            >
-              <Home size={16} />
-              Home
-            </button>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all hover-lift"
-            >
-              <LayoutDashboard size={16} />
-              Dashboard
-            </button>
             <button
               onClick={() => navigate('/ai-tools/generate')}
               className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all hover-lift"
