@@ -491,12 +491,17 @@ EMAIL_SUBJECT_PREFIX = '[NoteAssist AI] '
 MAX_EMAIL_RETRIES = 3
 EMAIL_RETRY_DELAY = 2
 
-if DEBUG:
+# Check if we have valid Gmail/custom SMTP settings available
+HAS_SMTP_FALLBACK = bool(SMTP_HOST_ORIGINAL and SMTP_USER_ORIGINAL and SMTP_PASSWORD_ORIGINAL)
+
+# Force real email in dev if FORCE_EMAIL_SENDING=True in .env
+FORCE_EMAIL_SENDING = config('FORCE_EMAIL_SENDING', default=False, cast=bool)
+
+if DEBUG and not FORCE_EMAIL_SENDING and not (SENDGRID_API_KEY and len(SENDGRID_API_KEY) > 20) and not HAS_SMTP_FALLBACK:
+    # No credentials, use console backend
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
-    # Check if we have valid Gmail/custom SMTP settings available
-    HAS_SMTP_FALLBACK = bool(SMTP_HOST_ORIGINAL and SMTP_USER_ORIGINAL and SMTP_PASSWORD_ORIGINAL)
-    
+    # Production OR development with credentials
     if SENDGRID_API_KEY and len(SENDGRID_API_KEY) > 20:
         EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
         EMAIL_HOST = 'smtp.sendgrid.net'
@@ -504,6 +509,14 @@ else:
         EMAIL_USE_TLS = True
         EMAIL_HOST_USER = 'apikey'
         EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
+    elif HAS_SMTP_FALLBACK:
+        # Use Gmail SMTP fallback
+        EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+        EMAIL_HOST = SMTP_HOST_ORIGINAL
+        EMAIL_PORT = SMTP_PORT_ORIGINAL
+        EMAIL_HOST_USER = SMTP_USER_ORIGINAL
+        EMAIL_HOST_PASSWORD = SMTP_PASSWORD_ORIGINAL
+        EMAIL_USE_TLS = SMTP_USE_TLS_ORIGINAL
     elif EMAIL_HOST and EMAIL_PORT:
         EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     else:

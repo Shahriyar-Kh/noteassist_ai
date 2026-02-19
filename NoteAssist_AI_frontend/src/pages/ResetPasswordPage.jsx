@@ -3,17 +3,19 @@
  * 
  * Features:
  * - Token validation
- * - Password strength requirements
+ * - Password strength requirements with visual feedback
+ * - Real-time validation with red border on error
  * - Two-step UX (form → confirmation)
  * - Design system integration
  * - Authentication data cleanup
- * - Mobile responsive
+ * - Mobile-first responsive design
+ * - Loading states with spinner
  */
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Lock, Eye, EyeOff, BookOpen, CheckCircle, AlertCircle, ArrowRight, Shield } from 'lucide-react';
+import { Lock, Eye, EyeOff, BookOpen, CheckCircle, AlertCircle, ArrowRight, Shield, Loader2, Check, X } from 'lucide-react';
 import { Button, Card, PageContainer } from '@/components/design-system';
 import { useFormValidation, validators } from '@/hooks/useFormValidation';
 import { API_BASE_URL } from '@/utils/constants';
@@ -28,6 +30,7 @@ export default function ResetPasswordPage() {
   const [resetSuccess, setResetSuccess] = useState(false);
   const [authError, setAuthError] = useState('');
   const [tokenValid, setTokenValid] = useState(!!token);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -44,6 +47,17 @@ export default function ResetPasswordPage() {
     if (!/[a-z]/.test(password)) return 'Include at least one lowercase letter';
     if (!/[0-9]/.test(password)) return 'Include at least one number';
     return null;
+  };
+
+  // Password strength checker for visual feedback
+  const getPasswordStrength = (password) => {
+    const checks = {
+      length: password?.length >= 8,
+      uppercase: /[A-Z]/.test(password || ''),
+      lowercase: /[a-z]/.test(password || ''),
+      number: /[0-9]/.test(password || ''),
+    };
+    return checks;
   };
 
   const clearAuthData = () => {
@@ -75,6 +89,7 @@ export default function ResetPasswordPage() {
     },
     async (data) => {
       setAuthError('');
+      setIsSubmitting(true);
 
       try {
         const response = await fetch(`${API_BASE_URL}/api/auth/reset_password/`, {
@@ -108,6 +123,8 @@ export default function ResetPasswordPage() {
       } catch (error) {
         console.error('[Reset Password] Error:', error);
         setAuthError('Cannot connect to server. Please check your connection.');
+      } finally {
+        setIsSubmitting(false);
       }
     },
     {
@@ -127,6 +144,8 @@ export default function ResetPasswordPage() {
     navigate('/login', { replace: true });
   };
 
+  const passwordStrength = getPasswordStrength(values.new_password);
+
   return (
     <>
       <Helmet>
@@ -136,27 +155,27 @@ export default function ResetPasswordPage() {
       </Helmet>
 
       <PageContainer center minHeight bgGradient>
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md mx-auto px-4 sm:px-0">
           {/* Main Card */}
           <Card 
             variant="elevated" 
-            className="animate-fade-in-up"
+            className="animate-fade-in-up !p-5 sm:!p-6 md:!p-8"
           >
             {/* Logo and Heading */}
-            <div className="text-center mb-8">
-              <div className="flex items-center justify-center gap-3 mb-6">
-                <div className="p-3 bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl">
-                  <BookOpen className="w-8 h-8 text-white" />
+            <div className="text-center mb-6 sm:mb-8">
+              <div className="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl sm:rounded-2xl">
+                  <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                 </div>
-                <span className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent">
+                <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent">
                   NoteAssist AI
                 </span>
               </div>
 
-              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
                 {resetSuccess ? 'Password Updated!' : 'Reset Your Password'}
               </h1>
-              <p className="text-gray-600">
+              <p className="text-sm sm:text-base text-gray-600">
                 {resetSuccess 
                   ? 'Your password has been successfully reset'
                   : 'Create a new secure password for your account'}
@@ -165,24 +184,36 @@ export default function ResetPasswordPage() {
 
             {/* Error Message */}
             {authError && (
-              <div className="mb-6 p-4 bg-error-50 border border-error-200 rounded-lg flex items-center gap-3 animate-fade-in-up">
-                <AlertCircle className="w-5 h-5 text-error-600 flex-shrink-0" />
-                <p className="text-error-800 font-medium text-sm">{authError}</p>
+              <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-error-50 border border-error-200 rounded-lg flex items-start sm:items-center gap-2 sm:gap-3 animate-fade-in-up">
+                <AlertCircle className="w-5 h-5 text-error-600 flex-shrink-0 mt-0.5 sm:mt-0" />
+                <p className="text-error-800 font-medium text-xs sm:text-sm">{authError}</p>
               </div>
             )}
 
             {/* Reset Form */}
             {!resetSuccess && tokenValid && (
-              <form onSubmit={handleFormSubmit} className="space-y-6">
-                {/* Password Requirements Info */}
-                <div className="bg-info-50 border border-info-200 rounded-lg p-3 text-xs text-info-700">
-                  <p className="font-semibold mb-2">Password must include:</p>
-                  <ul className="space-y-1 ml-4 list-disc">
-                    <li>At least 8 characters</li>
-                    <li>One uppercase letter (A-Z)</li>
-                    <li>One lowercase letter (a-z)</li>
-                    <li>One number (0-9)</li>
-                  </ul>
+              <form onSubmit={handleFormSubmit} className="space-y-4 sm:space-y-6">
+                {/* Password Requirements Info - Interactive */}
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4">
+                  <p className="font-semibold text-xs sm:text-sm text-gray-700 mb-2 sm:mb-3">Password must include:</p>
+                  <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
+                    <div className={`flex items-center gap-1.5 text-xs sm:text-sm ${passwordStrength.length ? 'text-success-600' : 'text-gray-500'}`}>
+                      {passwordStrength.length ? <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                      <span>8+ characters</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 text-xs sm:text-sm ${passwordStrength.uppercase ? 'text-success-600' : 'text-gray-500'}`}>
+                      {passwordStrength.uppercase ? <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                      <span>Uppercase (A-Z)</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 text-xs sm:text-sm ${passwordStrength.lowercase ? 'text-success-600' : 'text-gray-500'}`}>
+                      {passwordStrength.lowercase ? <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                      <span>Lowercase (a-z)</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 text-xs sm:text-sm ${passwordStrength.number ? 'text-success-600' : 'text-gray-500'}`}>
+                      {passwordStrength.number ? <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                      <span>Number (0-9)</span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* New Password Input */}
@@ -191,31 +222,33 @@ export default function ResetPasswordPage() {
                     New Password <span className="text-error-600">*</span>
                   </label>
                   <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                      <Lock className="w-5 h-5" />
+                    <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                      <Lock className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
                     <input
                       id="new_password"
                       type={showPassword ? 'text' : 'password'}
                       {...getFieldProps('new_password')}
                       placeholder="••••••••"
-                      className={`w-full pl-12 pr-12 py-3 border rounded-lg transition-all focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                      disabled={isSubmitting}
+                      className={`w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-2.5 sm:py-3 border-2 rounded-xl text-sm sm:text-base transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 ${
                         touched.new_password && errors.new_password 
-                          ? 'border-error-300 bg-error-50' 
-                          : 'border-gray-300 hover:border-gray-400'
-                      }`}
+                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500/30' 
+                          : 'border-gray-200 hover:border-gray-300 focus:border-primary-500 focus:ring-primary-500/20'
+                      } disabled:bg-gray-50 disabled:cursor-not-allowed`}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                      disabled={isSubmitting}
                     >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      {showPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" />}
                     </button>
                   </div>
                   {touched.new_password && errors.new_password && (
-                    <p className="text-error-600 text-sm mt-2 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
+                    <p className="text-red-500 text-xs sm:text-sm mt-1.5 flex items-center gap-1 font-medium">
+                      <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       {errors.new_password}
                     </p>
                   )}
@@ -227,31 +260,33 @@ export default function ResetPasswordPage() {
                     Confirm Password <span className="text-error-600">*</span>
                   </label>
                   <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                      <Lock className="w-5 h-5" />
+                    <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                      <Lock className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
                     <input
                       id="new_password_confirm"
                       type={showConfirmPassword ? 'text' : 'password'}
                       {...getFieldProps('new_password_confirm')}
                       placeholder="••••••••"
-                      className={`w-full pl-12 pr-12 py-3 border rounded-lg transition-all focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                      disabled={isSubmitting}
+                      className={`w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-2.5 sm:py-3 border-2 rounded-xl text-sm sm:text-base transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 ${
                         touched.new_password_confirm && errors.new_password_confirm 
-                          ? 'border-error-300 bg-error-50' 
-                          : 'border-gray-300 hover:border-gray-400'
-                      }`}
+                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500/30' 
+                          : 'border-gray-200 hover:border-gray-300 focus:border-primary-500 focus:ring-primary-500/20'
+                      } disabled:bg-gray-50 disabled:cursor-not-allowed`}
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                      disabled={isSubmitting}
                     >
-                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" />}
                     </button>
                   </div>
                   {touched.new_password_confirm && errors.new_password_confirm && (
-                    <p className="text-error-600 text-sm mt-2 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
+                    <p className="text-red-500 text-xs sm:text-sm mt-1.5 flex items-center gap-1 font-medium">
+                      <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       {errors.new_password_confirm}
                     </p>
                   )}
@@ -263,15 +298,25 @@ export default function ResetPasswordPage() {
                   variant="primary"
                   size="lg"
                   fullWidth
-                  icon={ArrowRight}
-                  iconPosition="right"
+                  disabled={isSubmitting}
+                  className="text-sm sm:text-base py-2.5 sm:py-3"
                 >
-                  Reset Password
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin mr-2" />
+                      Resetting...
+                    </>
+                  ) : (
+                    <>
+                      Reset Password
+                      <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
+                    </>
+                  )}
                 </Button>
 
                 {/* Security Info */}
-                <div className="flex items-center justify-center gap-2 text-xs text-gray-500 pt-4 border-t border-gray-200">
-                  <Shield className="w-4 h-4" />
+                <div className="flex items-center justify-center gap-2 text-xs text-gray-500 pt-3 sm:pt-4 border-t border-gray-200">
+                  <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <span>Secured with 256-bit SSL encryption</span>
                 </div>
               </form>
@@ -279,20 +324,20 @@ export default function ResetPasswordPage() {
 
             {/* Success State */}
             {resetSuccess && (
-              <div className="space-y-6 animate-fade-in-up text-center">
+              <div className="space-y-4 sm:space-y-6 animate-fade-in-up text-center">
                 {/* Success Icon */}
                 <div className="flex justify-center">
-                  <div className="p-4 bg-success-100 rounded-full">
-                    <CheckCircle className="w-8 h-8 text-success-600" />
+                  <div className="p-3 sm:p-4 bg-success-100 rounded-full">
+                    <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-success-600" />
                   </div>
                 </div>
 
                 {/* Success Message */}
                 <div className="space-y-2">
-                  <p className="text-gray-700 font-medium">
+                  <p className="text-gray-700 font-medium text-sm sm:text-base">
                     Your password has been successfully reset!
                   </p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-xs sm:text-sm text-gray-600">
                     You can now sign in with your new password. Redirecting to login...
                   </p>
                 </div>
@@ -303,41 +348,42 @@ export default function ResetPasswordPage() {
                   size="lg"
                   fullWidth
                   onClick={handleGoToLogin}
-                  icon={ArrowRight}
-                  iconPosition="right"
+                  className="text-sm sm:text-base py-2.5 sm:py-3"
                 >
                   Go to Login
+                  <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
                 </Button>
               </div>
             )}
 
             {/* Invalid Token State */}
             {!tokenValid && (
-              <div className="space-y-6 text-center">
+              <div className="space-y-4 sm:space-y-6 text-center">
                 {/* Error Icon */}
                 <div className="flex justify-center">
-                  <div className="p-4 bg-error-100 rounded-full">
-                    <AlertCircle className="w-8 h-8 text-error-600" />
+                  <div className="p-3 sm:p-4 bg-error-100 rounded-full">
+                    <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-error-600" />
                   </div>
                 </div>
 
                 {/* Error Message */}
                 <div>
-                  <p className="text-gray-700 font-medium mb-2">
+                  <p className="text-gray-700 font-medium mb-2 text-sm sm:text-base">
                     Invalid or Expired Link
                   </p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-xs sm:text-sm text-gray-600">
                     The password reset link is no longer valid. Please request a new one.
                   </p>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   <Button
                     variant="primary"
                     size="lg"
                     fullWidth
                     onClick={() => navigate('/forgot-password')}
+                    className="text-sm sm:text-base py-2.5 sm:py-3"
                   >
                     Request New Link
                   </Button>
@@ -346,6 +392,7 @@ export default function ResetPasswordPage() {
                     size="lg"
                     fullWidth
                     onClick={() => navigate('/login')}
+                    className="text-sm sm:text-base py-2.5 sm:py-3"
                   >
                     Back to Login
                   </Button>
@@ -355,7 +402,7 @@ export default function ResetPasswordPage() {
           </Card>
 
           {/* Footer Links */}
-          <div className="mt-6 text-center text-sm text-gray-600">
+          <div className="mt-4 sm:mt-6 text-center text-xs sm:text-sm text-gray-600">
             <p>
               Need help?{' '}
               <button

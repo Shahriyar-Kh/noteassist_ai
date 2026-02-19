@@ -5,15 +5,25 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '@/store/slices/authSlice';
 import { Menu } from '@headlessui/react';
-import { BookOpen, Home, FileText, Brain, User, LogOut, Menu as MenuIcon, X } from 'lucide-react';
+import { BookOpen, Home, FileText, Brain, User, LogOut, Menu as MenuIcon, X, Sparkles, Zap, Code, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useState } from 'react';
+
+// AI Tools submenu items
+const aiToolsSubItems = [
+  { id: 'generate', label: 'Generate Topic', icon: Sparkles, path: '/ai-tools/generate' },
+  { id: 'improve', label: 'Improve Content', icon: Zap, path: '/ai-tools/improve' },
+  { id: 'summarize', label: 'Summarize', icon: FileText, path: '/ai-tools/summarize' },
+  { id: 'code', label: 'Generate Code', icon: Code, path: '/ai-tools/code' }
+];
 
 const Navbar = ({ hideLinks = [] }) => {
   const { isAuthenticated, user, isGuest } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [aiToolsHover, setAiToolsHover] = useState(false);
+  const [mobileAiToolsOpen, setMobileAiToolsOpen] = useState(false);
 
   // This navbar is for regular users and guests
   const isAdmin = user?.role === 'admin' || user?.is_staff || user?.is_superuser;
@@ -72,10 +82,47 @@ const Navbar = ({ hideLinks = [] }) => {
                   </Link>
                 )}
                 {!hideLinks.includes('ai-tools') && (
-                  <Link to="/ai-tools" className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors">
-                    <Brain size={18} />
-                    AI Tools
-                  </Link>
+                  <div 
+                    className="relative"
+                    onMouseEnter={() => setAiToolsHover(true)}
+                    onMouseLeave={() => setAiToolsHover(false)}
+                  >
+                    <Link 
+                      to="/ai-tools" 
+                      className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors"
+                    >
+                      <Brain size={18} />
+                      AI Tools
+                      <ChevronDown size={14} className={`transition-transform ${aiToolsHover ? 'rotate-180' : ''}`} />
+                    </Link>
+                    
+                    {/* AI Tools Dropdown */}
+                    {aiToolsHover && (
+                      <div className="absolute top-full left-0 mt-1 w-52 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
+                        <Link
+                          to="/ai-tools"
+                          className="flex items-center gap-3 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-gray-700 hover:text-primary-600 transition-colors"
+                        >
+                          <Brain size={16} />
+                          <span className="text-sm font-medium">All AI Tools</span>
+                        </Link>
+                        <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
+                        {aiToolsSubItems.map((item) => {
+                          const SubIcon = item.icon;
+                          return (
+                            <Link
+                              key={item.id}
+                              to={item.path}
+                              className="flex items-center gap-3 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-gray-700 hover:text-primary-600 transition-colors"
+                            >
+                              <SubIcon size={16} />
+                              <span className="text-sm font-medium">{item.label}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 )}
               </>
             )}
@@ -174,14 +221,44 @@ const Navbar = ({ hideLinks = [] }) => {
                     </Link>
                   )}
                   {!hideLinks.includes('ai-tools') && (
-                    <Link 
-                      to="/ai-tools" 
-                      className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 px-2 py-2"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <Brain size={18} />
-                      AI Tools
-                    </Link>
+                    <div>
+                      <button 
+                        onClick={() => setMobileAiToolsOpen(!mobileAiToolsOpen)}
+                        className="flex items-center justify-between w-full text-gray-700 dark:text-gray-300 hover:text-primary-600 px-2 py-2"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Brain size={18} />
+                          AI Tools
+                        </span>
+                        <ChevronDown size={16} className={`transition-transform ${mobileAiToolsOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      {mobileAiToolsOpen && (
+                        <div className="ml-6 mt-1 space-y-1 border-l-2 border-primary-200 pl-3">
+                          <Link 
+                            to="/ai-tools" 
+                            className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary-600 py-1.5 text-sm"
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            <Brain size={16} />
+                            All AI Tools
+                          </Link>
+                          {aiToolsSubItems.map((item) => {
+                            const SubIcon = item.icon;
+                            return (
+                              <Link 
+                                key={item.id}
+                                to={item.path} 
+                                className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary-600 py-1.5 text-sm"
+                                onClick={() => setMobileMenuOpen(false)}
+                              >
+                                <SubIcon size={16} />
+                                {item.label}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   )}
                   <Link 
                     to="/profile" 

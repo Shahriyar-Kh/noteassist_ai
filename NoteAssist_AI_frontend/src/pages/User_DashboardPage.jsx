@@ -22,6 +22,7 @@ const DashboardPage = () => {
   // UI State
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activePage, setActivePage] = useState('dashboard');
+  const [hoveredNav, setHoveredNav] = useState(null);
   const [loading, setLoading] = useState(true);
   
   // Dashboard Data
@@ -180,9 +181,15 @@ const DashboardPage = () => {
               const Icon = item.icon;
               const isActive = activePage === item.id;
               const hasSubItems = item.subItems && item.subItems.length > 0;
+              const isHovered = hoveredNav === item.id;
               
               return (
-                <div key={item.id}>
+                <div 
+                  key={item.id} 
+                  className="relative"
+                  onMouseEnter={() => hasSubItems && setHoveredNav(item.id)}
+                  onMouseLeave={() => setHoveredNav(null)}
+                >
                   <Link
                     to={item.path}
                     onClick={() => {
@@ -219,18 +226,40 @@ const DashboardPage = () => {
                         {item.badge}
                       </span>
                     )}
+                    {hasSubItems && (
+                      <ChevronRight className={`w-4 h-4 transition-transform ${isHovered ? 'rotate-90' : ''} ${isActive ? 'text-white' : 'text-gray-400'}`} />
+                    )}
                   </Link>
 
-                  {/* Sub Items for AI Tools */}
-                  {hasSubItems && isActive && (
-                    <div className="ml-4 mt-2 space-y-1">
+                  {/* Hover Dropdown for AI Tools */}
+                  {hasSubItems && isHovered && (
+                    <div className="mt-1 ml-4 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 py-2 shadow-lg">
+                      {/* Main AI Tools Page Link */}
+                      <Link
+                        to={item.path}
+                        onClick={() => {
+                          setActivePage(item.id);
+                          setSidebarOpen(false);
+                          setHoveredNav(null);
+                        }}
+                        className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-gradient-to-r hover:from-violet-500/10 hover:to-blue-500/10 hover:text-violet-600 transition-all"
+                      >
+                        <Brain className="w-4 h-4" />
+                        <span className="text-sm font-medium">All AI Tools</span>
+                      </Link>
+                      <div className="border-t border-gray-100 my-1 mx-3"></div>
                       {item.subItems.map((subItem) => {
                         const SubIcon = subItem.icon;
                         return (
                           <Link
                             key={subItem.id}
                             to={subItem.path}
-                            className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-gray-600 hover:text-violet-600 hover:bg-violet-50 transition-all"
+                            onClick={() => {
+                              setActivePage(item.id);
+                              setSidebarOpen(false);
+                              setHoveredNav(null);
+                            }}
+                            className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-gradient-to-r hover:from-violet-500/10 hover:to-blue-500/10 hover:text-violet-600 transition-all"
                           >
                             <SubIcon className="w-4 h-4" />
                             <span className="text-sm font-medium">{subItem.label}</span>
