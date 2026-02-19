@@ -551,6 +551,7 @@ class AuthViewSet(viewsets.GenericViewSet):
     def _send_password_reset_email_sync(self, user, token):
         """
         ✅ Synchronous email sending (called from background thread)
+        Uses SendGrid API first, then Gmail SMTP fallback
         """
         frontend_url = settings.FRONTEND_URL
         reset_url = f"{frontend_url}/reset-password?token={token}"
@@ -574,7 +575,7 @@ NoteAssist AI Team
         from_email = getattr(settings, 'SENDGRID_FROM_EMAIL', None) or settings.DEFAULT_FROM_EMAIL
         
         try:
-            # Try SendGrid first
+            # Try SendGrid API first
             import sendgrid
             from sendgrid.helpers.mail import Mail, Email, To, Content
             
@@ -599,14 +600,39 @@ NoteAssist AI Team
                 except Exception as e:
                     logger.warning(f"⚠️  SendGrid failed ({str(e)}), trying SMTP fallback")
             
-            # Fallback to SMTP with short timeout
+            # Fallback to Gmail SMTP with original settings (not overridden SendGrid SMTP)
+            smtp_host = getattr(settings, 'SMTP_HOST_ORIGINAL', None) or settings.EMAIL_HOST
+            smtp_port = getattr(settings, 'SMTP_PORT_ORIGINAL', 587)
+            smtp_user = getattr(settings, 'SMTP_USER_ORIGINAL', None) or settings.EMAIL_HOST_USER
+            smtp_password = getattr(settings, 'SMTP_PASSWORD_ORIGINAL', None) or settings.EMAIL_HOST_PASSWORD
+            smtp_use_tls = getattr(settings, 'SMTP_USE_TLS_ORIGINAL', True)
+            
+            if not smtp_host or not smtp_user or not smtp_password:
+                logger.error("❌ No valid SMTP fallback configuration")
+                return False
+            
+            logger.info(f"   Using SMTP fallback: {smtp_host}")
+            
+            # Use sender email that matches SMTP credentials
+            actual_from = smtp_user if smtp_user else from_email
+            
             from django.core.mail import EmailMultiAlternatives, get_connection
+            connection = get_connection(
+                host=smtp_host,
+                port=smtp_port,
+                username=smtp_user,
+                password=smtp_password,
+                use_tls=smtp_use_tls,
+                use_ssl=False,
+                timeout=15
+            )
+            
             email = EmailMultiAlternatives(
                 subject=subject,
                 body=message,
-                from_email=from_email,
+                from_email=actual_from,
                 to=[user.email],
-                connection=get_connection(timeout=10)
+                connection=connection
             )
             email.send(fail_silently=False)
             logger.info(f"✅ Password reset email sent via SMTP to {user.email}")
@@ -678,6 +704,7 @@ NoteAssist AI Team
     def _send_verification_email_sync(self, user, request):
         """
         ✅ Synchronous email sending (called from background thread)
+        Uses SendGrid API first, then Gmail SMTP fallback
         """
         # Create verification token (expires in 7 days)
         token = str(uuid.uuid4())
@@ -711,7 +738,7 @@ NoteAssist AI Team
         from_email = getattr(settings, 'SENDGRID_FROM_EMAIL', None) or settings.DEFAULT_FROM_EMAIL
         
         try:
-            # Try SendGrid first
+            # Try SendGrid API first
             import sendgrid
             from sendgrid.helpers.mail import Mail, Email, To, Content
             
@@ -736,14 +763,39 @@ NoteAssist AI Team
                 except Exception as e:
                     logger.warning(f"⚠️  SendGrid failed ({str(e)}), trying SMTP fallback")
             
-            # Fallback to SMTP with short timeout
+            # Fallback to Gmail SMTP with original settings (not overridden SendGrid SMTP)
+            smtp_host = getattr(settings, 'SMTP_HOST_ORIGINAL', None) or settings.EMAIL_HOST
+            smtp_port = getattr(settings, 'SMTP_PORT_ORIGINAL', 587)
+            smtp_user = getattr(settings, 'SMTP_USER_ORIGINAL', None) or settings.EMAIL_HOST_USER
+            smtp_password = getattr(settings, 'SMTP_PASSWORD_ORIGINAL', None) or settings.EMAIL_HOST_PASSWORD
+            smtp_use_tls = getattr(settings, 'SMTP_USE_TLS_ORIGINAL', True)
+            
+            if not smtp_host or not smtp_user or not smtp_password:
+                logger.error("❌ No valid SMTP fallback configuration")
+                return False
+            
+            logger.info(f"   Using SMTP fallback: {smtp_host}")
+            
+            # Use sender email that matches SMTP credentials
+            actual_from = smtp_user if smtp_user else from_email
+            
             from django.core.mail import EmailMultiAlternatives, get_connection
+            connection = get_connection(
+                host=smtp_host,
+                port=smtp_port,
+                username=smtp_user,
+                password=smtp_password,
+                use_tls=smtp_use_tls,
+                use_ssl=False,
+                timeout=15
+            )
+            
             email = EmailMultiAlternatives(
                 subject=subject,
                 body=message,
-                from_email=from_email,
+                from_email=actual_from,
                 to=[user.email],
-                connection=get_connection(timeout=10)
+                connection=connection
             )
             email.send(fail_silently=False)
             logger.info(f"✅ Verification email sent via SMTP to {user.email}")

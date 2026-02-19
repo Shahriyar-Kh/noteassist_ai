@@ -97,7 +97,31 @@ export default function RegisterPage() {
             navigate('/login');
           }, 2000);
         } else {
-          setAuthError(responseData.detail || responseData.error || 'Registration failed. Please try again.');
+          // Handle specific field errors from backend
+          if (responseData.errors) {
+            // Check for email already exists error
+            if (responseData.errors.email) {
+              const emailError = Array.isArray(responseData.errors.email) 
+                ? responseData.errors.email[0] 
+                : responseData.errors.email;
+              if (emailError.toLowerCase().includes('already exists') || emailError.toLowerCase().includes('already registered')) {
+                setAuthError('This email is already registered. Please login with this email or use a different email address.');
+              } else {
+                setAuthError(emailError);
+              }
+            } else if (responseData.errors.password) {
+              const passwordError = Array.isArray(responseData.errors.password)
+                ? responseData.errors.password[0]
+                : responseData.errors.password;
+              setAuthError(passwordError);
+            } else {
+              // Get first error message from any field
+              const firstError = Object.values(responseData.errors)[0];
+              setAuthError(Array.isArray(firstError) ? firstError[0] : firstError);
+            }
+          } else {
+            setAuthError(responseData.detail || responseData.error || 'Registration failed. Please try again.');
+          }
         }
       } catch (error) {
         console.error('[Registration] Error:', error);
@@ -255,10 +279,10 @@ export default function RegisterPage() {
                         type={showPassword ? 'text' : 'password'}
                         {...getFieldProps('password')}
                         placeholder="••••••••"
-                        className={`w-full px-4 py-3 border rounded-lg transition-all focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                        className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 ${
                           touched.password && errors.password 
-                            ? 'border-error-300 bg-error-50' 
-                            : 'border-gray-300 hover:border-gray-400'
+                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500/30' 
+                            : 'border-gray-200 hover:border-gray-300 focus:border-primary-500 focus:ring-primary-500/20'
                         }`}
                         disabled={isSubmitting}
                       />
@@ -272,7 +296,7 @@ export default function RegisterPage() {
                       </button>
                     </div>
                     {touched.password && errors.password && (
-                      <p className="text-error-600 text-sm mt-1 flex items-center gap-1">
+                      <p className="text-red-500 text-sm mt-1 flex items-center gap-1 font-medium">
                         <AlertCircle className="w-4 h-4" />
                         {errors.password}
                       </p>
@@ -291,10 +315,10 @@ export default function RegisterPage() {
                         type={showConfirmPassword ? 'text' : 'password'}
                         {...getFieldProps('password_confirm')}
                         placeholder="••••••••"
-                        className={`w-full px-4 py-3 border rounded-lg transition-all focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                        className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 ${
                           touched.password_confirm && errors.password_confirm 
-                            ? 'border-error-300 bg-error-50' 
-                            : 'border-gray-300 hover:border-gray-400'
+                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500/30' 
+                            : 'border-gray-200 hover:border-gray-300 focus:border-primary-500 focus:ring-primary-500/20'
                         }`}
                         disabled={isSubmitting}
                       />
@@ -308,7 +332,7 @@ export default function RegisterPage() {
                       </button>
                     </div>
                     {touched.password_confirm && errors.password_confirm && (
-                      <p className="text-error-600 text-sm mt-1 flex items-center gap-1">
+                      <p className="text-red-500 text-sm mt-1 flex items-center gap-1 font-medium">
                         <AlertCircle className="w-4 h-4" />
                         {errors.password_confirm}
                       </p>
@@ -400,7 +424,7 @@ export default function RegisterPage() {
                   </span>
                 </label>
                 {touched.terms_accepted && errors.terms_accepted && (
-                  <p className="text-error-600 text-sm mt-3 flex items-center gap-1">
+                  <p className="text-red-500 text-sm mt-3 flex items-center gap-1 font-medium">
                     <AlertCircle className="w-4 h-4" />
                     {errors.terms_accepted}
                   </p>

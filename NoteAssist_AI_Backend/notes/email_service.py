@@ -235,21 +235,49 @@ class EmailService:
     def _send_via_smtp(to_email, subject, text_content, html_content, from_email, reply_to=None):
         """
         Send email using SMTP with timeout protection
+        Uses original SMTP settings (Gmail) as fallback when SendGrid fails
         """
         try:
-            # Check SMTP configuration
-            if not settings.EMAIL_HOST:
-                logger.error("❌ EMAIL_HOST not configured")
+            # Use original SMTP settings (Gmail) instead of overridden SendGrid SMTP
+            smtp_host = getattr(settings, 'SMTP_HOST_ORIGINAL', None) or settings.EMAIL_HOST
+            smtp_port = getattr(settings, 'SMTP_PORT_ORIGINAL', 587)
+            smtp_user = getattr(settings, 'SMTP_USER_ORIGINAL', None) or settings.EMAIL_HOST_USER
+            smtp_password = getattr(settings, 'SMTP_PASSWORD_ORIGINAL', None) or settings.EMAIL_HOST_PASSWORD
+            smtp_use_tls = getattr(settings, 'SMTP_USE_TLS_ORIGINAL', True)
+            
+            # Check if we have valid SMTP configuration
+            if not smtp_host or not smtp_user or not smtp_password:
+                logger.error("❌ No valid SMTP configuration available for fallback")
+                logger.error(f"   SMTP Host: {smtp_host or 'NOT SET'}")
+                logger.error(f"   SMTP User: {smtp_user or 'NOT SET'}")
                 return False
             
-            # Create email message with SHORT timeout
+            logger.info(f"   SMTP Host: {smtp_host}")
+            logger.info(f"   SMTP User: {smtp_user}")
+            
+            # Use sender email that matches SMTP credentials for better deliverability
+            actual_from = smtp_user if smtp_user else from_email
+            
+            # Create custom SMTP connection with explicit settings
+            from django.core.mail import get_connection
+            connection = get_connection(
+                host=smtp_host,
+                port=smtp_port,
+                username=smtp_user,
+                password=smtp_password,
+                use_tls=smtp_use_tls,
+                use_ssl=False,
+                timeout=15  # 15 second timeout
+            )
+            
+            # Create email message
             email = EmailMultiAlternatives(
                 subject=subject,
                 body=text_content,
-                from_email=from_email,
+                from_email=actual_from,
                 to=[to_email],
-                reply_to=[reply_to or from_email],
-                connection=get_connection(timeout=10)  # 10 second timeout
+                reply_to=[reply_to or actual_from],
+                connection=connection
             )
             
             if html_content:
@@ -257,11 +285,13 @@ class EmailService:
             
             email.send(fail_silently=False)
             
-            logger.info(f"✅ Email sent via SMTP to {to_email}")
+            logger.info(f"✅ Email sent via SMTP ({smtp_host}) to {to_email}")
             return True
             
         except Exception as e:
             logger.error(f"❌ SMTP sending failed: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
             return False
     
     @staticmethod

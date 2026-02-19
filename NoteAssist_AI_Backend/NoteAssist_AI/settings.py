@@ -470,6 +470,15 @@ GZIP_MINIMUM_SIZE = 1024
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000' if DEBUG else 'https://noteassistai.vercel.app')
 SENDGRID_API_KEY = config('SENDGRID_API_KEY', default='').strip()
 SENDGRID_FROM_EMAIL = config('SENDGRID_FROM_EMAIL', default='').strip()
+
+# Store original SMTP settings BEFORE overriding (for fallback)
+SMTP_HOST_ORIGINAL = config('EMAIL_HOST', default='smtp.gmail.com')
+SMTP_PORT_ORIGINAL = config('EMAIL_PORT', default=587, cast=int)
+SMTP_USER_ORIGINAL = config('EMAIL_HOST_USER', default='')
+SMTP_PASSWORD_ORIGINAL = config('EMAIL_HOST_PASSWORD', default='')
+SMTP_USE_TLS_ORIGINAL = config('EMAIL_USE_TLS', default=True, cast=bool)
+
+# Current email settings (may be overridden by SendGrid)
 EMAIL_HOST = config('EMAIL_HOST', default='')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
@@ -485,6 +494,9 @@ EMAIL_RETRY_DELAY = 2
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
+    # Check if we have valid Gmail/custom SMTP settings available
+    HAS_SMTP_FALLBACK = bool(SMTP_HOST_ORIGINAL and SMTP_USER_ORIGINAL and SMTP_PASSWORD_ORIGINAL)
+    
     if SENDGRID_API_KEY and len(SENDGRID_API_KEY) > 20:
         EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
         EMAIL_HOST = 'smtp.sendgrid.net'
