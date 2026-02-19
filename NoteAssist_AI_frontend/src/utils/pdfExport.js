@@ -110,7 +110,7 @@ export const exportToPDFBlob = async (content, filename = 'export.pdf', title = 
   }
 };
 
-export const exportCodeToPDF = (code, filename, language, metadata = {}) => {
+export const exportCodeToPDF = (code, filename, language, metadata = {}, executionOutput = null, execSuccess = null) => {
   const escapedCode = code
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -118,9 +118,37 @@ export const exportCodeToPDF = (code, filename, language, metadata = {}) => {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 
-  const content = `
+  let content = `
+    <h2 style="color: #1f2937; margin-top: 0; margin-bottom: 12px; font-size: 16px;">Source Code</h2>
     <pre><code>${escapedCode}</code></pre>
   `;
+
+  // Add execution output if available
+  if (executionOutput && executionOutput.trim()) {
+    const escapedOutput = executionOutput
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+
+    const outputColor = execSuccess === false ? '#dc2626' : '#16a34a';
+    const outputBg = execSuccess === false ? '#fef2f2' : '#f0fdf4';
+    const outputBorder = execSuccess === false ? '#fecaca' : '#bbf7d0';
+    const statusText = execSuccess === false ? 'Error' : 'Success';
+
+    content += `
+      <div style="margin-top: 24px;">
+        <h2 style="color: #1f2937; margin-top: 0; margin-bottom: 12px; font-size: 16px;">
+          Execution Output 
+          <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; background: ${outputBg}; color: ${outputColor}; margin-left: 8px;">
+            ${statusText}
+          </span>
+        </h2>
+        <pre style="background: ${outputBg}; border-left-color: ${outputBorder}; color: ${outputColor};"><code>${escapedOutput}</code></pre>
+      </div>
+    `;
+  }
 
   return exportToPDF(content, filename, `Code - ${language}`, {
     'Language': language,
@@ -128,7 +156,7 @@ export const exportCodeToPDF = (code, filename, language, metadata = {}) => {
   });
 };
 
-export const exportCodeToPDFBlob = async (code, filename, language, metadata = {}) => {
+export const exportCodeToPDFBlob = async (code, filename, language, metadata = {}, executionOutput = null, execSuccess = null) => {
   const escapedCode = code
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -136,9 +164,37 @@ export const exportCodeToPDFBlob = async (code, filename, language, metadata = {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 
-  const content = `
+  let content = `
+    <h2 style="color: #1f2937; margin-top: 0; margin-bottom: 12px; font-size: 16px;">Source Code</h2>
     <pre><code>${escapedCode}</code></pre>
   `;
+
+  // Add execution output if available
+  if (executionOutput && executionOutput.trim()) {
+    const escapedOutput = executionOutput
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+
+    const outputColor = execSuccess === false ? '#dc2626' : '#16a34a';
+    const outputBg = execSuccess === false ? '#fef2f2' : '#f0fdf4';
+    const outputBorder = execSuccess === false ? '#fecaca' : '#bbf7d0';
+    const statusText = execSuccess === false ? 'Error' : 'Success';
+
+    content += `
+      <div style="margin-top: 24px;">
+        <h2 style="color: #1f2937; margin-top: 0; margin-bottom: 12px; font-size: 16px;">
+          Execution Output 
+          <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; background: ${outputBg}; color: ${outputColor}; margin-left: 8px;">
+            ${statusText}
+          </span>
+        </h2>
+        <pre style="background: ${outputBg}; border-left-color: ${outputBorder}; color: ${outputColor};"><code>${escapedOutput}</code></pre>
+      </div>
+    `;
+  }
 
   return exportToPDFBlob(content, filename, `Code - ${language}`, {
     'Language': language,

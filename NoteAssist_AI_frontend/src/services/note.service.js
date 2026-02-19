@@ -328,7 +328,7 @@ performAIAction: async (topicId, actionData) => {
 runCode: async ({ code, language, stdin = "", timeout = 15 }) => {
   try {
     const response = await api.post(
-      "/api/notes/run_code/",
+      "/api/run_code/",
       { 
         code, 
         language, 

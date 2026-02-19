@@ -911,9 +911,12 @@ def extract_input_requirements(code, language):
 @permission_classes([permissions.IsAuthenticated])  # FIX: Changed from AllowAny
 def execute_code(request):
     """Execute code with input support"""
+    logger.info(f"Code execution request from {request.user}")
     code = request.data.get('code', '')
     language = request.data.get('language', 'python')
     stdin = request.data.get('stdin', '')
+    
+    logger.info(f"Code: {code[:100]}... Language: {language} Stdin: {stdin[:50] if stdin else 'None'}...")
     
     if not code:
         return Response({'success': False, 'error': 'No code provided'}, status=400)
@@ -928,6 +931,8 @@ def execute_code(request):
     try:
         # Check if code requires input but stdin is not provided
         requires_input = extract_input_requirements(code, language)
+        logger.info(f"Requires input: {requires_input}")
+        
         if requires_input and not stdin:
             return Response({
                 'success': False,
@@ -939,11 +944,13 @@ def execute_code(request):
             })
         
         # Execute code
+        logger.info(f"Executing code in {language}...")
         result = CodeExecutionService.execute_code(
             code=code,
             language=language,
             stdin=stdin
         )
+        logger.info(f"Execution result: {result}")
         
         # Format output for display
         if not result.get('success'):
@@ -966,7 +973,7 @@ def execute_code(request):
         return Response(result)
         
     except Exception as e:
-        logger.error(f"Code execution error: {str(e)}")
+        logger.error(f"Code execution error: {str(e)}", exc_info=True)
         return Response({
             'success': False,
             'output': '',
