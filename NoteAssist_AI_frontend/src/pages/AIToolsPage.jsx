@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Button, Card, PageContainer, FormInput } from '@/components/design-system';
 import { noteService } from '@/services/note.service';
+import dashboardService from '@/services/dashboard.service';
 import toast from 'react-hot-toast';
 
 /* ─── Injected styles ─────────────────────────────────────────────────── */
@@ -764,6 +765,7 @@ const AIToolsPage = () => {
 
   // State management
   const [loading, setLoading] = useState(false);
+  const [statsLoading, setStatsLoading] = useState(true);
   const [history, setHistory] = useState([]);
   const [stats, setStats] = useState(null);
   const [filterType, setFilterType] = useState('all');
@@ -792,17 +794,54 @@ const AIToolsPage = () => {
     }
   };
 
-  // Fetch AI usage statistics
+  // Fetch AI usage statistics from API
   const fetchStats = async () => {
     try {
+      setStatsLoading(true);
+      
+      // The overview endpoint returns all the data we need
+      const overview = await dashboardService.getOverview();
+      console.log('AIToolsPage - Overview response:', overview);
+      
+      // Extract stats from overview - use same field names as User Dashboard
+      const totalGenerations = overview?.total_ai_requests ?? overview?.total_ai_generations ?? 0;
+      const thisWeek = overview?.ai_requests_this_week ?? 0;
+      const generateCount = overview?.ai_generations ?? 0;
+      const improveCount = overview?.ai_improvements ?? 0;
+      const summarizeCount = overview?.ai_summarizations ?? 0;
+      const codeCount = overview?.ai_code_generations ?? 0;
+      const savedToNotes = overview?.total_topics ?? 0;
+      const streak = overview?.current_streak ?? overview?.streak_days ?? 0;
+      
+      console.log('AIToolsPage - Extracted stats:', {
+        totalGenerations, thisWeek, generateCount, improveCount, summarizeCount, codeCount, savedToNotes, streak
+      });
+      
       setStats({
-        totalGenerations: 156,
-        thisWeek: 23,
-        savedToNotes: 89,
-        avgResponseTime: '2.3s'
+        totalGenerations,
+        thisWeek,
+        generateCount,
+        improveCount,
+        summarizeCount,
+        codeCount,
+        savedToNotes,
+        streak
       });
     } catch (error) {
       console.error('Stats fetch error:', error);
+      // Set fallback values on error
+      setStats({
+        totalGenerations: 0,
+        thisWeek: 0,
+        generateCount: 0,
+        improveCount: 0,
+        summarizeCount: 0,
+        codeCount: 0,
+        savedToNotes: 0,
+        streak: 0
+      });
+    } finally {
+      setStatsLoading(false);
     }
   };
 
@@ -859,7 +898,7 @@ const AIToolsPage = () => {
     return colorMap[type] || 'bg-violet-100 text-violet-600';
   };
 
-  // AI Tools configuration
+  // AI Tools configuration with dynamic stats
   const aiTools = [
     {
       id: 'generate',
@@ -871,7 +910,7 @@ const AIToolsPage = () => {
       barGradient: 'linear-gradient(90deg, #7c4dff, #a259ff)',
       iconBg: 'linear-gradient(135deg, #7c4dff, #a259ff)',
       route: '/ai-tools/generate',
-      stat: stats?.totalGenerations || 0,
+      stat: stats?.generateCount || 0,
       statLabel: 'Generated'
     },
     {
@@ -884,8 +923,8 @@ const AIToolsPage = () => {
       barGradient: 'linear-gradient(90deg, #2979ff, #00e5ff)',
       iconBg: 'linear-gradient(135deg, #2979ff, #00e5ff)',
       route: '/ai-tools/improve',
-      stat: stats?.thisWeek || 0,
-      statLabel: 'This Week'
+      stat: stats?.improveCount || 0,
+      statLabel: 'Improved'
     },
     {
       id: 'summarize',
@@ -897,8 +936,8 @@ const AIToolsPage = () => {
       barGradient: 'linear-gradient(90deg, #00c853, #00e096)',
       iconBg: 'linear-gradient(135deg, #00c853, #00e096)',
       route: '/ai-tools/summarize',
-      stat: stats?.savedToNotes || 0,
-      statLabel: 'Saved to Notes'
+      stat: stats?.summarizeCount || 0,
+      statLabel: 'Summarized'
     },
     {
       id: 'code',
@@ -910,8 +949,8 @@ const AIToolsPage = () => {
       barGradient: 'linear-gradient(90deg, #ff6d00, #ff1744)',
       iconBg: 'linear-gradient(135deg, #ff6d00, #ff1744)',
       route: '/ai-tools/code',
-      stat: '15+',
-      statLabel: 'Languages'
+      stat: stats?.codeCount || 0,
+      statLabel: 'Code Generated'
     }
   ];
 
@@ -945,8 +984,8 @@ const AIToolsPage = () => {
   const statConfig = stats ? [
     { icon: Zap,        label: 'Total Generations', value: stats.totalGenerations, glow: 'rgba(124,77,255,0.5)', iconBg: 'rgba(124,77,255,0.15)', iconColor: '#a259ff' },
     { icon: TrendingUp, label: 'This Week',          value: stats.thisWeek,         glow: 'rgba(41,121,255,0.5)', iconBg: 'rgba(41,121,255,0.15)',  iconColor: '#00e5ff' },
-    { icon: Award,      label: 'Saved to Notes',     value: stats.savedToNotes,     glow: 'rgba(0,224,150,0.5)', iconBg: 'rgba(0,224,150,0.12)',   iconColor: '#00e096' },
-    { icon: Clock,      label: 'Avg Response',        value: stats.avgResponseTime,  glow: 'rgba(255,109,0,0.5)', iconBg: 'rgba(255,109,0,0.12)',   iconColor: '#ff6d00' }
+    { icon: Award,      label: 'Topics Created',     value: stats.savedToNotes,     glow: 'rgba(0,224,150,0.5)', iconBg: 'rgba(0,224,150,0.12)',   iconColor: '#00e096' },
+    { icon: Clock,      label: 'Current Streak',     value: `${stats.streak}d`,     glow: 'rgba(255,109,0,0.5)', iconBg: 'rgba(255,109,0,0.12)',   iconColor: '#ff6d00' }
   ] : [];
 
   return (
@@ -1002,9 +1041,31 @@ const AIToolsPage = () => {
           )}
 
           {/* Stats */}
-          {stats && (
-            <div className="ai-stats-grid">
-              {statConfig.map((s, idx) => {
+          <div className="ai-stats-grid">
+            {statsLoading ? (
+              // Loading skeleton for stats
+              [...Array(4)].map((_, idx) => (
+                <div
+                  key={idx}
+                  className="ai-stat-card"
+                  style={{ animationDelay: `${0.3 + idx * 0.08}s` }}
+                >
+                  <div
+                    className="ai-stat-icon animate-pulse"
+                    style={{ background: 'rgba(124,77,255,0.15)' }}
+                  >
+                    <div className="w-5 h-5 rounded bg-gray-600/30" />
+                  </div>
+                  <div className="ai-stat-value">
+                    <div className="h-8 w-12 bg-gray-600/30 rounded animate-pulse mx-auto" />
+                  </div>
+                  <div className="ai-stat-label">
+                    <div className="h-3 w-20 bg-gray-600/30 rounded animate-pulse mx-auto" />
+                  </div>
+                </div>
+              ))
+            ) : stats ? (
+              statConfig.map((s, idx) => {
                 const Icon = s.icon;
                 return (
                   <div
@@ -1023,9 +1084,9 @@ const AIToolsPage = () => {
                     <div className="ai-stat-glow" style={{ background: s.glow }} />
                   </div>
                 );
-              })}
-            </div>
-          )}
+              })
+            ) : null}
+          </div>
 
           {/* Tools section */}
           <div style={{ marginBottom: '56px' }}>

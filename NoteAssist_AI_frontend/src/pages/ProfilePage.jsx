@@ -339,22 +339,22 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+    <div className="min-h-screen bg-gray-50 px-3 py-4 sm:px-4 sm:py-6 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Profile Settings</h1>
-          <p className="text-gray-600">Manage your account settings and preferences</p>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">Profile Settings</h1>
+          <p className="text-sm sm:text-base text-gray-600">Manage your account settings and preferences</p>
         </div>
 
-        <div className="grid lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
           {/* Sidebar - Profile Card */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-8">
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 lg:sticky lg:top-8">
               {/* Avatar Section */}
-              <div className="text-center mb-6">
+              <div className="text-center mb-4 sm:mb-6">
                 <div className="relative inline-block">
-                  <div className="w-32 h-32 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white text-4xl font-bold mx-auto mb-4 overflow-hidden">
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white text-3xl sm:text-4xl font-bold mx-auto mb-3 sm:mb-4 overflow-hidden">
                     {userData.avatar ? (
                       <img src={userData.avatar} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
@@ -363,9 +363,9 @@ const ProfilePage = () => {
                   </div>
                   <button
                     onClick={() => document.getElementById('avatar-upload').click()}
-                    className="absolute bottom-4 right-0 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-lg"
+                    className="absolute bottom-3 sm:bottom-4 right-0 p-1.5 sm:p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-lg"
                   >
-                    <Camera className="w-4 h-4" />
+                    <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
                   <input
                     id="avatar-upload"
@@ -375,8 +375,8 @@ const ProfilePage = () => {
                     className="hidden"
                   />
                 </div>
-                <h2 className="text-xl font-bold text-gray-900">{userData.fullName || 'User'}</h2>
-                <p className="text-gray-600 text-sm">{userData.email}</p>
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">{userData.fullName || 'User'}</h2>
+                <p className="text-gray-600 text-xs sm:text-sm truncate max-w-[200px] mx-auto">{userData.email}</p>
                 {stats.emailVerified && (
                   <span className="inline-flex items-center gap-1 mt-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
                     <Award className="w-3 h-3" />
@@ -386,22 +386,22 @@ const ProfilePage = () => {
               </div>
 
               {/* Quick Stats */}
-              <div className="space-y-3 border-t pt-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Study Days</span>
-                  <span className="font-bold text-gray-900">{stats.totalStudyDays}</span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-1 gap-3 sm:gap-4 lg:space-y-3 lg:gap-0 border-t pt-4">
+                <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between lg:flex-row bg-gray-50 lg:bg-transparent p-2 sm:p-0 rounded-lg lg:rounded-none">
+                  <span className="text-xs sm:text-sm text-gray-600">Study Days</span>
+                  <span className="font-bold text-gray-900 text-sm sm:text-base">{stats.totalStudyDays}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Current Streak</span>
-                  <span className="font-bold text-orange-600">{stats.currentStreak} days</span>
+                <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between lg:flex-row bg-gray-50 lg:bg-transparent p-2 sm:p-0 rounded-lg lg:rounded-none">
+                  <span className="text-xs sm:text-sm text-gray-600">Current Streak</span>
+                  <span className="font-bold text-orange-600 text-sm sm:text-base">{stats.currentStreak} days</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Total Notes</span>
-                  <span className="font-bold text-gray-900">{stats.totalNotes}</span>
+                <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between lg:flex-row bg-gray-50 lg:bg-transparent p-2 sm:p-0 rounded-lg lg:rounded-none">
+                  <span className="text-xs sm:text-sm text-gray-600">Total Notes</span>
+                  <span className="font-bold text-gray-900 text-sm sm:text-base">{stats.totalNotes}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Active Notes</span>
-                  <span className="font-bold text-gray-900">{stats.activeNotes}</span>
+                <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between lg:flex-row bg-gray-50 lg:bg-transparent p-2 sm:p-0 rounded-lg lg:rounded-none">
+                  <span className="text-xs sm:text-sm text-gray-600">Active Notes</span>
+                  <span className="font-bold text-gray-900 text-sm sm:text-base">{stats.activeNotes}</span>
                 </div>
               </div>
             </div>
@@ -410,22 +410,23 @@ const ProfilePage = () => {
           {/* Main Content */}
           <div className="lg:col-span-3">
             {/* Tabs */}
-            <div className="bg-white rounded-2xl shadow-lg mb-6 overflow-hidden">
-              <div className="flex overflow-x-auto border-b">
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg mb-4 sm:mb-6 overflow-hidden">
+              <div className="flex overflow-x-auto border-b scrollbar-hide">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
                   return (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center gap-2 px-6 py-4 font-medium transition-colors whitespace-nowrap ${
+                      className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
                         activeTab === tab.id
                           ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
                           : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                       }`}
                     >
-                      <Icon className="w-5 h-5" />
-                      {tab.label}
+                      <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                      <span className="hidden xs:inline sm:inline">{tab.label}</span>
+                      <span className="xs:hidden sm:hidden">{tab.label.split(' ')[0]}</span>
                     </button>
                   );
                 })}
@@ -433,25 +434,25 @@ const ProfilePage = () => {
             </div>
 
             {/* Tab Content */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6">
               {/* Personal Info Tab */}
               {activeTab === 'personal' && (
                 <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-2xl font-bold text-gray-900">Personal Information</h3>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
+                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900">Personal Information</h3>
                     {!isEditing ? (
                       <button
                         onClick={() => setIsEditing(true)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        className="w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
                       >
                         Edit Profile
                       </button>
                     ) : (
-                      <div className="flex gap-2">
+                      <div className="flex flex-col xs:flex-row gap-2 w-full sm:w-auto">
                         <button
                           onClick={handleSaveProfile}
                           disabled={loadingSaveProfile}
-                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                         >
                           {loadingSaveProfile ? (
                             <>
@@ -468,7 +469,7 @@ const ProfilePage = () => {
                         <button
                           onClick={() => setIsEditing(false)}
                           disabled={saving}
-                          className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                          className="flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm sm:text-base"
                         >
                           <X className="w-4 h-4" />
                           Cancel
@@ -477,55 +478,55 @@ const ProfilePage = () => {
                     )}
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Full Name</label>
                       <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                         <input
                           type="text"
                           value={userData.fullName}
                           onChange={(e) => setUserData({ ...userData, fullName: e.target.value })}
                           disabled={!isEditing}
-                          className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
+                          className="w-full pl-10 sm:pl-11 pr-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Email Address</label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                         <input
                           type="email"
                           value={userData.email}
                           disabled
-                          className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-lg bg-gray-50 cursor-not-allowed"
+                          className="w-full pl-10 sm:pl-11 pr-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-200 rounded-lg bg-gray-50 cursor-not-allowed truncate"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Country</label>
                       <div className="relative">
-                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                         <input
                           type="text"
                           value={userData.country}
                           onChange={(e) => setUserData({ ...userData, country: e.target.value })}
                           disabled={!isEditing}
-                          className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
+                          className="w-full pl-10 sm:pl-11 pr-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Education Level</label>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Education Level</label>
                       <select
                         value={userData.educationLevel}
                         onChange={(e) => setUserData({ ...userData, educationLevel: e.target.value })}
                         disabled={!isEditing}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
+                        className="w-full px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
                       >
                         <option value="">Select education level</option>
                         {educationLevels.map((level) => (
@@ -537,28 +538,28 @@ const ProfilePage = () => {
                     </div>
 
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Field of Study</label>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Field of Study</label>
                       <div className="relative">
-                        <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                         <input
                           type="text"
                           value={userData.fieldOfStudy}
                           onChange={(e) => setUserData({ ...userData, fieldOfStudy: e.target.value })}
                           disabled={!isEditing}
-                          className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
+                          className="w-full pl-10 sm:pl-11 pr-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
                         />
                       </div>
                     </div>
 
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Bio</label>
                       <textarea
                         value={userData.bio}
                         onChange={(e) => setUserData({ ...userData, bio: e.target.value })}
                         disabled={!isEditing}
-                        rows={4}
+                        rows={3}
                         maxLength={2000}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
+                        className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 resize-none"
                         placeholder="Tell us about yourself..."
                       />
                       <p className="text-xs text-gray-500 mt-1">{userData.bio.length}/2000 characters</p>
@@ -570,24 +571,24 @@ const ProfilePage = () => {
               {/* Study Preferences Tab */}
               {activeTab === 'preferences' && (
                 <div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-6">Study Preferences</h3>
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Study Preferences</h3>
                   
-                  <div className="space-y-6">
+                  <div className="space-y-4 sm:space-y-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Learning Goal</label>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Learning Goal</label>
                       <textarea
                         value={userData.learningGoal}
                         onChange={(e) => setUserData({ ...userData, learningGoal: e.target.value })}
                         rows={3}
                         maxLength={1000}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                         placeholder="What do you want to achieve?"
                       />
                       <p className="text-xs text-gray-500 mt-1">{userData.learningGoal.length}/1000 characters</p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                         Preferred Study Hours per Day: {userData.preferredStudyHours} hours
                       </label>
                       <input
@@ -596,7 +597,7 @@ const ProfilePage = () => {
                         max="12"
                         value={userData.preferredStudyHours}
                         onChange={(e) => setUserData({ ...userData, preferredStudyHours: parseInt(e.target.value) })}
-                        className="w-full"
+                        className="w-full h-2 accent-blue-600"
                       />
                       <div className="flex justify-between text-xs text-gray-500 mt-1">
                         <span>1 hour</span>
@@ -605,13 +606,13 @@ const ProfilePage = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Timezone</label>
                       <div className="relative">
-                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                         <select
                           value={userData.timezone}
                           onChange={(e) => setUserData({ ...userData, timezone: e.target.value })}
-                          className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full pl-10 sm:pl-11 pr-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                           {timezones.map((tz) => (
                             <option key={tz.value} value={tz.value}>
@@ -623,25 +624,25 @@ const ProfilePage = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">Skill Interests</label>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">Skill Interests</label>
                       <div className="flex flex-wrap gap-2">
                         {userData.skillInterests.map((skill, idx) => (
                           <span
                             key={idx}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
+                            className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-100 text-blue-700 rounded-full text-xs sm:text-sm font-medium"
                           >
                             {skill}
                             <button 
                               onClick={() => handleRemoveSkill(skill)}
                               className="hover:text-blue-900"
                             >
-                              <X className="w-4 h-4" />
+                              <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             </button>
                           </span>
                         ))}
                         <button 
                           onClick={handleAddSkill}
-                          className="px-4 py-2 border-2 border-dashed border-gray-300 rounded-full text-sm text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-colors"
+                          className="px-3 sm:px-4 py-1.5 sm:py-2 border-2 border-dashed border-gray-300 rounded-full text-xs sm:text-sm text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-colors"
                         >
                           + Add Skill
                         </button>
@@ -651,7 +652,7 @@ const ProfilePage = () => {
                     <button 
                       onClick={handleSavePreferences}
                       disabled={loadingSavePreferences}
-                      className="w-full md:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full sm:w-auto px-5 sm:px-6 py-2.5 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                     >
                       {loadingSavePreferences ? (
                         <>
@@ -672,16 +673,16 @@ const ProfilePage = () => {
               {/* Notifications Tab */}
               {activeTab === 'notifications' && (
                 <div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-6">Notification Settings</h3>
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Notification Settings</h3>
                   
-                  <div className="space-y-6">
+                  <div className="space-y-3 sm:space-y-6">
                     {Object.entries(notifications).map(([key, value]) => (
-                      <div key={key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div>
-                          <h4 className="font-medium text-gray-900">
+                      <div key={key} className="flex items-start sm:items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-gray-900 text-sm sm:text-base">
                             {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                           </h4>
-                          <p className="text-sm text-gray-600 mt-1">
+                          <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1">
                             {key === 'email_notifications' && 'Receive email notifications for important updates'}
                             {key === 'weekly_summary' && 'Get a weekly summary of your learning progress'}
                             {key === 'study_reminders' && 'Receive reminders about your active notes'}
@@ -713,51 +714,51 @@ const ProfilePage = () => {
               {/* Security Tab */}
               {activeTab === 'security' && (
                 <div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-6">Security Settings</h3>
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Security Settings</h3>
                   
-                  <div className="space-y-6">
-                    <div className="p-6 border border-gray-200 rounded-lg">
-                      <h4 className="font-semibold text-gray-900 mb-4">Change Password</h4>
-                      <form onSubmit={handleChangePassword} className="space-y-4">
+                  <div className="space-y-4 sm:space-y-6">
+                    <div className="p-4 sm:p-6 border border-gray-200 rounded-lg">
+                      <h4 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">Change Password</h4>
+                      <form onSubmit={handleChangePassword} className="space-y-3 sm:space-y-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
+                          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Current Password</label>
                           <input
                             type="password"
                             value={passwordData.old_password}
                             onChange={(e) => setPasswordData({ ...passwordData, old_password: e.target.value })}
                             required
-                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                             placeholder="••••••••"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">New Password</label>
                           <input
                             type="password"
                             value={passwordData.new_password}
                             onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
                             required
                             minLength={8}
-                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                             placeholder="••••••••"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
+                          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Confirm New Password</label>
                           <input
                             type="password"
                             value={passwordData.new_password_confirm}
                             onChange={(e) => setPasswordData({ ...passwordData, new_password_confirm: e.target.value })}
                             required
                             minLength={8}
-                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                             placeholder="••••••••"
                           />
                         </div>
                         <button 
                           type="submit"
                           disabled={loadingChangePassword}
-                          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          className="w-full sm:w-auto px-5 sm:px-6 py-2.5 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
                         >
                           {loadingChangePassword ? (
                             <>
@@ -777,59 +778,59 @@ const ProfilePage = () => {
               {/* Account Activity Tab */}
               {activeTab === 'activity' && (
                 <div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-6">Account Activity</h3>
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Account Activity</h3>
                   
-                  <div className="grid md:grid-cols-2 gap-6 mb-8">
-                    <div className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-blue-600 font-medium">Total Study Days</span>
-                        <Calendar className="w-5 h-5 text-blue-600" />
+                  <div className="grid grid-cols-2 gap-3 sm:gap-6 mb-6 sm:mb-8">
+                    <div className="p-3 sm:p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+                      <div className="flex items-center justify-between mb-1 sm:mb-2">
+                        <span className="text-xs sm:text-sm text-blue-600 font-medium">Total Study Days</span>
+                        <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                       </div>
-                      <div className="text-3xl font-bold text-blue-900">{stats.totalStudyDays}</div>
+                      <div className="text-xl sm:text-3xl font-bold text-blue-900">{stats.totalStudyDays}</div>
                     </div>
 
-                    <div className="p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-purple-600 font-medium">Total Notes</span>
-                        <FileText className="w-5 h-5 text-purple-600" />
+                    <div className="p-3 sm:p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
+                      <div className="flex items-center justify-between mb-1 sm:mb-2">
+                        <span className="text-xs sm:text-sm text-purple-600 font-medium">Total Notes</span>
+                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
                       </div>
-                      <div className="text-3xl font-bold text-purple-900">{stats.totalNotes}</div>
+                      <div className="text-xl sm:text-3xl font-bold text-purple-900">{stats.totalNotes}</div>
                     </div>
 
-                    <div className="p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-green-600 font-medium">Active Notes</span>
-                        <BookOpen className="w-5 h-5 text-green-600" />
+                    <div className="p-3 sm:p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
+                      <div className="flex items-center justify-between mb-1 sm:mb-2">
+                        <span className="text-xs sm:text-sm text-green-600 font-medium">Active Notes</span>
+                        <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
                       </div>
-                      <div className="text-3xl font-bold text-green-900">{stats.activeNotes}</div>
+                      <div className="text-xl sm:text-3xl font-bold text-green-900">{stats.activeNotes}</div>
                     </div>
 
-                    <div className="p-6 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-orange-600 font-medium">Best Streak</span>
-                        <Award className="w-5 h-5 text-orange-600" />
+                    <div className="p-3 sm:p-6 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg">
+                      <div className="flex items-center justify-between mb-1 sm:mb-2">
+                        <span className="text-xs sm:text-sm text-orange-600 font-medium">Best Streak</span>
+                        <Award className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                       </div>
-                      <div className="text-3xl font-bold text-orange-900">{stats.longestStreak} days</div>
+                      <div className="text-xl sm:text-3xl font-bold text-orange-900">{stats.longestStreak} days</div>
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <span className="text-gray-700">Last Login</span>
-                      <span className="font-medium text-gray-900">{formatRelativeTime(stats.lastLogin)}</span>
+                  <div className="space-y-2 sm:space-y-4">
+                    <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg">
+                      <span className="text-sm sm:text-base text-gray-700">Last Login</span>
+                      <span className="font-medium text-gray-900 text-sm sm:text-base">{formatRelativeTime(stats.lastLogin)}</span>
                     </div>
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <span className="text-gray-700">Account Created</span>
-                      <span className="font-medium text-gray-900">{formatDate(stats.accountCreated)}</span>
+                    <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg">
+                      <span className="text-sm sm:text-base text-gray-700">Account Created</span>
+                      <span className="font-medium text-gray-900 text-xs sm:text-base">{formatDate(stats.accountCreated)}</span>
                     </div>
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <span className="text-gray-700">Email Status</span>
-                      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${
+                    <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 xs:gap-0 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                      <span className="text-sm sm:text-base text-gray-700">Email Status</span>
+                      <span className={`inline-flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
                         stats.emailVerified 
                           ? 'bg-green-100 text-green-700'
                           : 'bg-yellow-100 text-yellow-700'
                       }`}>
-                        <Award className="w-4 h-4" />
+                        <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         {stats.emailVerified ? 'Verified' : 'Not Verified'}
                       </span>
                     </div>
@@ -843,17 +844,17 @@ const ProfilePage = () => {
 
       {/* Image Crop Modal */}
       {showImageCrop && selectedImage && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-bold mb-4">Upload Profile Picture</h3>
-            <div className="mb-4">
-              <img src={selectedImage.preview} alt="Preview" className="w-full rounded-lg" />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
+          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 max-w-md w-full mx-3">
+            <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Upload Profile Picture</h3>
+            <div className="mb-3 sm:mb-4">
+              <img src={selectedImage.preview} alt="Preview" className="w-full rounded-lg max-h-[50vh] object-contain" />
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-2 sm:gap-3">
               <button
                 onClick={handleAvatarUpload}
                 disabled={saving}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 px-3 sm:px-4 py-2.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 Save
@@ -864,7 +865,7 @@ const ProfilePage = () => {
                   setSelectedImage(null);
                 }}
                 disabled={saving}
-                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                className="flex-1 px-3 sm:px-4 py-2.5 sm:py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm sm:text-base"
               >
                 Cancel
               </button>
