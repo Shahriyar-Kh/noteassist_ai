@@ -7,6 +7,7 @@ import subprocess
 import sys
 import requests
 import base64
+import re
 from typing import Dict, Any
 from pathlib import Path
 import tempfile
@@ -62,6 +63,45 @@ DEFAULT_TIMEOUT = 15
 MAX_OUTPUT_SIZE = 100000  # 100KB max output
 
 
+def preprocess_java_code(code: str) -> str:
+    """
+    Preprocess Java code to work with Wandbox.
+    Wandbox uses 'prog.java' as the filename, so public classes must be renamed.
+    
+    - 'public class Main' -> 'class prog'
+    - 'public class <AnyName>' -> 'class prog'
+    - 'class <AnyName>' (non-public) -> 'class prog'
+    """
+    # Pattern to match public class declaration
+    # Matches: public class ClassName { or public class ClassName{
+    public_class_pattern = r'\bpublic\s+class\s+\w+\s*(\{|extends|implements)'
+    
+    # Pattern to match any class declaration (for the main class)
+    # Only match the main/first class, not inner classes
+    class_pattern = r'^(\s*)(?:public\s+)?class\s+\w+(\s*(?:\{|extends|implements))'
+    
+    # Check if there's a public class (must match filename)
+    if re.search(public_class_pattern, code):
+        # Replace 'public class <Name>' with 'class prog'
+        code = re.sub(
+            r'\bpublic\s+class\s+\w+(\s*(?:\{|extends|implements))',
+            r'class prog\1',
+            code,
+            count=1  # Only replace the first occurrence (main class)
+        )
+    else:
+        # Replace first 'class <Name>' with 'class prog'
+        code = re.sub(
+            class_pattern,
+            r'\1class prog\2',
+            code,
+            count=1,
+            flags=re.MULTILINE
+        )
+    
+    return code
+
+
 class CodeExecutionService:
     
     @staticmethod
@@ -77,6 +117,11 @@ class CodeExecutionService:
                 "exit_code": None,
                 "runtime_ms": 0
             }
+        
+        # Preprocess Java code (Wandbox uses prog.java, so class must be named 'prog')
+        if language == "java":
+            code = preprocess_java_code(code)
+            logger.debug(f"Preprocessed Java code for Wandbox")
         
         compiler = WANDBOX_COMPILERS[language]
         
