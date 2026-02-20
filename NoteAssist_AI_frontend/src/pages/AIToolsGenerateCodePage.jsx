@@ -7,10 +7,11 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
+import { useDraftPersistence, DRAFT_KEYS } from '@/hooks/useDraftPersistence';
 import {
   Code, Play, Download, Upload, Loader2, AlertCircle,
   ArrowLeft, RotateCcw, Sparkles, Wand2, AlignLeft,
-  CheckCircle, XCircle, Info, Zap, Languages, Keyboard,
+  CheckCircle, XCircle, Info, Zap, Languages, Keyboard, Trash2,
 } from 'lucide-react';
 import { noteService } from '@/services/note.service';
 import { exportCodeToPDF, exportCodeToPDFBlob } from '@/utils/pdfExport';
@@ -166,21 +167,45 @@ const AIToolsGenerateCodePage = () => {
   const navigate = useNavigate();
   const editorRef = useRef(null);
 
-  // ── Form state
-  const [topic, setTopic]         = useState('');
-  const [language, setLanguage]   = useState('python');
-  const [level, setLevel]         = useState('beginner');
+  // ── Draft Persistence (auto-save + auto-restore)
+  const initialDraftState = {
+    topic: '',
+    language: 'python',
+    level: 'beginner',
+    generatedCode: '',
+    editableCode: '',
+    executionOutput: '',
+  };
 
-  // "Other" language state
-  const [isCustomLang, setIsCustomLang]       = useState(false);
+  const {
+    state: draftState,
+    updateField,
+    updateFields,
+    clearDraft,
+    hasContent,
+    lastSaved,
+  } = useDraftPersistence(DRAFT_KEYS.AI_GENERATE_CODE, initialDraftState, {
+    warnOnUnload: true,
+  });
+
+  // ── Destructure draft state
+  const { topic, language, level, generatedCode, editableCode, executionOutput: savedOutput } = draftState;
+
+  // ── State setters that update draft
+  const setTopic = (val) => updateField('topic', val);
+  const setLanguage = (val) => updateField('language', val);
+  const setLevel = (val) => updateField('level', val);
+  const setGeneratedCode = (val) => updateField('generatedCode', val);
+  const setEditableCode = (val) => updateField('editableCode', val);
+
+  // "Other" language state (not persisted for simplicity)
+  const [isCustomLang, setIsCustomLang]       = useState(language === '__other__');
   const [customLang, setCustomLang]           = useState('');
   const [customLangError, setCustomLangError] = useState('');
   const [customLangValid, setCustomLangValid] = useState(false);
 
-  // ── Content state
-  const [generatedCode, setGeneratedCode]       = useState('');
-  const [editableCode, setEditableCode]         = useState('');
-  const [executionOutput, setExecutionOutput]   = useState('');
+  // ── Non-persisted UI State
+  const [executionOutput, setExecutionOutput]   = useState(savedOutput || '');
   const [execSuccess, setExecSuccess]           = useState(null);   // null | true | false
   const [execRuntime, setExecRuntime]           = useState(null);
 
@@ -264,8 +289,11 @@ const AIToolsGenerateCodePage = () => {
       });
 
       const code = result.generated_content || '';
-      setGeneratedCode(code);
-      setEditableCode(code);
+      // Update both generated and editable code at once
+      updateFields({
+        generatedCode: code,
+        editableCode: code,
+      });
       setHistoryId(result.history_id || null);
       toast.success('Code generated successfully!');
     } catch (err) {
@@ -480,6 +508,22 @@ const AIToolsGenerateCodePage = () => {
               </span>
             </div>
             <nav className="flex items-center gap-1.5 overflow-x-auto flex-1 justify-end" style={{ scrollbarWidth: 'none' }}>
+              {/* Draft Status Indicator */}
+              {hasContent && (
+                <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full border border-green-200 flex-shrink-0">
+                  <CheckCircle size={12} />
+                  Draft saved
+                </span>
+              )}
+              {hasContent && (
+                <button
+                  onClick={() => clearDraft()}
+                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                  title="Clear draft"
+                >
+                  <Trash2 size={14} className="text-gray-500" />
+                </button>
+              )}
               <NavPill onClick={() => navigate('/ai-tools/generate')}  icon={Sparkles}  label="Generate"   />
               <NavPill onClick={() => navigate('/ai-tools/improve')}   icon={Wand2}     label="Improve"    />
               <NavPill onClick={() => navigate('/ai-tools/summarize')} icon={AlignLeft}  label="Summarize"  />

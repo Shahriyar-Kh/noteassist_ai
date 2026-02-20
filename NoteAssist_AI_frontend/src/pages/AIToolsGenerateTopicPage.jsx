@@ -6,9 +6,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import { useDraftPersistence, DRAFT_KEYS } from '@/hooks/useDraftPersistence';
 import {
   Wand2, FileText, Loader, CheckCircle, Sparkles, Download, Cloud,
-  AlertCircle, ArrowLeft, AlignLeft, Code,
+  AlertCircle, ArrowLeft, AlignLeft, Code, Trash2,
 } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -34,22 +35,54 @@ const NavPill = ({ onClick, to, icon: Icon, label, variant = 'default' }) => {
 const AIToolsGenerateTopicPage = ({ topic, onSave, onCancel, onAIAction }) => {
   const navigate = useNavigate();
 
-  // ── State (unchanged) ────────────────────────────────────────────────
+  // ── Draft Persistence (auto-save + auto-restore)
+  const initialDraftState = {
+    name: topic?.name || '',
+    explanation: topic?.explanation?.content || '',
+    learningLevel: 'beginner',
+  };
+
+  const {
+    state: draftState,
+    updateField,
+    updateFields,
+    clearDraft,
+    hasContent,
+    lastSaved,
+  } = useDraftPersistence(DRAFT_KEYS.AI_GENERATE_TOPIC, initialDraftState, {
+    warnOnUnload: true,
+  });
+
+  // ── Destructure draft state
+  const { name, explanation, learningLevel } = draftState;
+
+  // ── State setters that update draft
+  const setFormData = (updater) => {
+    if (typeof updater === 'function') {
+      const newState = updater({ name, explanation });
+      updateFields(newState);
+    } else {
+      updateFields(updater);
+    }
+  };
+  const setLearningLevel = (val) => updateField('learningLevel', val);
+
+  // ── Create formData object for compatibility with existing code
+  const formData = { name, explanation };
+
+  // ── Non-persisted UI State
   const [loading, setLoading]                   = useState(false);
   const [aiLoading, setAiLoading]               = useState(null);
   const [error, setError]                       = useState(null);
-  const [learningLevel, setLearningLevel]       = useState('beginner');
   const [uploadingToDrive, setUploadingToDrive] = useState(false);
   const [driveStatus, setDriveStatus]           = useState({ connected: false, checking: true });
   const [historyId, setHistoryId]               = useState(null);
-  const [formData, setFormData]                 = useState({
-    name:        topic?.name || '',
-    explanation: topic?.explanation?.content || '',
-  });
 
   useEffect(() => {
-    if (topic) setFormData({ name: topic.name || '', explanation: topic.explanation?.content || '' });
-  }, [topic]);
+    if (topic) {
+      updateFields({ name: topic.name || '', explanation: topic.explanation?.content || '' });
+    }
+  }, [topic, updateFields]);
 
   useEffect(() => { checkDriveStatus(); }, []);
 
@@ -207,6 +240,22 @@ const AIToolsGenerateTopicPage = ({ topic, onSave, onCancel, onAIAction }) => {
               </h1>
             </div>
             <nav className="flex items-center gap-1.5 overflow-x-auto flex-1 justify-end" style={{ scrollbarWidth: 'none' }}>
+              {/* Draft Status Indicator */}
+              {hasContent && (
+                <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full border border-green-200 flex-shrink-0">
+                  <CheckCircle size={12} />
+                  Draft saved
+                </span>
+              )}
+              {hasContent && (
+                <button
+                  onClick={() => clearDraft()}
+                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                  title="Clear draft"
+                >
+                  <Trash2 size={14} className="text-gray-500" />
+                </button>
+              )}
               <NavPill onClick={() => navigate('/ai-tools/improve')}   icon={Wand2}     label="Improve"   />
               <NavPill onClick={() => navigate('/ai-tools/summarize')} icon={AlignLeft}  label="Summarize" />
               <NavPill to="/ai-tools/code"                             icon={Code}       label="Code"      />

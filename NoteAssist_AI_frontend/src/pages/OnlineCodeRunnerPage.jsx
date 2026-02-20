@@ -8,6 +8,7 @@ import { useState, useRef, useCallback, lazy, Suspense, useMemo, useEffect } fro
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { useDraftPersistence, DRAFT_KEYS } from '@/hooks/useDraftPersistence';
 import {
   Code, Play, Loader2, ArrowLeft, RotateCcw, Download, Copy,
   Terminal, CheckCircle, XCircle, Clock, Keyboard, Info, Zap,
@@ -227,10 +228,37 @@ const OnlineCodeRunnerPage = () => {
   const handleRunRef = useRef(null);
   const { isAuthenticated, isGuest } = useSelector((state) => state.auth);
 
-  // ── State
-  const [language, setLanguage] = useState('python');
-  const [code, setCode] = useState(CODE_TEMPLATES.python || '');
-  const [output, setOutput] = useState('');
+  // ── Draft Persistence (auto-save + auto-restore)
+  const initialDraftState = {
+    language: 'python',
+    code: CODE_TEMPLATES.python || '',
+    output: '',
+  };
+
+  const {
+    state: draftState,
+    updateField,
+    updateFields,
+    clearDraft,
+    hasContent,
+    lastSaved,
+  } = useDraftPersistence(DRAFT_KEYS.ONLINE_CODE_RUNNER, initialDraftState, {
+    warnOnUnload: true,
+  });
+
+  // ── Destructure draft state
+  const {
+    language,
+    code,
+    output: savedOutput,
+  } = draftState;
+
+  // ── State setters that update draft
+  const setLanguage = (val) => updateField('language', val);
+  const setCode = (val) => updateField('code', val);
+
+  // ── Non-persisted UI State
+  const [output, setOutput] = useState(savedOutput || '');
   const [executing, setExecuting] = useState(false);
   const [execSuccess, setExecSuccess] = useState(null);
   const [execRuntime, setExecRuntime] = useState(null);
@@ -434,14 +462,14 @@ const OnlineCodeRunnerPage = () => {
     setErrorLine(null);
   }, [clearErrorDecorations]);
 
-  // ── Reset editor to template
+  // ── Reset editor to template (clears draft)
   const handleReset = useCallback(() => {
-    if (window.confirm('Reset to default template? Your current code will be lost.')) {
+    if (clearDraft()) {
+      // Draft cleared, set to template for current language
       setCode(CODE_TEMPLATES[language] || '');
       handleClearOutput();
-      toast.success('Editor reset to default');
     }
-  }, [language, handleClearOutput]);
+  }, [language, handleClearOutput, clearDraft, setCode]);
 
   // ── Toggle fullscreen
   const toggleFullscreen = useCallback(() => {
@@ -570,6 +598,14 @@ const OnlineCodeRunnerPage = () => {
 
               {/* Right: Language Select + Actions */}
               <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                {/* Draft Status Indicator */}
+                {hasContent && (
+                  <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full border border-green-200">
+                    <CheckCircle size={12} />
+                    {lastSaved ? `Draft saved` : 'Auto-saving...'}
+                  </span>
+                )}
+                
                 {renderLanguageSelect()}
                 
                 <button

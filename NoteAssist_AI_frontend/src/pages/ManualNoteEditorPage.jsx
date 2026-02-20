@@ -8,6 +8,7 @@ import { useState, useCallback, useRef, lazy, Suspense, useMemo, useEffect } fro
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { useDraftPersistence, DRAFT_KEYS } from '@/hooks/useDraftPersistence';
 import {
   FileText, ArrowLeft, Save, Download, Upload, Code, Link as LinkIcon,
   Bold, Italic, List, Heading, Type, Loader2, Info, CheckCircle,
@@ -236,17 +237,50 @@ const ManualNoteEditorPage = () => {
   const quillRef = useRef(null);
   const editorContainerRef = useRef(null);
 
-  // ── Form State
-  const [noteTitle, setNoteTitle] = useState('');
-  const [topicName, setTopicName] = useState('');
-  const [explanation, setExplanation] = useState('');
-  const [codeLanguage, setCodeLanguage] = useState('python');
-  const [codeContent, setCodeContent] = useState('');
-  const [sourceTitle, setSourceTitle] = useState('');
-  const [sourceUrl, setSourceUrl] = useState('');
+  // ── Draft Persistence (auto-save + auto-restore)
+  const initialDraftState = {
+    noteTitle: '',
+    topicName: '',
+    explanation: '',
+    codeLanguage: 'python',
+    codeContent: '',
+    sourceTitle: '',
+    sourceUrl: '',
+    activeTab: 'content',
+  };
 
-  // ── UI State
-  const [activeTab, setActiveTab] = useState('content'); // 'content' | 'code' | 'source' | 'preview'
+  const {
+    state: draftState,
+    updateField,
+    clearDraft,
+    hasDraft,
+    hasContent,
+    lastSaved,
+  } = useDraftPersistence(DRAFT_KEYS.MANUAL_NOTE_EDITOR, initialDraftState, {
+    warnOnUnload: true,
+  });
+
+  // ── Destructure draft state for easier access
+  const {
+    noteTitle,
+    topicName,
+    explanation,
+    codeLanguage,
+    codeContent,
+    sourceTitle,
+    sourceUrl,
+    activeTab,
+  } = draftState;
+
+  // ── State setters that update draft
+  const setNoteTitle = (val) => updateField('noteTitle', val);
+  const setTopicName = (val) => updateField('topicName', val);
+  const setExplanation = (val) => updateField('explanation', val);
+  const setCodeLanguage = (val) => updateField('codeLanguage', val);
+  const setCodeContent = (val) => updateField('codeContent', val);
+  const setSourceTitle = (val) => updateField('sourceTitle', val);
+  const setSourceUrl = (val) => updateField('sourceUrl', val);
+  const setActiveTab = (val) => updateField('activeTab', val);
   const [saving, setSaving] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -492,20 +526,14 @@ const ManualNoteEditorPage = () => {
     toast.success('Content copied to clipboard!');
   }, [topicName, explanation, codeContent, codeLanguage, sourceTitle, sourceUrl]);
 
-  // ── Clear all content
+  // ── Clear all content (uses draft persistence)
   const handleClear = useCallback(() => {
-    if (window.confirm('Clear all content? This cannot be undone.')) {
-      setNoteTitle('');
-      setTopicName('');
-      setExplanation('');
-      setCodeContent('');
-      setSourceTitle('');
-      setSourceUrl('');
+    const cleared = clearDraft();
+    if (cleared) {
       setCodeOutput('');
       setCodeError(null);
-      toast.success('Content cleared');
     }
-  }, []);
+  }, [clearDraft]);
 
   // ── Tab rendering
   const renderTabContent = () => {
@@ -791,6 +819,14 @@ const ManualNoteEditorPage = () => {
 
               {/* Right: Actions */}
               <div className="flex items-center gap-2 flex-wrap">
+                {/* Draft Status Indicator */}
+                {hasContent && (
+                  <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full border border-green-200">
+                    <CheckCircle size={12} />
+                    {lastSaved ? `Draft saved` : 'Auto-saving...'}
+                  </span>
+                )}
+
                 <button
                   onClick={handleCopyContent}
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -801,8 +837,9 @@ const ManualNoteEditorPage = () => {
 
                 <button
                   onClick={handleClear}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  title="Clear all"
+                  disabled={!hasContent}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  title="Clear draft"
                 >
                   <Trash2 size={18} className="text-gray-600" />
                 </button>

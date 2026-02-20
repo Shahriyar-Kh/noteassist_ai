@@ -6,9 +6,10 @@
 import { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate } from 'react-router-dom';
+import { useDraftPersistence, DRAFT_KEYS } from '@/hooks/useDraftPersistence';
 import {
   FileText, Download, Upload, Loader2, AlertCircle, CheckCircle,
-  Copy, ArrowLeft, Sparkles, Code, Wand2,
+  Copy, ArrowLeft, Sparkles, Code, Wand2, Trash2,
 } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -35,11 +36,35 @@ const NavPill = ({ onClick, to, icon: Icon, label, variant = 'default' }) => {
 const AIToolsSummarizePage = () => {
   const navigate = useNavigate();
 
-  // ── State (unchanged) ────────────────────────────────────────────────
-  const [inputContent, setInputContent]           = useState('');
-  const [summaryLevel, setSummaryLevel]           = useState('beginner');
-  const [summarizedContent, setSummarizedContent] = useState('');
-  const [editableSummary, setEditableSummary]     = useState('');
+  // ── Draft Persistence (auto-save + auto-restore)
+  const initialDraftState = {
+    inputContent: '',
+    summaryLevel: 'beginner',
+    summarizedContent: '',
+    editableSummary: '',
+  };
+
+  const {
+    state: draftState,
+    updateField,
+    updateFields,
+    clearDraft,
+    hasContent,
+    lastSaved,
+  } = useDraftPersistence(DRAFT_KEYS.AI_SUMMARIZE, initialDraftState, {
+    warnOnUnload: true,
+  });
+
+  // ── Destructure draft state
+  const { inputContent, summaryLevel, summarizedContent, editableSummary } = draftState;
+
+  // ── State setters that update draft
+  const setInputContent = (val) => updateField('inputContent', val);
+  const setSummaryLevel = (val) => updateField('summaryLevel', val);
+  const setSummarizedContent = (val) => updateField('summarizedContent', val);
+  const setEditableSummary = (val) => updateField('editableSummary', val);
+
+  // ── Non-persisted UI State
   const [loading, setLoading]                     = useState(false);
   const [loadingPdf, setLoadingPdf]               = useState(false);
   const [loadingUpload, setLoadingUpload]         = useState(false);
@@ -62,8 +87,11 @@ const AIToolsSummarizePage = () => {
         input_content: inputContent, 
         level: summaryLevel 
       });
-      setSummarizedContent(result.generated_content);
-      setEditableSummary(result.generated_content);
+      // Update both summarized and editable content at once
+      updateFields({
+        summarizedContent: result.generated_content,
+        editableSummary: result.generated_content,
+      });
       setHistoryId(result.history_id);
       const levelLabel = summaryLevels.find(l => l.value === summaryLevel)?.label || summaryLevel;
       toast.success(`✨ Content summarized successfully (${levelLabel} level)!`);
@@ -186,6 +214,22 @@ const AIToolsSummarizePage = () => {
               className="flex items-center gap-1.5 overflow-x-auto flex-1 justify-end"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
+              {/* Draft Status Indicator */}
+              {hasContent && (
+                <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full border border-green-200 flex-shrink-0">
+                  <CheckCircle size={12} />
+                  Draft saved
+                </span>
+              )}
+              {hasContent && (
+                <button
+                  onClick={() => clearDraft()}
+                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                  title="Clear draft"
+                >
+                  <Trash2 size={14} className="text-gray-500" />
+                </button>
+              )}
               <NavPill onClick={() => navigate('/ai-tools/generate')} icon={Sparkles} label="Generate" />
               <NavPill onClick={() => navigate('/ai-tools/improve')}  icon={Wand2}    label="Improve"  />
               <NavPill to="/ai-tools/code"                            icon={Code}     label="Code"     />

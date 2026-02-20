@@ -6,9 +6,10 @@
 import { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate } from 'react-router-dom';
+import { useDraftPersistence, DRAFT_KEYS } from '@/hooks/useDraftPersistence';
 import {
   Wand2, Download, Upload, Loader2, AlertCircle,
-  Copy, ArrowLeft, AlignLeft, Code, Sparkles, FileText,
+  Copy, ArrowLeft, AlignLeft, Code, Sparkles, FileText, CheckCircle, Trash2,
 } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -33,10 +34,32 @@ const NavPill = ({ onClick, to, icon: Icon, label, variant = 'default' }) => {
 const AIToolsImprovePage = () => {
   const navigate = useNavigate();
 
-  // ── State (unchanged) ────────────────────────────────────────────────
-  const [inputContent, setInputContent]       = useState('');
-  const [improvementType, setImprovementType] = useState('general');
-  const [improvedContent, setImprovedContent] = useState('');
+  // ── Draft Persistence (auto-save + auto-restore)
+  const initialDraftState = {
+    inputContent: '',
+    improvementType: 'general',
+    improvedContent: '',
+  };
+
+  const {
+    state: draftState,
+    updateField,
+    clearDraft,
+    hasContent,
+    lastSaved,
+  } = useDraftPersistence(DRAFT_KEYS.AI_IMPROVE, initialDraftState, {
+    warnOnUnload: true,
+  });
+
+  // ── Destructure draft state
+  const { inputContent, improvementType, improvedContent } = draftState;
+
+  // ── State setters that update draft
+  const setInputContent = (val) => updateField('inputContent', val);
+  const setImprovementType = (val) => updateField('improvementType', val);
+  const setImprovedContent = (val) => updateField('improvedContent', val);
+
+  // ── Non-persisted UI State
   const [loading, setLoading]                 = useState(false);
   const [loadingPdf, setLoadingPdf]           = useState(false);
   const [loadingUpload, setLoadingUpload]     = useState(false);
@@ -169,6 +192,22 @@ const AIToolsImprovePage = () => {
               </h1>
             </div>
             <nav className="flex items-center gap-1.5 overflow-x-auto flex-1 justify-end" style={{ scrollbarWidth: 'none' }}>
+              {/* Draft Status Indicator */}
+              {hasContent && (
+                <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full border border-green-200 flex-shrink-0">
+                  <CheckCircle size={12} />
+                  Draft saved
+                </span>
+              )}
+              {hasContent && (
+                <button
+                  onClick={() => clearDraft()}
+                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                  title="Clear draft"
+                >
+                  <Trash2 size={14} className="text-gray-500" />
+                </button>
+              )}
               <NavPill onClick={() => navigate('/ai-tools/generate')} icon={Sparkles}  label="Generate" />
               <NavPill onClick={() => navigate('/ai-tools/summarize')} icon={AlignLeft} label="Summarize" />
               <NavPill to="/ai-tools/code"                             icon={Code}      label="Code"      />
