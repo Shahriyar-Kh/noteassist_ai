@@ -10,7 +10,7 @@ import {
   Sparkles, Brain, Zap, FileText, Code, TrendingUp,
   ArrowRight, CheckCircle, Star, Users, BookOpen,
   MessageSquare, BarChart3, Shield, Globe, Menu, X, Lightbulb, Rocket,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Terminal, Edit3, Wrench, ChevronDown
 } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import Footer from '@/components/layout/Footer';
@@ -115,21 +115,69 @@ const MobileMenu = ({ isOpen, onClose }) => {
 
       {/* Menu */}
       <div
-        className={`fixed top-20 right-0 w-64 bg-white shadow-2xl rounded-bl-3xl z-50 transition-all duration-300 ${
+        className={`fixed top-20 right-0 w-72 bg-white shadow-2xl rounded-bl-3xl z-50 transition-all duration-300 ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         <div className="p-6 space-y-3">
-          <Link
-            to="/ai-tools"
-            className="block px-4 py-3 text-gray-700 hover:text-violet-600 font-medium rounded-xl hover:bg-violet-50 transition-all"
-            onClick={onClose}
-          >
-            <span className="flex items-center gap-2">
+          <div className="px-4 py-2">
+            <span className="flex items-center gap-2 text-gray-500 text-sm font-medium">
               <Brain className="w-4 h-4" />
               AI Tools
             </span>
-          </Link>
+            <div className="mt-2 pl-6 space-y-2">
+              <Link
+                to="/ai-tools"
+                className="block py-2 text-gray-600 hover:text-violet-600 text-sm font-medium transition-all"
+                onClick={onClose}
+              >
+                <span className="flex items-center gap-2">
+                  <Brain className="w-3.5 h-3.5" />
+                  All AI Tools
+                </span>
+              </Link>
+              <Link
+                to="/ai-tools/generate"
+                className="block py-2 text-gray-600 hover:text-violet-600 text-sm font-medium transition-all"
+                onClick={onClose}
+              >
+                <span className="flex items-center gap-2">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Generate Topic
+                </span>
+              </Link>
+              <Link
+                to="/ai-tools/improve"
+                className="block py-2 text-gray-600 hover:text-violet-600 text-sm font-medium transition-all"
+                onClick={onClose}
+              >
+                <span className="flex items-center gap-2">
+                  <Zap className="w-3.5 h-3.5" />
+                  Improve Content
+                </span>
+              </Link>
+              <Link
+                to="/ai-tools/summarize"
+                className="block py-2 text-gray-600 hover:text-violet-600 text-sm font-medium transition-all"
+                onClick={onClose}
+              >
+                <span className="flex items-center gap-2">
+                  <FileText className="w-3.5 h-3.5" />
+                  Summarize
+                </span>
+              </Link>
+              <Link
+                to="/ai-tools/code"
+                className="block py-2 text-gray-600 hover:text-violet-600 text-sm font-medium transition-all"
+                onClick={onClose}
+              >
+                <span className="flex items-center gap-2">
+                  <Code className="w-3.5 h-3.5" />
+                  Generate Code
+                </span>
+              </Link>
+            </div>
+          </div>
           <Link
             to="/notes"
             className="block px-4 py-3 text-gray-700 hover:text-violet-600 font-medium rounded-xl hover:bg-violet-50 transition-all"
@@ -137,9 +185,37 @@ const MobileMenu = ({ isOpen, onClose }) => {
           >
             <span className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
-              Full Notes
+              AI Assist Note
             </span>
           </Link>
+          <div className="px-4 py-2">
+            <span className="flex items-center gap-2 text-gray-500 text-sm font-medium">
+              <Wrench className="w-4 h-4" />
+              Manual Tools
+            </span>
+            <div className="mt-2 pl-6 space-y-2">
+              <Link
+                to="/note-editor"
+                className="block py-2 text-gray-600 hover:text-violet-600 text-sm font-medium transition-all"
+                onClick={onClose}
+              >
+                <span className="flex items-center gap-2">
+                  <Edit3 className="w-3.5 h-3.5" />
+                  Note Editor
+                </span>
+              </Link>
+              <Link
+                to="/code-runner"
+                className="block py-2 text-gray-600 hover:text-violet-600 text-sm font-medium transition-all"
+                onClick={onClose}
+              >
+                <span className="flex items-center gap-2">
+                  <Terminal className="w-3.5 h-3.5" />
+                  Online Code Runner
+                </span>
+              </Link>
+            </div>
+          </div>
           <hr className="my-4" />
           <Link
             to="/login"
@@ -433,20 +509,84 @@ const HomePage = () => {
 
               {/* Desktop Navigation */}
               <div className="hidden md:flex items-center gap-2">
-                <Link 
-                  to="/ai-tools" 
-                  className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-violet-600 font-medium transition-colors"
-                >
-                  <Brain className="w-4 h-4" />
-                  <span className="hidden lg:inline">AI Tools</span>
-                </Link>
+                <div className="relative group">
+                  <Link 
+                    to="/ai-tools" 
+                    className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-violet-600 font-medium transition-colors"
+                  >
+                    <Brain className="w-4 h-4" />
+                    <span className="hidden lg:inline">AI Tools</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </Link>
+                  <div className="absolute top-full left-0 mt-1 w-52 bg-white rounded-xl shadow-xl border border-gray-100 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                    <Link 
+                      to="/ai-tools" 
+                      className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:text-violet-600 hover:bg-violet-50 transition-colors"
+                    >
+                      <Brain className="w-4 h-4" />
+                      <span className="text-sm font-medium">All AI Tools</span>
+                    </Link>
+                    <div className="border-t border-gray-100 my-1"></div>
+                    <Link 
+                      to="/ai-tools/generate" 
+                      className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:text-violet-600 hover:bg-violet-50 transition-colors"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span className="text-sm font-medium">Generate Topic</span>
+                    </Link>
+                    <Link 
+                      to="/ai-tools/improve" 
+                      className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:text-violet-600 hover:bg-violet-50 transition-colors"
+                    >
+                      <Zap className="w-4 h-4" />
+                      <span className="text-sm font-medium">Improve Content</span>
+                    </Link>
+                    <Link 
+                      to="/ai-tools/summarize" 
+                      className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:text-violet-600 hover:bg-violet-50 transition-colors"
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span className="text-sm font-medium">Summarize</span>
+                    </Link>
+                    <Link 
+                      to="/ai-tools/code" 
+                      className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:text-violet-600 hover:bg-violet-50 transition-colors"
+                    >
+                      <Code className="w-4 h-4" />
+                      <span className="text-sm font-medium">Generate Code</span>
+                    </Link>
+                  </div>
+                </div>
                 <Link 
                   to="/notes" 
                   className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-violet-600 font-medium transition-colors"
                 >
                   <FileText className="w-4 h-4" />
-                  <span className="hidden lg:inline">Notes</span>
+                  <span className="hidden lg:inline">AI Assist Note</span>
                 </Link>
+                <div className="relative group">
+                  <button className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-violet-600 font-medium transition-colors">
+                    <Wrench className="w-4 h-4" />
+                    <span className="hidden lg:inline">Manual Tools</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+                  <div className="absolute top-full left-0 mt-1 w-52 bg-white rounded-xl shadow-xl border border-gray-100 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                    <Link 
+                      to="/note-editor" 
+                      className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:text-violet-600 hover:bg-violet-50 transition-colors"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                      <span className="text-sm font-medium">Note Editor</span>
+                    </Link>
+                    <Link 
+                      to="/code-runner" 
+                      className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:text-violet-600 hover:bg-violet-50 transition-colors"
+                    >
+                      <Terminal className="w-4 h-4" />
+                      <span className="text-sm font-medium">Online Code Runner</span>
+                    </Link>
+                  </div>
+                </div>
               </div>
 
               {/* Desktop Buttons */}

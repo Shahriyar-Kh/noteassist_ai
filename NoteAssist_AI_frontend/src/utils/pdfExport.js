@@ -219,3 +219,120 @@ export const exportMarkdownToPDF = (markdownContent, filename, title, metadata =
 
   return exportToPDF(htmlContent, filename, title, metadata);
 };
+
+// Export note data structure to PDF
+export const exportNoteToPDF = (noteData, options = {}) => {
+  const { title = 'Note', author = 'NoteAssist AI', includeCode = true, includeSources = true } = options;
+  const filename = `${noteData.title || title}.pdf`;
+
+  let content = '';
+
+  // Process topics
+  if (noteData.topics && noteData.topics.length > 0) {
+    noteData.topics.forEach((topic, index) => {
+      // Topic name
+      if (topic.name) {
+        content += `<h2 style="color: #1f2937; margin-top: ${index > 0 ? '24px' : '0'};">${topic.name}</h2>`;
+      }
+
+      // Explanation content
+      if (topic.explanation?.content) {
+        content += `<div style="margin: 12px 0;">${topic.explanation.content}</div>`;
+      }
+
+      // Code snippet
+      if (includeCode && topic.code_snippet?.code) {
+        const escapedCode = topic.code_snippet.code
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+        
+        content += `
+          <div style="margin: 16px 0;">
+            <h3 style="font-size: 14px; color: #4b5563;">Code (${topic.code_snippet.language || 'code'})</h3>
+            <pre style="background: #1f2937; color: #10b981; padding: 16px; border-radius: 8px; overflow-x: auto;"><code>${escapedCode}</code></pre>
+          </div>
+        `;
+      }
+
+      // Source reference
+      if (includeSources && topic.source && (topic.source.title || topic.source.url)) {
+        content += `
+          <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
+            <p style="font-size: 12px; color: #6b7280;">
+              <strong>Source:</strong> ${topic.source.title || ''}
+              ${topic.source.url ? `<a href="${topic.source.url}" style="color: #3b82f6;">${topic.source.url}</a>` : ''}
+            </p>
+          </div>
+        `;
+      }
+    });
+  }
+
+  const metadata = {
+    'Author': author,
+    'Created': new Date().toLocaleDateString(),
+    'Status': noteData.status || 'draft'
+  };
+
+  return exportToPDF(content, filename, noteData.title || title, metadata);
+};
+
+// Export note data structure to PDF blob (for uploads)
+export const exportNoteToPDFBlob = async (noteData, options = {}) => {
+  const { title = 'Note', author = 'NoteAssist AI', includeCode = true, includeSources = true } = options;
+  const filename = `${noteData.title || title}.pdf`;
+
+  let content = '';
+
+  // Process topics
+  if (noteData.topics && noteData.topics.length > 0) {
+    noteData.topics.forEach((topic, index) => {
+      // Topic name
+      if (topic.name) {
+        content += `<h2 style="color: #1f2937; margin-top: ${index > 0 ? '24px' : '0'};">${topic.name}</h2>`;
+      }
+
+      // Explanation content
+      if (topic.explanation?.content) {
+        content += `<div style="margin: 12px 0;">${topic.explanation.content}</div>`;
+      }
+
+      // Code snippet
+      if (includeCode && topic.code_snippet?.code) {
+        const escapedCode = topic.code_snippet.code
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+        
+        content += `
+          <div style="margin: 16px 0;">
+            <h3 style="font-size: 14px; color: #4b5563;">Code (${topic.code_snippet.language || 'code'})</h3>
+            <pre style="background: #1f2937; color: #10b981; padding: 16px; border-radius: 8px; overflow-x: auto;"><code>${escapedCode}</code></pre>
+          </div>
+        `;
+      }
+
+      // Source reference
+      if (includeSources && topic.source && (topic.source.title || topic.source.url)) {
+        content += `
+          <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
+            <p style="font-size: 12px; color: #6b7280;">
+              <strong>Source:</strong> ${topic.source.title || ''}
+              ${topic.source.url ? `<a href="${topic.source.url}" style="color: #3b82f6;">${topic.source.url}</a>` : ''}
+            </p>
+          </div>
+        `;
+      }
+    });
+  }
+
+  const metadata = {
+    'Author': author,
+    'Created': new Date().toLocaleDateString(),
+    'Status': noteData.status || 'draft'
+  };
+
+  const result = await exportToPDFBlob(content, filename, noteData.title || title, metadata);
+  return result.blob;
+};

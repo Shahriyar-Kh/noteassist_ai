@@ -17,7 +17,7 @@ import { Helmet } from 'react-helmet-async';
 import { 
   Sparkles, Wand2, FileText, Code, Trash2,
   Clock, ArrowRight, Zap, Loader2, AlertCircle,
-  TrendingUp, Award, Brain, LogIn
+  TrendingUp, Award, Brain, LogIn, Terminal, Edit3, Wrench
 } from 'lucide-react';
 import { Button, Card, PageContainer, FormInput } from '@/components/design-system';
 import { noteService } from '@/services/note.service';
@@ -954,6 +954,32 @@ const AIToolsPage = () => {
     }
   ];
 
+  // Manual Tools configuration (no auth required)
+  const manualTools = [
+    {
+      id: 'note-editor',
+      icon: Edit3,
+      title: 'Note Editor',
+      description: 'Create and format notes manually with markdown support',
+      gradient: 'from-pink-500 to-rose-600',
+      glowColor: 'rgba(236,72,153,0.6)',
+      barGradient: 'linear-gradient(90deg, #ec4899, #f43f5e)',
+      iconBg: 'linear-gradient(135deg, #ec4899, #f43f5e)',
+      route: '/note-editor'
+    },
+    {
+      id: 'code-runner',
+      icon: Terminal,
+      title: 'Online Code Runner',
+      description: 'Execute code in 15+ programming languages instantly',
+      gradient: 'from-slate-500 to-gray-600',
+      glowColor: 'rgba(100,116,139,0.6)',
+      barGradient: 'linear-gradient(90deg, #64748b, #475569)',
+      iconBg: 'linear-gradient(135deg, #64748b, #475569)',
+      route: '/code-runner'
+    }
+  ];
+
   // Filter history by search query and type
   const filteredHistory = history.filter(item => {
     if (searchQuery) {
@@ -1033,10 +1059,31 @@ const AIToolsPage = () => {
               <div className="ai-guest-icon">
                 <AlertCircle size={18} />
               </div>
-              <p style={{ fontSize: '0.92rem', color: 'rgba(251,191,36,0.9)' }}>
+              <p style={{ fontSize: '0.92rem', color: 'rgba(251,191,36,0.9)', flex: 1 }}>
                 You're viewing as a guest.{' '}
-                <strong style={{ color: '#fbbf24' }}>Sign in to use AI tools and generate content.</strong>
+                <strong style={{ color: '#fbbf24' }}>Sign in to save your AI generations.</strong>
               </p>
+              <Link
+                to="/login"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  background: 'rgba(251,191,36,0.15)',
+                  border: '1px solid rgba(251,191,36,0.4)',
+                  color: '#fbbf24',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <LogIn size={14} />
+                Sign In
+              </Link>
             </div>
           )}
 
@@ -1097,19 +1144,12 @@ const AIToolsPage = () => {
             <div className="ai-tools-grid">
               {aiTools.map((tool, idx) => {
                 const Icon = tool.icon;
-                const handleToolClick = (e) => {
-                  if (!isAuthenticated) {
-                    e.preventDefault();
-                    handleGuestAction('aiTool');
-                  }
-                };
 
                 return (
                   <Link
                     key={tool.id}
-                    to={isAuthenticated ? tool.route : '#'}
-                    onClick={handleToolClick}
-                    className={`ai-tool-card ${!isAuthenticated ? 'disabled' : ''}`}
+                    to={tool.route}
+                    className="ai-tool-card"
                     style={{ animationDelay: `${0.5 + idx * 0.1}s`, textDecoration: 'none' }}
                   >
                     {/* Top gradient bar */}
@@ -1143,7 +1183,66 @@ const AIToolsPage = () => {
                     <p className="ai-tool-desc">{tool.description}</p>
 
                     <div className="ai-tool-cta">
-                      <span>{!isAuthenticated ? 'Sign In to Try' : 'Try Now'}</span>
+                      <span>Try Now</span>
+                      <ArrowRight size={16} />
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Manual Tools section */}
+          <div style={{ marginBottom: '56px' }}>
+            <div className="ai-section-heading" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <Wrench size={24} style={{ color: 'var(--ai-cyan)' }} />
+              Manual Tools
+            </div>
+            <div className="ai-section-line" style={{ background: 'linear-gradient(90deg, #64748b, #ec4899)' }} />
+            <p className="ai-section-sub">Standalone tools available to everyone - no sign in required</p>
+
+            <div className="ai-tools-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+              {manualTools.map((tool, idx) => {
+                const Icon = tool.icon;
+                return (
+                  <Link
+                    key={tool.id}
+                    to={tool.route}
+                    className="ai-tool-card"
+                    style={{ animationDelay: `${0.7 + idx * 0.1}s`, textDecoration: 'none' }}
+                  >
+                    {/* Top gradient bar */}
+                    <div
+                      className="ai-tool-card-bar"
+                      style={{ background: tool.barGradient }}
+                    />
+                    {/* Ambient glow */}
+                    <div
+                      className="ai-tool-card-glow"
+                      style={{ background: `radial-gradient(circle, ${tool.glowColor} 0%, transparent 70%)` }}
+                    />
+
+                    <div className="ai-tool-meta">
+                      {/* Icon */}
+                      <div
+                        className="ai-tool-icon-wrap"
+                        style={{ background: tool.iconBg, boxShadow: `0 8px 32px ${tool.glowColor}66` }}
+                      >
+                        <div className="ai-pulse-ring" style={{ color: tool.glowColor }} />
+                        <Icon size={28} color="#fff" />
+                      </div>
+                      {/* Free badge instead of stat */}
+                      <div className="ai-tool-stat">
+                        <div className="ai-tool-stat-value" style={{ fontSize: '0.9rem', color: 'var(--ai-emerald)' }}>FREE</div>
+                        <div className="ai-tool-stat-label">No Sign In</div>
+                      </div>
+                    </div>
+
+                    <div className="ai-tool-title">{tool.title}</div>
+                    <p className="ai-tool-desc">{tool.description}</p>
+
+                    <div className="ai-tool-cta">
+                      <span>Open Tool</span>
                       <ArrowRight size={16} />
                     </div>
                   </Link>

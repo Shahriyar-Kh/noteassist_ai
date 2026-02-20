@@ -908,10 +908,11 @@ def extract_input_requirements(code, language):
 
 
 @api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])  # FIX: Changed from AllowAny
+@permission_classes([permissions.AllowAny])  # Public code runner - no auth required
 def execute_code(request):
-    """Execute code with input support"""
-    logger.info(f"Code execution request from {request.user}")
+    """Execute code with input support - Public endpoint for Online Code Runner tool"""
+    user_info = request.user if request.user.is_authenticated else 'Anonymous'
+    logger.info(f"Code execution request from {user_info}")
     code = request.data.get('code', '')
     language = request.data.get('language', 'python')
     stdin = request.data.get('stdin', '')

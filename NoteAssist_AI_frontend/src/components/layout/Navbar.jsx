@@ -1,11 +1,11 @@
 // FILE: src/components/layout/Navbar.jsx
 // ============================================================================
 
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '@/store/slices/authSlice';
 import { Menu } from '@headlessui/react';
-import { BookOpen, Home, FileText, Brain, User, LogOut, Menu as MenuIcon, X, Sparkles, Zap, Code, ChevronDown } from 'lucide-react';
+import { BookOpen, Home, FileText, Brain, User, LogOut, Menu as MenuIcon, X, Sparkles, Zap, Code, ChevronDown, Terminal, Edit3, Wrench } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useState } from 'react';
 
@@ -17,13 +17,44 @@ const aiToolsSubItems = [
   { id: 'code', label: 'Generate Code', icon: Code, path: '/ai-tools/code' }
 ];
 
+// Manual Tools - available to everyone (including guests)
+const manualToolsItems = [
+  { id: 'note-editor', label: 'Note Editor', icon: Edit3, path: '/note-editor' },
+  { id: 'code-runner', label: 'Online Code Runner', icon: Terminal, path: '/code-runner' }
+];
+
 const Navbar = ({ hideLinks = [] }) => {
   const { isAuthenticated, user, isGuest } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [aiToolsHover, setAiToolsHover] = useState(false);
+  const [manualToolsHover, setManualToolsHover] = useState(false);
   const [mobileAiToolsOpen, setMobileAiToolsOpen] = useState(false);
+  const [mobileManualToolsOpen, setMobileManualToolsOpen] = useState(false);
+
+  // Auto-detect which links to hide based on current path
+  const currentPath = location.pathname;
+  
+  // On dashboard page, hide all nav items except Home
+  const isDashboardPage = currentPath === '/dashboard' || currentPath.startsWith('/dashboard/');
+  
+  const autoHideLinks = [
+    ...hideLinks,
+    // Hide "AI Assist Note" when on notes page
+    ...(currentPath === '/notes' ? ['notes'] : []),
+    // Hide "AI Tools" when on AI tools pages (but NOT on home)
+    ...(currentPath.startsWith('/ai-tools') ? ['ai-tools'] : []),
+    // Hide Manual Tools when on manual tool pages
+    ...(currentPath === '/note-editor' || currentPath === '/code-runner' ? ['manual-tools'] : []),
+    // Hide all items on dashboard (dashboard has its own sidebar)
+    ...(isDashboardPage ? ['ai-tools', 'notes', 'manual-tools', 'dashboard'] : [])
+  ];
+
+  // On home page, show all links
+  const isHomePage = currentPath === '/' || currentPath === '/home';
+  const effectiveHideLinks = isHomePage ? hideLinks : autoHideLinks;
 
   // This navbar is for regular users and guests
   const isAdmin = user?.role === 'admin' || user?.is_staff || user?.is_superuser;
@@ -68,63 +99,101 @@ const Navbar = ({ hideLinks = [] }) => {
                 (Guest Mode)
               </span>
             )}
-            
-            {isAuthenticated && !isGuest && (
-              <>
-                <Link to="/dashboard" className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors">
-                  <Home size={18} />
-                  Dashboard
+
+            {/* AI Tools - Visible to everyone */}
+            {!effectiveHideLinks.includes('ai-tools') && (
+              <div 
+                className="relative"
+                onMouseEnter={() => setAiToolsHover(true)}
+                onMouseLeave={() => setAiToolsHover(false)}
+              >
+                <Link 
+                  to="/ai-tools" 
+                  className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors"
+                >
+                  <Brain size={18} />
+                  AI Tools
+                  <ChevronDown size={14} className={`transition-transform ${aiToolsHover ? 'rotate-180' : ''}`} />
                 </Link>
-                {!hideLinks.includes('notes') && (
-                  <Link to="/notes" className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors">
-                    <FileText size={18} />
-                    Notes
-                  </Link>
-                )}
-                {!hideLinks.includes('ai-tools') && (
-                  <div 
-                    className="relative"
-                    onMouseEnter={() => setAiToolsHover(true)}
-                    onMouseLeave={() => setAiToolsHover(false)}
-                  >
-                    <Link 
-                      to="/ai-tools" 
-                      className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors"
+                
+                {/* AI Tools Dropdown */}
+                {aiToolsHover && (
+                  <div className="absolute top-full left-0 mt-1 w-52 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
+                    <Link
+                      to="/ai-tools"
+                      className="flex items-center gap-3 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-gray-700 hover:text-primary-600 transition-colors"
                     >
-                      <Brain size={18} />
-                      AI Tools
-                      <ChevronDown size={14} className={`transition-transform ${aiToolsHover ? 'rotate-180' : ''}`} />
+                      <Brain size={16} />
+                      <span className="text-sm font-medium">All AI Tools</span>
                     </Link>
-                    
-                    {/* AI Tools Dropdown */}
-                    {aiToolsHover && (
-                      <div className="absolute top-full left-0 mt-1 w-52 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
+                    <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
+                    {aiToolsSubItems.map((item) => {
+                      const SubIcon = item.icon;
+                      return (
                         <Link
-                          to="/ai-tools"
+                          key={item.id}
+                          to={item.path}
                           className="flex items-center gap-3 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-gray-700 hover:text-primary-600 transition-colors"
                         >
-                          <Brain size={16} />
-                          <span className="text-sm font-medium">All AI Tools</span>
+                          <SubIcon size={16} />
+                          <span className="text-sm font-medium">{item.label}</span>
                         </Link>
-                        <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
-                        {aiToolsSubItems.map((item) => {
-                          const SubIcon = item.icon;
-                          return (
-                            <Link
-                              key={item.id}
-                              to={item.path}
-                              className="flex items-center gap-3 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-gray-700 hover:text-primary-600 transition-colors"
-                            >
-                              <SubIcon size={16} />
-                              <span className="text-sm font-medium">{item.label}</span>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    )}
+                      );
+                    })}
                   </div>
                 )}
-              </>
+              </div>
+            )}
+
+            {/* AI Assist Full Note - Visible to everyone */}
+            {!effectiveHideLinks.includes('notes') && (
+              <Link to="/notes" className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors">
+                <FileText size={18} />
+                AI Assist Note
+              </Link>
+            )}
+
+            {/* Manual Tools - Available to everyone */}
+            {!effectiveHideLinks.includes('manual-tools') && (
+              <div 
+                className="relative"
+                onMouseEnter={() => setManualToolsHover(true)}
+                onMouseLeave={() => setManualToolsHover(false)}
+              >
+                <button 
+                  className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors"
+                >
+                  <Wrench size={18} />
+                  Manual Tools
+                  <ChevronDown size={14} className={`transition-transform ${manualToolsHover ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {/* Manual Tools Dropdown */}
+                {manualToolsHover && (
+                  <div className="absolute top-full left-0 mt-1 w-52 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
+                    {manualToolsItems.map((item) => {
+                      const ItemIcon = item.icon;
+                      return (
+                        <Link
+                          key={item.id}
+                          to={item.path}
+                          className="flex items-center gap-3 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-gray-700 hover:text-primary-600 transition-colors"
+                        >
+                          <ItemIcon size={16} />
+                          <span className="text-sm font-medium">{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {isAuthenticated && !isGuest && !effectiveHideLinks.includes('dashboard') && (
+              <Link to="/dashboard" className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors">
+                <Home size={18} />
+                Dashboard
+              </Link>
             )}
           </div>
 
@@ -199,66 +268,106 @@ const Navbar = ({ hideLinks = [] }) => {
                 <Home size={18} />
                 Home
               </Link>
-              
-              {isAuthenticated && !isGuest && (
-                <>
-                  <Link 
-                    to="/dashboard" 
-                    className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 px-2 py-2"
-                    onClick={() => setMobileMenuOpen(false)}
+
+              {/* AI Tools - Visible to everyone in mobile menu */}
+              {!effectiveHideLinks.includes('ai-tools') && (
+                <div>
+                  <button 
+                    onClick={() => setMobileAiToolsOpen(!mobileAiToolsOpen)}
+                    className="flex items-center justify-between w-full text-gray-700 dark:text-gray-300 hover:text-primary-600 px-2 py-2"
                   >
-                    <Home size={18} />
-                    Dashboard
-                  </Link>
-                  {!hideLinks.includes('notes') && (
-                    <Link 
-                      to="/notes" 
-                      className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 px-2 py-2"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <FileText size={18} />
-                      Notes
-                    </Link>
-                  )}
-                  {!hideLinks.includes('ai-tools') && (
-                    <div>
-                      <button 
-                        onClick={() => setMobileAiToolsOpen(!mobileAiToolsOpen)}
-                        className="flex items-center justify-between w-full text-gray-700 dark:text-gray-300 hover:text-primary-600 px-2 py-2"
+                    <span className="flex items-center gap-2">
+                      <Brain size={18} />
+                      AI Tools
+                    </span>
+                    <ChevronDown size={16} className={`transition-transform ${mobileAiToolsOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {mobileAiToolsOpen && (
+                    <div className="ml-6 mt-1 space-y-1 border-l-2 border-primary-200 pl-3">
+                      <Link 
+                        to="/ai-tools" 
+                        className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary-600 py-1.5 text-sm"
+                        onClick={() => setMobileMenuOpen(false)}
                       >
-                        <span className="flex items-center gap-2">
-                          <Brain size={18} />
-                          AI Tools
-                        </span>
-                        <ChevronDown size={16} className={`transition-transform ${mobileAiToolsOpen ? 'rotate-180' : ''}`} />
-                      </button>
-                      {mobileAiToolsOpen && (
-                        <div className="ml-6 mt-1 space-y-1 border-l-2 border-primary-200 pl-3">
+                        <Brain size={16} />
+                        All AI Tools
+                      </Link>
+                      {aiToolsSubItems.map((item) => {
+                        const SubIcon = item.icon;
+                        return (
                           <Link 
-                            to="/ai-tools" 
+                            key={item.id}
+                            to={item.path} 
                             className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary-600 py-1.5 text-sm"
                             onClick={() => setMobileMenuOpen(false)}
                           >
-                            <Brain size={16} />
-                            All AI Tools
+                            <SubIcon size={16} />
+                            {item.label}
                           </Link>
-                          {aiToolsSubItems.map((item) => {
-                            const SubIcon = item.icon;
-                            return (
-                              <Link 
-                                key={item.id}
-                                to={item.path} 
-                                className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary-600 py-1.5 text-sm"
-                                onClick={() => setMobileMenuOpen(false)}
-                              >
-                                <SubIcon size={16} />
-                                {item.label}
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      )}
+                        );
+                      })}
                     </div>
+                  )}
+                </div>
+              )}
+
+              {/* AI Assist Full Note - Visible to everyone */}
+              {!effectiveHideLinks.includes('notes') && (
+                <Link 
+                  to="/notes" 
+                  className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 px-2 py-2"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <FileText size={18} />
+                  AI Assist Note
+                </Link>
+              )}
+
+              {/* Manual Tools - Available to everyone in mobile menu */}
+              {!effectiveHideLinks.includes('manual-tools') && (
+                <div>
+                  <button 
+                    onClick={() => setMobileManualToolsOpen(!mobileManualToolsOpen)}
+                    className="flex items-center justify-between w-full text-gray-700 dark:text-gray-300 hover:text-primary-600 px-2 py-2"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Wrench size={18} />
+                      Manual Tools
+                    </span>
+                    <ChevronDown size={16} className={`transition-transform ${mobileManualToolsOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {mobileManualToolsOpen && (
+                    <div className="ml-6 mt-1 space-y-1 border-l-2 border-primary-200 pl-3">
+                      {manualToolsItems.map((item) => {
+                        const ItemIcon = item.icon;
+                        return (
+                          <Link 
+                            key={item.id}
+                            to={item.path} 
+                            className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary-600 py-1.5 text-sm"
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            <ItemIcon size={16} />
+                            {item.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {isAuthenticated && !isGuest && (
+                <>
+                  {!effectiveHideLinks.includes('dashboard') && (
+                    <Link 
+                      to="/dashboard" 
+                      className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 px-2 py-2"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Home size={18} />
+                      Dashboard
+                    </Link>
                   )}
                   <Link 
                     to="/profile" 

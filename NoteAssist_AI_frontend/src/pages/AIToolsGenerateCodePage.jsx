@@ -1,6 +1,6 @@
 // FILE: src/pages/AIToolsGenerateCodePage.jsx
 // ============================================================================
-// Enhanced Code Generator — VS Code-like Monaco Editor, 25+ Languages,
+// Enhanced Code Generator — VS Code-like Monaco Editor, 15+ Languages,
 // "Other" language validation, Input Support, Always-visible Editor
 // ============================================================================
 
@@ -461,7 +461,7 @@ const AIToolsGenerateCodePage = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-orange-50/30">
       <Helmet>
         <title>Generate &amp; Execute Code — AI Tools | NoteAssist AI</title>
-        <meta name="description" content="Generate code in 25+ programming languages using AI. Edit in a VS Code-style Monaco editor and execute instantly." />
+        <meta name="description" content="Generate code in 15+ programming languages using AI. Edit in a VS Code-style Monaco editor and execute instantly." />
       </Helmet>
 
       {/* ── Sticky header ─────────────────────────────────────────── */}
@@ -476,7 +476,7 @@ const AIToolsGenerateCodePage = () => {
                 Code Generator
               </h1>
               <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 bg-orange-50 border border-orange-200 rounded-full text-xs text-orange-600 font-medium">
-                <Zap size={10} /> 25+ Languages
+                <Zap size={10} /> 15+ Languages
               </span>
             </div>
             <nav className="flex items-center gap-1.5 overflow-x-auto flex-1 justify-end" style={{ scrollbarWidth: 'none' }}>

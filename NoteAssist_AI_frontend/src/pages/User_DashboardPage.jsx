@@ -10,7 +10,7 @@ import {
   Brain, Sparkles, TrendingUp, Zap, FileText, Code,
   BookOpen, Menu, X, Bell, Settings, User, LogOut, 
   Clock, Flame, Target, BarChart3, History, ChevronRight,
-  Play, CheckCircle, ArrowRight, MessageSquare
+  Play, CheckCircle, ArrowRight, MessageSquare, Terminal, Edit3, Wrench
 } from 'lucide-react';
 import dashboardService from '@/services/dashboard.service';
 import { toast } from 'react-hot-toast';
@@ -88,6 +88,17 @@ const DashboardPage = () => {
         { id: 'improve', label: 'Improve Content', icon: Zap, path: '/ai-tools/improve' },
         { id: 'summarize', label: 'Summarize', icon: FileText, path: '/ai-tools/summarize' },
         { id: 'code', label: 'Generate Code', icon: Code, path: '/ai-tools/code' }
+      ]
+    },
+    { 
+      id: 'tools',
+      icon: Wrench, 
+      label: 'Manual Tools', 
+      path: '/code-runner',
+      description: 'Code runner & note editor',
+      subItems: [
+        { id: 'code-runner', label: 'Code Runner', icon: Terminal, path: '/code-runner' },
+        { id: 'note-editor', label: 'Note Editor', icon: Edit3, path: '/note-editor' }
       ]
     },
     { 

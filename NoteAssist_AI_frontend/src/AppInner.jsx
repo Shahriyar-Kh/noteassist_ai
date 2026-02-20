@@ -46,6 +46,10 @@ const AIToolsSummarizePage = lazy(() => import('./pages/AIToolsSummarizePage'));
 const AIToolsGenerateCodePage = lazy(() => import('./pages/AIToolsGenerateCodePage'));
 const AIHistoryPage = lazy(() => import('./pages/AIHistoryPage'));
 
+// Public Tools - accessible without authentication
+const OnlineCodeRunnerPage = lazy(() => import('./pages/OnlineCodeRunnerPage'));
+const ManualNoteEditorPage = lazy(() => import('./pages/ManualNoteEditorPage'));
+
 // Admin Pages - lazy loaded (accessed less frequently)
 const AdminDashboard = lazy(() => import('@/pages/Admin_Dashboard'));
 const AdminAIAnalyticsPage = lazy(() => import('./pages/AdminAIAnalyticsPage'));
@@ -162,6 +166,19 @@ function AppInner() {
               <ProtectedRoute>
                 <AIHistoryPage />
               </ProtectedRoute>
+            } />
+
+            {/* Public Tools - Accessible without authentication */}
+            <Route path="/code-runner" element={
+              <PublicPageRoute>
+                <OnlineCodeRunnerPage />
+              </PublicPageRoute>
+            } />
+            
+            <Route path="/note-editor" element={
+              <PublicPageRoute>
+                <ManualNoteEditorPage />
+              </PublicPageRoute>
             } />
 
             {/* Profile - Lazy Loaded */}

@@ -2,8 +2,9 @@
 // ============================================================================
 // ⚡ OPTIMIZED - Request deduplication, better error handling
 
+import axios from 'axios';
 import api from './api';
-import { API_ENDPOINTS } from '@/utils/constants';
+import { API_ENDPOINTS, API_BASE_URL } from '@/utils/constants';
 import { requestDeduplicator } from '@/utils/requestDeduplication';
 import { showToast } from '@/components/common/Toast';
 
@@ -324,11 +325,17 @@ performAIAction: async (topicId, actionData) => {
     return response.data;
   },
 
-// Update the runCode function
+// Run code - PUBLIC endpoint (no auth required, no redirect on error)
 runCode: async ({ code, language, stdin = "", timeout = 15 }) => {
   try {
-    const response = await api.post(
-      "/api/run_code/",
+    // Use relative URL to work with Vite proxy in dev, and direct URL in production
+    // Vite proxy: /api -> http://localhost:8000/api
+    const isDevelopment = import.meta.env.DEV;
+    const url = isDevelopment ? '/api/run_code/' : `${API_BASE_URL?.replace(/\/$/, '')}/api/run_code/`;
+    
+    // Use direct axios call without auth interceptors for public code runner
+    const response = await axios.post(
+      url,
       { 
         code, 
         language, 
@@ -336,10 +343,11 @@ runCode: async ({ code, language, stdin = "", timeout = 15 }) => {
         timeout
       },
       { 
-        timeout: (timeout + 5) * 1000, // Add buffer
+        timeout: (timeout + 5) * 1000,
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        withCredentials: isDevelopment  // Use credentials in dev for proxy
       }
     );
     
@@ -358,6 +366,11 @@ runCode: async ({ code, language, stdin = "", timeout = 15 }) => {
     return data;
   } catch (error) {
     console.error("Code execution error:", error);
+    console.error("Error details:", {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
     
     if (error.code === "ECONNABORTED") {
       return {
@@ -377,7 +390,15 @@ runCode: async ({ code, language, stdin = "", timeout = 15 }) => {
       };
     }
     
-    if (error.message === "Network Error") {
+    if (error.response?.status === 401) {
+      return {
+        success: false,
+        output: '',
+        error: "Authentication error. Please refresh the page and try again."
+      };
+    }
+    
+    if (error.message === "Network Error" || error.code === "ERR_NETWORK") {
       return {
         success: false,
         output: '',
@@ -388,7 +409,7 @@ runCode: async ({ code, language, stdin = "", timeout = 15 }) => {
     return {
       success: false,
       output: '',
-      error: "Code execution failed. Please try again."
+      error: `Code execution failed: ${error.message || 'Unknown error'}`
     };
   }
 },
