@@ -92,6 +92,14 @@ const Navbar = ({ hideLinks = [] }) => {
               <Home size={18} />
               Home
             </Link>
+
+            {/* Dashboard - Right after Home for logged-in users */}
+            {isAuthenticated && !isGuest && !effectiveHideLinks.includes('dashboard') && (
+              <Link to="/dashboard" className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors">
+                <User size={18} />
+                Dashboard
+              </Link>
+            )}
             
             {/* Guest Mode Indicator */}
             {isGuest && (
@@ -188,13 +196,6 @@ const Navbar = ({ hideLinks = [] }) => {
                 )}
               </div>
             )}
-            
-            {isAuthenticated && !isGuest && !effectiveHideLinks.includes('dashboard') && (
-              <Link to="/dashboard" className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors">
-                <Home size={18} />
-                Dashboard
-              </Link>
-            )}
           </div>
 
           {/* Mobile Menu Toggle - Show on mobile/tablet */}
@@ -268,6 +269,18 @@ const Navbar = ({ hideLinks = [] }) => {
                 <Home size={18} />
                 Home
               </Link>
+
+              {/* Dashboard - Right after Home for logged-in users */}
+              {isAuthenticated && !isGuest && !effectiveHideLinks.includes('dashboard') && (
+                <Link 
+                  to="/dashboard" 
+                  className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 px-2 py-2"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <User size={18} />
+                  Dashboard
+                </Link>
+              )}
 
               {/* AI Tools - Visible to everyone in mobile menu */}
               {!effectiveHideLinks.includes('ai-tools') && (
@@ -359,16 +372,6 @@ const Navbar = ({ hideLinks = [] }) => {
               
               {isAuthenticated && !isGuest && (
                 <>
-                  {!effectiveHideLinks.includes('dashboard') && (
-                    <Link 
-                      to="/dashboard" 
-                      className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 px-2 py-2"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <Home size={18} />
-                      Dashboard
-                    </Link>
-                  )}
                   <Link 
                     to="/profile" 
                     className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 px-2 py-2"
