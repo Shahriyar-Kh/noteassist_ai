@@ -17,6 +17,7 @@ import '@/styles/animations.css';
 import { noteService } from '@/services/note.service';
 import { exportToPDF, exportToPDFBlob } from '@/utils/pdfExport';
 import { toast } from 'react-hot-toast';
+import logger from '@/utils/logger';
 
 /* ─── Reusable header nav pill ─────────────────────────────────────────── */
 const NavPill = ({ onClick, to, icon: Icon, label, variant = 'default' }) => {
@@ -107,7 +108,7 @@ const AIToolsImprovePage = () => {
       setHistoryId(result.history_id);
       toast.success('✨ Content improved successfully!');
     } catch (error) {
-      console.error('Improvement error:', error);
+      logger.error('Improvement error:', String(error));
       toast.error('❌ ' + (error.message || 'Failed to improve content'));
     } finally { setLoading(false); }
   };
@@ -120,7 +121,7 @@ const AIToolsImprovePage = () => {
       toast.success('✨ PDF exported successfully!');
       setTimeout(() => setLoadingPdf(false), 800);
     } catch (error) {
-      console.error('PDF export error:', error);
+      logger.error('PDF export error:', String(error));
       toast.error('❌ ' + (error.message || 'Failed to export PDF'));
       setLoadingPdf(false);
     }
@@ -148,7 +149,7 @@ const AIToolsImprovePage = () => {
       }
       setTimeout(() => setLoadingUpload(false), 800);
     } catch (error) {
-      console.error('Google Drive upload error:', error);
+      logger.error('Google Drive upload error:', String(error));
       toast.error('❌ ' + (error.message || 'Failed to upload to Google Drive'));
       setLoadingUpload(false);
     }

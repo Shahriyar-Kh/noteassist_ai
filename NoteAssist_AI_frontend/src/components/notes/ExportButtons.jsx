@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Download, Cloud, Mail, CheckCircle, AlertCircle, Link as LinkIcon } from 'lucide-react';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
+import logger from '@/utils/logger';
 
 const ExportButtons = ({ note, onDriveStatusChange }) => {
   const [exporting, setExporting] = useState(false);
@@ -25,7 +26,7 @@ const ExportButtons = ({ note, onDriveStatusChange }) => {
         onDriveStatusChange(response.data);
       }
     } catch (error) {
-      console.error('Error checking Drive status:', error);
+      logger.error('Error checking Drive status:', error);
       setDriveStatus({ connected: false, can_export: false, checking: false });
     }
   };
@@ -61,7 +62,7 @@ const ExportButtons = ({ note, onDriveStatusChange }) => {
       
       toast.success('PDF exported successfully!');
     } catch (error) {
-      console.error('Export error:', error);
+      logger.error('Export error:', error);
       toast.error(error.response?.data?.error || 'Failed to export PDF');
     } finally {
       setExporting(false);
@@ -102,7 +103,7 @@ const ExportButtons = ({ note, onDriveStatusChange }) => {
         }, 500);
       }
     } catch (error) {
-      console.error('Auth error:', error);
+      logger.error('Auth error:', error);
       toast.error('Failed to initiate Google Drive connection');
     }
   };
@@ -146,7 +147,7 @@ const ExportButtons = ({ note, onDriveStatusChange }) => {
         toast.error(response.data.error || 'Upload failed');
       }
     } catch (error) {
-      console.error('Drive export error:', error);
+      logger.error('Drive export error:', error);
       
       if (error.response?.status === 401 || error.response?.data?.needs_auth) {
         toast.error('Please reconnect Google Drive');
@@ -169,7 +170,7 @@ const ExportButtons = ({ note, onDriveStatusChange }) => {
         toast.error('Failed to send report');
       }
     } catch (error) {
-      console.error('Send report error:', error);
+      logger.error('Send report error:', error);
       toast.error('Failed to send report');
     }
   };

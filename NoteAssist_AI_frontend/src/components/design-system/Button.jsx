@@ -122,4 +122,4 @@ Button.propTypes = {
   type: PropTypes.oneOf(['button', 'submit', 'reset']),
 };
 
-export default Button;
+export default React.memo(Button);

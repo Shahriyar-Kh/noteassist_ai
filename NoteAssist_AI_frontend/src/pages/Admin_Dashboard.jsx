@@ -9,6 +9,7 @@ import {
 import AdminLayout from '@/components/layout/AdminLayout';
 import { toast } from 'react-hot-toast';
 import adminAnalyticsService from '@/services/adminAnalytics.service';
+import logger from '@/utils/logger';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -48,7 +49,7 @@ const AdminDashboard = () => {
         });
       }
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      logger.error('Error fetching dashboard data:', error);
       toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);

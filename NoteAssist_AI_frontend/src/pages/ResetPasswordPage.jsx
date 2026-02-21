@@ -18,6 +18,7 @@ import { Helmet } from 'react-helmet-async';
 import { Lock, Eye, EyeOff, BookOpen, CheckCircle, AlertCircle, ArrowRight, Shield, Loader2, Check, X } from 'lucide-react';
 import { Button, Card, PageContainer } from '@/components/design-system';
 import { useFormValidation, validators } from '@/hooks/useFormValidation';
+import { isStrongPassword, sanitizeString } from '@/utils/validation';
 import { API_BASE_URL } from '@/utils/constants';
 
 export default function ResetPasswordPage() {
@@ -39,13 +40,10 @@ export default function ResetPasswordPage() {
     }
   }, [token]);
 
-  // Password strength validator
+  // Use shared password strength validator (returns boolean)
   const validatePasswordStrength = (password) => {
     if (!password) return 'Password is required';
-    if (password.length < 8) return 'Password must be at least 8 characters';
-    if (!/[A-Z]/.test(password)) return 'Include at least one uppercase letter';
-    if (!/[a-z]/.test(password)) return 'Include at least one lowercase letter';
-    if (!/[0-9]/.test(password)) return 'Include at least one number';
+    if (!isStrongPassword(password)) return 'Password must be at least 8 characters and include a number';
     return null;
   };
 
@@ -98,11 +96,11 @@ export default function ResetPasswordPage() {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
           },
-          body: JSON.stringify({
-            token: token,
-            new_password: data.new_password,
-            new_password_confirm: data.new_password_confirm,
-          }),
+            body: JSON.stringify({
+              token: token,
+              new_password: sanitizeString(data.new_password),
+              new_password_confirm: sanitizeString(data.new_password_confirm),
+            }),
         });
 
         const responseData = await response.json();
@@ -121,7 +119,7 @@ export default function ResetPasswordPage() {
           );
         }
       } catch (error) {
-        console.error('[Reset Password] Error:', error);
+        // Production: log error to monitoring service or show safe message
         setAuthError('Cannot connect to server. Please check your connection.');
       } finally {
         setIsSubmitting(false);

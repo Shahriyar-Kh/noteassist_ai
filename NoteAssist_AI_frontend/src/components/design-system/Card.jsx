@@ -2,6 +2,7 @@
 // Supports multiple layouts, hover effects, and styling options
 
 import React from 'react';
+const MemoCard = React.memo(Card);
 import PropTypes from 'prop-types';
 
 const Card = ({
@@ -87,4 +88,4 @@ Card.propTypes = {
   footer: PropTypes.node,
 };
 
-export default Card;
+export default MemoCard;

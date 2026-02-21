@@ -3,6 +3,7 @@
 
 import { Navigate, useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import logger from '@/utils/logger';
 
 const GuestRoute = ({ children }) => {
   const location = useLocation();
@@ -27,7 +28,7 @@ const GuestRoute = ({ children }) => {
       // Redirect admins to the admin app entry point
       return <Navigate to={isAdmin ? '/admin' : '/dashboard'} replace />;
     } catch (error) {
-      console.error('Error parsing user data:', error);
+      logger.error('Error parsing user data:', error);
       // If there's an error, show the page
       return children;
     }

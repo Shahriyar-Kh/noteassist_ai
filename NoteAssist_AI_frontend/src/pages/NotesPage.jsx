@@ -1,7 +1,7 @@
 // FILE: ModernNotesPage.jsx - BEAUTIFUL & FULLY FUNCTIONAL
 // ============================================================================
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
@@ -14,6 +14,7 @@ import {
   FolderPlus, Folder, FileCode, Link, Upload, ArrowLeft, LogIn
 } from 'lucide-react';
 import { noteService } from '@/services/note.service';
+import logger from '@/utils/logger';
 import NoteStructure from '@/components/notes/NoteStructure';
 import TopicEditor from '@/components/notes/TopicEditor';
 import ExportButtons from '@/components/notes/ExportButtons';
@@ -31,6 +32,11 @@ const NotesPage = () => {
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(handler);
+  }, [search]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewMode, setViewMode] = useState('grid');
   
@@ -60,14 +66,14 @@ const NotesPage = () => {
   const [newNoteTitle, setNewNoteTitle] = useState('');
   const [newChapterTitle, setNewChapterTitle] = useState('');
 
-  // Stats calculation
-  const stats = {
+  // Stats calculation (memoized)
+  const stats = useMemo(() => ({
     total: notes.length,
     draft: notes.filter(n => n.status === 'draft').length,
     published: notes.filter(n => n.status === 'published').length,
     totalChapters: notes.reduce((sum, n) => sum + (n.chapter_count || 0), 0),
     totalTopics: notes.reduce((sum, n) => sum + (n.total_topics || 0), 0),
-  };
+  }), [notes]);
 
   // ================ FUNCTIONALITY FROM OLD FILE ================
 
@@ -81,35 +87,46 @@ const NotesPage = () => {
     fetchNotes();
   }, [statusFilter, isAuthenticated]);
 
+  // Trigger fetch when debounced search changes (avoid double-call on mount)
+  const _debouncedFirstRun = useRef(true);
+  useEffect(() => {
+    if (_debouncedFirstRun.current) {
+      _debouncedFirstRun.current = false;
+      return;
+    }
+    if (!isAuthenticated) return;
+    fetchNotes();
+  }, [debouncedSearch]);
+
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
   };
 
-  const fetchNotes = async () => {
+  const fetchNotes = useCallback(async () => {
     try {
       setLoading(true);
       const params = statusFilter !== 'all' ? { status: statusFilter } : {};
       const data = await noteService.getNotes(params);
       setNotes(data.results || data || []);
     } catch (error) {
-      console.error('Error fetching notes:', error);
+      // Production: log error to monitoring service or show safe message
       showToast('Failed to load notes', 'error');
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter]);
 
-  const fetchNoteDetail = async (noteId) => {
+  const fetchNoteDetail = useCallback(async (noteId) => {
     try {
       const data = await noteService.getNoteStructure(noteId);
       setSelectedNote(data);
       setNoteTitleValue(data.title);
     } catch (error) {
-      console.error('Error fetching note detail:', error);
+      // Production: log error to monitoring service or show safe message
       showToast('Failed to load note details', 'error');
     }
-  };
+  }, []);
 
   const handleCreateNote = async () => {
     if (!newNoteTitle.trim()) {
@@ -130,7 +147,7 @@ const NotesPage = () => {
       setShowNewNoteModal(false);
       showToast('✨ Note created successfully!', 'success');
     } catch (error) {
-      console.error('Error creating note:', error);
+      // Production: log error to monitoring service or show safe message
       const errorMessage = error.response?.data?.error || 'Failed to create note';
       showToast('❌ ' + errorMessage, 'error');
     } finally {
@@ -158,7 +175,7 @@ const NotesPage = () => {
       setEditingNoteTitle(false);
       showToast('✨ Note title updated successfully!', 'success');
     } catch (error) {
-      console.error('Error updating note title:', error);
+      // Production: log error to monitoring service or show safe message
       const errorMessage = error.response?.data?.error || 'Failed to update note title';
       showToast('❌ ' + errorMessage, 'error');
       setNoteTitleValue(selectedNote.title);
@@ -185,7 +202,7 @@ const NotesPage = () => {
       setShowNewChapterModal(false);
       showToast('✨ Chapter created successfully!', 'success');
     } catch (error) {
-      console.error('Error creating chapter:', error);
+      // Production: log error to monitoring service or show safe message
       const errorMessage = error.response?.data?.error || 'Failed to create chapter';
       showToast('❌ ' + errorMessage, 'error');
     } finally {
@@ -249,7 +266,7 @@ const NotesPage = () => {
       setSelectedTopic(data);
       setShowTopicEditor(true);
     } catch (error) {
-      console.error('Error fetching topic:', error);
+      logger.error('Error fetching topic:', String(error));
       showToast('Failed to load topic', 'error');
     }
   };
@@ -271,7 +288,7 @@ const NotesPage = () => {
       setShowTopicEditor(false);
       setSelectedTopic(null);
     } catch (error) {
-      console.error('Error saving topic:', error);
+      logger.error('Error saving topic:', String(error));
       const errorMessage = error.response?.data?.error || 'Failed to save topic';
       throw new Error(errorMessage);
     }
@@ -299,7 +316,7 @@ const NotesPage = () => {
       
       return data.generated_content;
     } catch (error) {
-      console.error('AI action error:', error);
+      logger.error('AI action error:', String(error));
       const errorMessage = error.response?.data?.error || 'AI action failed';
       throw new Error(errorMessage);
     }
@@ -339,7 +356,7 @@ const NotesPage = () => {
         showToast('✨ Topic deleted successfully!', 'success');
       }
     } catch (error) {
-      console.error('Error deleting:', error);
+      logger.error('Error deleting:', String(error));
       const errorMessage = error.response?.data?.error || 'Failed to delete';
       showToast('❌ ' + errorMessage, 'error');
     } finally {

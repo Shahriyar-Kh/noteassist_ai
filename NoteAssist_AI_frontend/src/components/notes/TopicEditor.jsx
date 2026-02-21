@@ -11,6 +11,7 @@ import Editor from '@monaco-editor/react';
 import ReactMarkdown from 'react-markdown';
 import { noteService } from '@/services/note.service';
 import '../../styles/animations.css';
+import logger from '@/utils/logger';
 
 // InputModal Component - Add this at the top after imports
 const InputModal = ({ open, value, onChange, onClose, onRun }) => {
@@ -160,7 +161,7 @@ const TopicEditor = ({ topic, onSave, onCancel, onAIAction }) => {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (error) {
-      console.error('Save failed:', error);
+      logger.error('Save failed:', error);
       const errorMessage = error.response?.data?.error || error.message || 'Failed to save topic';
       setError(errorMessage);
     } finally {
@@ -333,7 +334,7 @@ const handleAI = async (action) => {
     }
     
   } catch (error) {
-    console.error('AI action failed:', error);
+  logger.error('AI action failed:', error);
     const errorMessage = error.response?.data?.error || error.message || 'AI action failed';
     setError(errorMessage);
     showToast(errorMessage, 'error');

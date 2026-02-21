@@ -17,6 +17,8 @@ import { Mail, ArrowLeft, BookOpen, CheckCircle, AlertCircle, Inbox, Loader2 } f
 import { Button, Card, PageContainer } from '@/components/design-system';
 import { useFormValidation, validators } from '@/hooks/useFormValidation';
 import { API_BASE_URL } from '@/utils/constants';
+import { sanitizeString } from '@/utils/validation';
+import logger from '@/utils/logger';
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
@@ -44,19 +46,19 @@ export default function ForgotPasswordPage() {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
           },
-          body: JSON.stringify({ email: data.email.toLowerCase().trim() }),
+          body: JSON.stringify({ email: sanitizeString(data.email || '').toLowerCase() }),
         });
 
         const responseData = await response.json();
 
         if (response.ok) {
-          setSubmittedEmail(data.email);
+          setSubmittedEmail(sanitizeString(data.email || '').toLowerCase());
           setEmailSent(true);
         } else {
           setAuthError(responseData.error || 'Failed to send reset link. Please try again.');
         }
       } catch (error) {
-        console.error('[Forgot Password] Error:', error);
+        logger.error('[Forgot Password] Error:', String(error));
         setAuthError('Cannot connect to server. Please check your connection.');
       } finally {
         setIsSubmitting(false);

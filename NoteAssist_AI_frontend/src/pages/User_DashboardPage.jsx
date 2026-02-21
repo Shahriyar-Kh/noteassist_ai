@@ -2,7 +2,7 @@
 // Modern User Dashboard with AI Tools Integration
 // ============================================================================
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { logout as logoutAction } from '@/store/slices/authSlice';
@@ -33,7 +33,7 @@ const DashboardPage = () => {
     fetchDashboardData();
   }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       const [overview, notes] = await Promise.all([
@@ -44,12 +44,12 @@ const DashboardPage = () => {
       setDashboardData(overview || null);
       setRecentNotes(Array.isArray(notes) ? notes : (notes?.data || []));
     } catch (err) {
-      console.error('Dashboard fetch error:', err);
+      // Production: log error to monitoring service or show safe message
       toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -57,12 +57,12 @@ const DashboardPage = () => {
       toast.success('Logged out successfully');
       navigate('/home');
     } catch (error) {
-      console.error('Logout error:', error);
+      // Production: log error to monitoring service or show safe message
       toast.error('Logout failed');
     }
   };
 
-  const navigationItems = [
+  const navigationItems = useMemo(() => ([
     { 
       id: 'dashboard',
       icon: BarChart3, 
@@ -115,7 +115,7 @@ const DashboardPage = () => {
       path: '/notifications',
       badge: 3
     }
-  ];
+  ]), []);
 
   const statsCards = [
     {

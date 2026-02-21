@@ -23,6 +23,7 @@ import { Button, Card, PageContainer, FormInput } from '@/components/design-syst
 import { noteService } from '@/services/note.service';
 import dashboardService from '@/services/dashboard.service';
 import toast from 'react-hot-toast';
+import logger from '@/utils/logger';
 
 /* ─── Injected styles ─────────────────────────────────────────────────── */
 const styles = `
@@ -787,7 +788,7 @@ const AIToolsPage = () => {
       const data = await noteService.getAIHistory(filterType === 'all' ? null : filterType);
       setHistory(data || []);
     } catch (error) {
-      console.error('History fetch error:', error);
+      logger.error('History fetch error:', error);
       toast.error('Failed to load history');
     } finally {
       setLoading(false);
@@ -801,7 +802,7 @@ const AIToolsPage = () => {
       
       // The overview endpoint returns all the data we need
       const overview = await dashboardService.getOverview();
-      console.log('AIToolsPage - Overview response:', overview);
+      logger.info('AIToolsPage - Overview response:', overview);
       
       // Extract stats from overview - use same field names as User Dashboard
       const totalGenerations = overview?.total_ai_requests ?? overview?.total_ai_generations ?? 0;
@@ -813,7 +814,7 @@ const AIToolsPage = () => {
       const savedToNotes = overview?.total_topics ?? 0;
       const streak = overview?.current_streak ?? overview?.streak_days ?? 0;
       
-      console.log('AIToolsPage - Extracted stats:', {
+      logger.info('AIToolsPage - Extracted stats:', {
         totalGenerations, thisWeek, generateCount, improveCount, summarizeCount, codeCount, savedToNotes, streak
       });
       
@@ -828,7 +829,7 @@ const AIToolsPage = () => {
         streak
       });
     } catch (error) {
-      console.error('Stats fetch error:', error);
+      logger.error('Stats fetch error:', error);
       // Set fallback values on error
       setStats({
         totalGenerations: 0,
@@ -854,7 +855,7 @@ const AIToolsPage = () => {
       setDeleteConfirmId(null);
       fetchHistory();
     } catch (error) {
-      console.error('Delete error:', error);
+      logger.error('Delete error:', error);
       toast.error('❌ Failed to delete');
     } finally {
       setLoadingDeleteHistoryId(null);
@@ -869,7 +870,7 @@ const AIToolsPage = () => {
       toast.success('✨ Saved as note!');
       fetchHistory();
     } catch (error) {
-      console.error('Save error:', error);
+      logger.error('Save error:', error);
       toast.error('❌ Failed to save');
     } finally {
       setLoadingSaveHistoryId(null);

@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import './LoadingButton.css';
+import logger from '@/utils/logger';
 
 /**
  * LoadingButton Component
@@ -59,7 +60,7 @@ const LoadingButton = ({
         onSuccess();
       }
     } catch (error) {
-      console.error('Button action error:', error);
+      logger.error('Button action error:', error);
 
       // Call error callback
       if (onError) {

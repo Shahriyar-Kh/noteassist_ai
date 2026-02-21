@@ -3,24 +3,32 @@
 
 import api from './api';
 import { API_ENDPOINTS } from '@/utils/constants';
+import logger from '@/utils/logger';
+import { sanitizeString } from '@/utils/validation';
 
 export const authService = {
   // Register new user
   register: async (userData) => {
     try {
-      console.log('Registration request:', userData);
-      const response = await api.post(API_ENDPOINTS.REGISTER, userData);
-      console.log('Registration response:', response.data);
+      logger.info('Registration request');
+      const payload = {
+        ...userData,
+        email: sanitizeString(userData.email || '').toLowerCase(),
+        full_name: sanitizeString(userData.full_name || ''),
+        country: sanitizeString(userData.country || ''),
+      };
+      const response = await api.post(API_ENDPOINTS.REGISTER, payload);
+      logger.info('Registration response');
       
       if (response.data.tokens) {
-        localStorage.setItem('accessToken', response.data.tokens.access);
-        localStorage.setItem('refreshToken', response.data.tokens.refresh);
+        localStorage.setItem('accessToken', sanitizeString(response.data.tokens.access || ''));
+        localStorage.setItem('refreshToken', sanitizeString(response.data.tokens.refresh || ''));
         localStorage.setItem('user', JSON.stringify(response.data.user));
       }
       
       return response.data;
     } catch (error) {
-      console.error('Registration error:', error.response?.data || error);
+      logger.error('Registration error');
       throw error.response?.data || { detail: 'Registration failed' };
     }
   },
@@ -28,23 +36,24 @@ export const authService = {
   // Login user
   login: async (email, password) => {
     try {
-      console.log('Login request for:', email);
-      const response = await api.post(API_ENDPOINTS.LOGIN, { 
-        email: email.toLowerCase().trim(), 
-        password 
-      });
-      console.log('Login response:', response.data);
+      logger.info('Login request');
+      const payload = {
+        email: sanitizeString(email || '').toLowerCase(),
+        password: sanitizeString(password || ''),
+      };
+      const response = await api.post(API_ENDPOINTS.LOGIN, payload);
+      logger.info('Login response');
       
       if (response.data.access) {
-        localStorage.setItem('accessToken', response.data.access);
-        localStorage.setItem('refreshToken', response.data.refresh);
+        localStorage.setItem('accessToken', sanitizeString(response.data.access || ''));
+        localStorage.setItem('refreshToken', sanitizeString(response.data.refresh || ''));
         localStorage.setItem('user', JSON.stringify(response.data.user));
         localStorage.setItem('redirect', response.data.redirect || '/dashboard');
       }
       
       return response.data;
     } catch (error) {
-      console.error('Login error:', error.response?.data || error);
+      logger.error('Login error');
       const errorData = error.response?.data || { detail: 'Login failed' };
       
       // ✅ Enhanced error handling for blocked users
@@ -64,12 +73,12 @@ export const authService = {
   // Logout user
   logout: async () => {
     try {
-      const refreshToken = localStorage.getItem('refreshToken');
+      const refreshToken = sanitizeString(localStorage.getItem('refreshToken') || '');
       if (refreshToken) {
         await api.post(API_ENDPOINTS.LOGOUT, { refresh: refreshToken });
       }
     } catch (error) {
-      console.error('Logout error:', error);
+      logger.error('Logout error');
     } finally {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
@@ -85,7 +94,7 @@ export const authService = {
       localStorage.setItem('user', JSON.stringify(response.data));
       return response.data;
     } catch (error) {
-      console.error('Get current user error:', error);
+      logger.error('Get current user error');
       throw error;
     }
   },
@@ -96,7 +105,7 @@ export const authService = {
       const response = await api.put(API_ENDPOINTS.UPDATE_PROFILE, profileData);
       return response.data;
     } catch (error) {
-      console.error('Update profile error:', error);
+      logger.error('Update profile error');
       throw error;
     }
   },
@@ -105,6 +114,16 @@ export const authService = {
   getStoredUser: () => {
     const user = localStorage.getItem('user');
     return user ? JSON.parse(user) : null;
+  },
+
+  // Get raw access token
+  getAccessToken: () => {
+    return sanitizeString(localStorage.getItem('accessToken') || localStorage.getItem('token') || '');
+  },
+
+  // Get raw refresh token
+  getRefreshToken: () => {
+    return sanitizeString(localStorage.getItem('refreshToken') || '');
   },
 
   // Check if authenticated
@@ -123,7 +142,7 @@ export const authService = {
   startGuestSession: async () => {
     try {
       const response = await api.post(API_ENDPOINTS.GUEST_SESSION);
-      console.log('Guest session started:', response.data);
+      logger.info('Guest session started');
       
       // Store guest session info
       localStorage.setItem('isGuest', 'true');
@@ -131,7 +150,7 @@ export const authService = {
       
       return response.data;
     } catch (error) {
-      console.error('Guest session error:', error);
+      logger.error('Guest session error');
       throw error.response?.data || { detail: 'Failed to start guest session' };
     }
   },
@@ -142,7 +161,7 @@ export const authService = {
       const response = await api.get(API_ENDPOINTS.GUEST_SESSION);
       return response.data;
     } catch (error) {
-      console.error('Get guest session error:', error);
+      logger.error('Get guest session error');
       throw error;
     }
   },
@@ -152,7 +171,7 @@ export const authService = {
     try {
       await api.delete(API_ENDPOINTS.GUEST_SESSION);
     } catch (error) {
-      console.error('Clear guest session error:', error);
+      logger.error('Clear guest session error');
     } finally {
       localStorage.removeItem('isGuest');
       localStorage.removeItem('guestSession');

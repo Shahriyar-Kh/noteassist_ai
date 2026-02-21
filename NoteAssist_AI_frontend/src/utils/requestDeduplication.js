@@ -37,7 +37,7 @@ class RequestDeduplicator {
 
     // If request already pending, return the existing promise
     if (this.pendingRequests.has(key)) {
-      console.debug(`[Deduplication] Reusing pending request: ${url}`);
+      // reuse existing promise
       return this.pendingRequests.get(key);
     }
 

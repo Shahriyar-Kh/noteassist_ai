@@ -4,6 +4,8 @@
 // Track slow operations, API response times, and component render times
 // ============================================================================
 
+import logger from '@/utils/logger';
+
 class PerformanceMonitor {
   constructor(options = {}) {
     this.enabled = options.enabled !== false;
@@ -115,10 +117,8 @@ class PerformanceMonitor {
       this.alerts = this.alerts.slice(-this.maxAlerts);
     }
 
-    // Log to console in development
-    if (process.env.NODE_ENV === 'development') {
-      console.warn(`⚠️ Performance Alert:`, alert);
-    }
+    // Log via logger (logger will decide whether to output)
+    logger.warn(`⚠️ Performance Alert:`, alert);
   }
 
   /**

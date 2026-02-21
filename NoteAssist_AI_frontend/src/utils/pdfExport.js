@@ -3,6 +3,7 @@
 // ============================================================================
 
 import html2pdf from 'html2pdf.js';
+import logger from '@/utils/logger';
 
 export const exportToPDF = (
   content,
@@ -15,7 +16,7 @@ export const exportToPDF = (
     html2pdf().set(opt).from(element).save();
     return { success: true, filename: opt.filename };
   } catch (error) {
-    console.error('PDF export error:', error);
+    logger.error('PDF export error:', String(error));
     throw new Error('Failed to export PDF: ' + error.message);
   }
 };
@@ -105,7 +106,7 @@ export const exportToPDFBlob = async (content, filename = 'export.pdf', title = 
     const blob = await html2pdf().set(opt).from(element).outputPdf('blob');
     return { blob, filename: opt.filename };
   } catch (error) {
-    console.error('PDF export error:', error);
+    logger.error('PDF export error:', String(error));
     throw new Error('Failed to export PDF: ' + error.message);
   }
 };

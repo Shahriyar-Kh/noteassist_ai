@@ -5,6 +5,7 @@
 // ============================================================================
 
 import { useState, useRef, useCallback, lazy, Suspense, useMemo, useEffect } from 'react';
+import logger from '@/utils/logger';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -92,7 +93,6 @@ int main() {
   go: `// Go - Welcome to Online Code Runner!
 package main
 
-import "fmt"
 
 func main() {
     fmt.Println("Hello, World!")
@@ -433,7 +433,7 @@ const OnlineCodeRunnerPage = () => {
         }
       }
     } catch (err) {
-      console.error('Execution error:', err);
+      logger.error('Execution error:', String(err));
       setOutput(`❌ Error: ${err.message || 'Unknown error'}`);
       setExecSuccess(false);
     } finally {
@@ -770,12 +770,14 @@ const OnlineCodeRunnerPage = () => {
               </div>
               <p className="text-sm text-blue-800">
                 <span className="font-semibold">Guest Mode:</span> Write and run code freely. 
-                <button 
-                  onClick={() => navigate('/login')}
+                <Button 
+                  variant="ghost"
+                  size="sm"
                   className="text-blue-600 hover:text-blue-800 underline ml-1 font-medium transition-colors"
+                  onClick={() => navigate('/login')}
                 >
                   Sign in
-                </button> to save your code to notes.
+                </Button> to save your code to notes.
               </p>
             </div>
           )}

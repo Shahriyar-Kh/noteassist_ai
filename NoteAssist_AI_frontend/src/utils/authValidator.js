@@ -4,6 +4,8 @@
 // ============================================================================
 
 import { showToast } from '@/services/api';
+import logger from '@/utils/logger';
+import { sanitizeString } from '@/utils/validation';
 
 /**
  * AuthValidator - Ensures user is authenticated before performing actions
@@ -21,7 +23,7 @@ export const AuthValidator = {
    * @returns {boolean} True if user has valid auth token
    */
   isAuthenticated() {
-    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+    const token = sanitizeString(localStorage.getItem('accessToken') || localStorage.getItem('token') || '');
     return !!token;
   },
 
@@ -38,7 +40,7 @@ export const AuthValidator = {
    * @returns {string | null} Access token or null
    */
   getToken() {
-    return localStorage.getItem('accessToken') || localStorage.getItem('token');
+    return sanitizeString(localStorage.getItem('accessToken') || localStorage.getItem('token') || '') || null;
   },
 
   /**
@@ -139,7 +141,7 @@ export const AuthValidator = {
 
       return await asyncFn();
     } catch (error) {
-      console.error(`[AuthValidator] Error in ${actionName}:`, error);
+      logger.error(`[AuthValidator] Error in ${actionName}:`, String(error));
       throw error;
     }
   },

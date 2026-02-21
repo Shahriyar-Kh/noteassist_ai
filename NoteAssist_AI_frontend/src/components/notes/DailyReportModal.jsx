@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, TrendingUp, BookOpen, Target, Clock } from 'lucide-react';
 import api from '@/services/api';
+import logger from '@/utils/logger';
 
 const DailyReportModal = ({ isOpen, onClose, note }) => {
   const [report, setReport] = useState(null);
@@ -17,10 +18,10 @@ useEffect(() => {
   const fetchDailyReport = async () => {
     setLoading(true);
     try {
-      console.log('Fetching daily report...');
+      logger.info('Fetching daily report...');
       // FIXED ENDPOINT - needs note ID
       const response = await api.get(`/api/notes/daily_report/`);
-      console.log('Daily report response:', response.data);
+      logger.info('Daily report response:', response.data);
       
       if (response.data && response.data.success) {
         setReport(response.data.report);
@@ -33,8 +34,8 @@ useEffect(() => {
         });
       }
     } catch (error) {
-      console.error('Error fetching report:', error);
-      console.error('Error response:', error.response);
+      logger.error('Error fetching report:', error);
+      logger.error('Error response:', error.response);
       
       if (error.response?.status === 401) {
         window.toastManager?.addToast({
@@ -63,14 +64,14 @@ useEffect(() => {
     setSendingEmail(true);
     
     try {
-      console.log('Sending daily report email...');
+      logger.info('Sending daily report email...');
       const response = await api.post(`/api/notes/send_daily_report_email/`);
       
-      console.log('Response:', response.data);
-      console.log('window.toastManager exists?', !!window.toastManager);
+      logger.info('Response:', response.data);
+      logger.info('window.toastManager exists?', !!window.toastManager);
       
       if (response.data && response.data.success) {
-        console.log('Calling toast with success message');
+        logger.info('Calling toast with success message');
         if (window.toastManager && typeof window.toastManager.addToast === 'function') {
           window.toastManager.addToast({
             type: 'success',
@@ -78,9 +79,9 @@ useEffect(() => {
             message: 'Daily report sent successfully to your email!',
             duration: 4000
           });
-          console.log('✅ Toast addToast called successfully');
+          logger.info('✅ Toast addToast called successfully');
         } else {
-          console.error('❌ window.toastManager.addToast is not available:', window.toastManager);
+          logger.error('❌ window.toastManager.addToast is not available:', window.toastManager);
         }
       } else {
         const errorMsg = response.data?.error || 'Failed to send report';
@@ -94,9 +95,9 @@ useEffect(() => {
         }
       }
     } catch (error) {
-      console.error('Error sending email:', error);
-      console.error('Error response:', error.response);
-      console.log('window.toastManager exists?', !!window.toastManager);
+      logger.error('Error sending email:', error);
+      logger.error('Error response:', error.response);
+      logger.info('window.toastManager exists?', !!window.toastManager);
       
       if (error.response?.status === 401) {
         if (window.toastManager && typeof window.toastManager.addToast === 'function') {
@@ -126,8 +127,8 @@ useEffect(() => {
             message: errorMsg,
             duration: 5000
           });
-        } else {
-          console.error('❌ window.toastManager.addToast is not available');
+          } else {
+          logger.error('❌ window.toastManager.addToast is not available');
         }
       }
     } finally {

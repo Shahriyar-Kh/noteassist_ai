@@ -16,6 +16,7 @@ import 'react-quill/dist/quill.snow.css';
 import '@/styles/animations.css';
 import { noteService } from '@/services/note.service';
 import { toast } from 'react-hot-toast';
+import logger from '@/utils/logger';
 import api from '@/services/api';
 import { exportToPDF, exportToPDFBlob } from '@/utils/pdfExport';
 
@@ -152,7 +153,7 @@ const AIToolsGenerateTopicPage = ({ topic, onSave, onCancel, onAIAction }) => {
         toast.error('❌ ' + (result?.error || 'Failed to upload to Google Drive'));
       }
     } catch (error) {
-      console.error('Drive export error:', error);
+      logger.error('Drive export error:', error);
       toast.error('❌ ' + (error.message || 'Failed to upload to Google Drive'));
     } finally { setUploadingToDrive(false); }
   };
@@ -188,7 +189,7 @@ const AIToolsGenerateTopicPage = ({ topic, onSave, onCancel, onAIAction }) => {
       setHistoryId(result.history_id || null);
       toast.success(`✨ Explanation generated successfully (${learningLevel} level)!`);
     } catch (error) {
-      console.error('AI action failed:', error);
+      logger.error('AI action failed:', error);
       const errorMessage = error.response?.data?.error || error.message || 'AI action failed';
       setError(errorMessage);
       toast.error('❌ ' + errorMessage);

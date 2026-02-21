@@ -409,7 +409,7 @@ const HomePage = () => {
       await dispatch(startGuestSession()).unwrap();
       navigate('/notes');
     } catch (error) {
-      console.error('Failed to start guest session:', error);
+      // Production: log error to monitoring service or show safe message
       navigate('/register');
     } finally {
       setGuestLoading(false);

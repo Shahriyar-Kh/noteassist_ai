@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { login, startGuestSession } from '@/store/slices/authSlice';
 import { authService } from '@/services/auth.service';
+import logger from '@/utils/logger';
 
 /**
  * useAuthHydration
@@ -33,14 +34,14 @@ export const useAuthHydration = () => {
 
     const hydrateAuth = async () => {
       try {
-        console.log('[useAuthHydration] Starting auth hydration...');
+        logger.info('[useAuthHydration] Starting auth hydration...');
 
         // Check if user is logged in
         const storedUser = authService.getStoredUser();
         const isAuth = authService.isAuthenticated();
 
         if (isAuth && storedUser) {
-          console.log('[useAuthHydration] User found in localStorage:', storedUser.email);
+          logger.info('[useAuthHydration] User found in localStorage:', storedUser.email);
           
           // Dispatch login to update Redux state
           // Create a synthetic login payload that matches the auth action format
@@ -53,7 +54,7 @@ export const useAuthHydration = () => {
         }
         // Check if guest session exists
         else if (authService.isGuest()) {
-          console.log('[useAuthHydration] Guest session found in localStorage');
+          logger.info('[useAuthHydration] Guest session found in localStorage');
           const guestSession = authService.getStoredGuestSession();
           
           // Dispatch guest session to update Redux state
@@ -61,12 +62,12 @@ export const useAuthHydration = () => {
         }
         // No auth data - user is a fresh visitor
         else {
-          console.log('[useAuthHydration] No auth data found - fresh visitor');
+          logger.info('[useAuthHydration] No auth data found - fresh visitor');
         }
 
-        console.log('[useAuthHydration] Hydration complete');
+        logger.info('[useAuthHydration] Hydration complete');
       } catch (error) {
-        console.error('[useAuthHydration] Error during hydration:', error);
+        logger.error('[useAuthHydration] Error during hydration:', error);
       } finally {
         setIsHydrating(false);
       }

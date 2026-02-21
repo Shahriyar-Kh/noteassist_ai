@@ -7,6 +7,7 @@ import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthValidator from '@/utils/authValidator';
 import { showToast } from '@/services/api';
+import logger from '@/utils/logger';
 
 /**
  * useAuthAction - Custom hook for executing authenticated actions
@@ -54,7 +55,7 @@ export const useAuthAction = (actionName = 'Perform this action', autoRedirect =
         const result = await asyncFn();
         return { success: true, data: result };
       } catch (error) {
-        console.error(`[useAuthAction] Error in ${actionName}:`, error);
+        logger.error(`[useAuthAction] Error in ${actionName}:`, error);
         return { success: false, error: error.message };
       }
     },

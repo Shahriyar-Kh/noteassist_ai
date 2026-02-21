@@ -8,6 +8,7 @@ import { useState, useCallback, useRef, lazy, Suspense, useMemo, useEffect } fro
 import { Helmet } from 'react-helmet-async';
 import { useNavigate, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import DOMPurify from 'dompurify';
 import { useDraftPersistence, DRAFT_KEYS } from '@/hooks/useDraftPersistence';
 import {
   FileText, ArrowLeft, Save, Download, Upload, Code, Link as LinkIcon,
@@ -465,7 +466,7 @@ const ManualNoteEditorPage = () => {
       });
       toast.success('PDF downloaded successfully!');
     } catch (err) {
-      console.error('PDF export error:', err);
+      // Production: log error to monitoring service or show safe message
       toast.error('Failed to export PDF');
     } finally {
       setDownloading(false);
@@ -535,7 +536,7 @@ const ManualNoteEditorPage = () => {
       toast.success('Note saved successfully!');
       navigate('/notes');
     } catch (err) {
-      console.error('Save error:', err);
+      // Production: log error to monitoring service or show safe message
       toast.error(err.message || 'Failed to save note');
     } finally {
       setSaving(false);
@@ -805,7 +806,7 @@ const ManualNoteEditorPage = () => {
                 className="prose prose-sm sm:prose max-w-none mb-6 prose-headings:text-gray-900 prose-p:text-gray-700 
                   prose-a:text-blue-600 prose-strong:text-gray-900 prose-code:text-pink-600 prose-code:bg-pink-50 
                   prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-gray-900"
-                dangerouslySetInnerHTML={{ __html: explanation }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(explanation) }}
               />
             )}
             {codeContent && (

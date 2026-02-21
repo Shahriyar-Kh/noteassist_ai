@@ -7,6 +7,7 @@ import api from './api';
 import { API_ENDPOINTS, API_BASE_URL } from '@/utils/constants';
 import { requestDeduplicator } from '@/utils/requestDeduplication';
 import { showToast } from '@/components/common/Toast';
+import logger from '@/utils/logger';
 
 export const noteService = {
   // ========================================================================
@@ -123,7 +124,7 @@ exportNotePDF: async (id, noteTitle) => {
     return { success: true, filename };
 
   } catch (error) {
-    console.error('PDF export error:', error);
+    logger.error('PDF export error:', String(error));
     
     // Check if it's a timeout error
     if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
@@ -254,7 +255,7 @@ performStandaloneAIAction: async (actionData) => {
     
     return response.data;
   } catch (error) {
-    console.error('Standalone AI action error:', error);
+    logger.error('Standalone AI action error:', String(error));
     
     // Provide helpful error messages
     if (error.response?.status === 400) {
@@ -285,7 +286,7 @@ performAIAction: async (topicId, actionData) => {
     
     return response.data;
   } catch (error) {
-    console.error('AI action error:', error);
+    logger.error('AI action error:', String(error));
     
     // Better error handling
     if (error.response?.status === 404) {
@@ -365,8 +366,8 @@ runCode: async ({ code, language, stdin = "", timeout = 15 }) => {
     
     return data;
   } catch (error) {
-    console.error("Code execution error:", error);
-    console.error("Error details:", {
+    logger.error("Code execution error:", String(error));
+    logger.error("Code execution error details:", {
       message: error.message,
       response: error.response?.data,
       status: error.response?.status

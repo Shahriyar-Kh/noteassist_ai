@@ -13,6 +13,7 @@ import {
 import AdminLayout from '@/components/layout/AdminLayout';
 import { toast } from 'react-hot-toast';
 import adminAnalyticsService from '@/services/adminAnalytics.service';
+import logger from '@/utils/logger';
 
 const AdminUserDetailPage = () => {
   const { userId } = useParams();
@@ -47,7 +48,7 @@ const AdminUserDetailPage = () => {
       });
       setSelectedPlan(data.plan.type);
     } catch (error) {
-      console.error('Error fetching user detail:', error);
+      logger.error('Error fetching user detail:', error);
       toast.error('Failed to load user details');
       navigate('/admin/users');
     } finally {

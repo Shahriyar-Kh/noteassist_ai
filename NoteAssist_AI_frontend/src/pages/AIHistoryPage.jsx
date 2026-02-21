@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import aiToolsService from '../services/aiTools.service';
+import logger from '@/utils/logger';
 import { History, ArrowLeft, Loader2, Eye, Download, Trash2, Filter, TrendingUp, AlertCircle } from 'lucide-react';
 
 const AIHistoryPage = () => {
@@ -42,7 +43,7 @@ const AIHistoryPage = () => {
         setBreakdown(data.usage_by_type);
       }
     } catch (err) {
-      console.error('Failed to load quota:', err);
+      logger.error('Failed to load quota:', err);
     }
   };
 

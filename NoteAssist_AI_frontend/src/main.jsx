@@ -6,6 +6,8 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
 import { HelmetProvider } from 'react-helmet-async';
+// initialize logger early to suppress console in production
+import './utils/logger';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

@@ -10,6 +10,7 @@
 import api from './api';
 import { requestDeduplicator } from '@/utils/requestDeduplication';
 import { showToast } from '@/components/common/Toast';
+import logger from '@/utils/logger';
 
 /**
  * Optimized CRUD operation wrapper
@@ -104,7 +105,7 @@ export const crudOptimizer = {
       return requestDeduplicator.execute(endpoint, () => api.get(endpoint, { params }), params)
         .then((response) => response.data);
     } catch (error) {
-      console.error('GET request failed:', error);
+      logger.error('GET request failed:', String(error));
       throw error;
     }
   },

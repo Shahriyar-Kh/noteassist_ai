@@ -11,6 +11,8 @@ import { login } from '@/store/slices/authSlice';
 import { API_BASE_URL } from '@/utils/constants';
 import { Button, FormInput, PageContainer, Card } from '@/components/design-system';
 import { useFormValidation, validators } from '@/hooks/useFormValidation';
+import { sanitizeString } from '@/utils/validation';
+import logger from '@/utils/logger';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -48,7 +50,7 @@ const LoginPage = () => {
         const clientId = import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID;
 
         if (!clientId || clientId === 'your-google-client-id.apps.googleusercontent.com') {
-          console.warn('[Google OAuth] Client ID not configured');
+          logger.warn('[Google OAuth] Client ID not configured');
           return;
         }
 
@@ -74,7 +76,7 @@ const LoginPage = () => {
             setGoogleInitialized(true);
           }
         } catch (error) {
-          console.error('[Google OAuth] Error:', error);
+          logger.error('[Google OAuth] Error:', error);
         }
       }
     };
@@ -107,7 +109,7 @@ const LoginPage = () => {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({ credential: response.credential }),
+        body: JSON.stringify({ credential: sanitizeString(response.credential || '') }),
       });
 
       const data = await res.json();
@@ -119,27 +121,27 @@ const LoginPage = () => {
       }
 
       if (data.tokens) {
-        localStorage.setItem('accessToken', data.tokens.access);
-        localStorage.setItem('token', data.tokens.access);
-        localStorage.setItem('refreshToken', data.tokens.refresh);
+        localStorage.setItem('accessToken', sanitizeString(data.tokens.access || data.access || ''));
+        localStorage.setItem('token', sanitizeString(data.tokens.access || data.access || ''));
+        localStorage.setItem('refreshToken', sanitizeString(data.tokens.refresh || data.refresh || ''));
         localStorage.setItem('user', JSON.stringify(data.user));
       }
 
       // ✅ CRITICAL: Update Redux store immediately for instant Navbar update
       dispatch(login.fulfilled({
         user: data.user,
-        access: data.tokens.access,
-        refresh: data.tokens.refresh,
+        access: sanitizeString(data.tokens?.access || data.access || ''),
+        refresh: sanitizeString(data.tokens?.refresh || data.refresh || ''),
         redirect: data.redirect || '/dashboard',
       }, '', {}));
 
-      console.log('[Google OAuth] Auth state updated, navigating to:', data.redirect || '/dashboard');
+      logger.info('[Google OAuth] Auth state updated, navigating to:', data.redirect || '/dashboard');
 
       setTimeout(() => {
         navigate(data.redirect || '/dashboard');
       }, 300);
     } catch (error) {
-      console.error('[Google OAuth] Error:', error);
+      logger.error('[Google OAuth] Error:', String(error));
       setSubmitError(error.message || 'Google authentication failed. Please try email login.');
     } finally {
       setGoogleLoading(false);
@@ -158,17 +160,17 @@ const LoginPage = () => {
           'Accept': 'application/json',
         },
         body: JSON.stringify({
-          email: values.email.toLowerCase().trim(),
-          password: values.password,
+          email: sanitizeString(values.email || '').toLowerCase(),
+          password: sanitizeString(values.password || ''),
         }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem('accessToken', data.access);
-        localStorage.setItem('token', data.access);
-        localStorage.setItem('refreshToken', data.refresh);
+        localStorage.setItem('accessToken', sanitizeString(data.access || ''));
+        localStorage.setItem('token', sanitizeString(data.access || ''));
+        localStorage.setItem('refreshToken', sanitizeString(data.refresh || ''));
         localStorage.setItem('user', JSON.stringify(data.user));
 
         // ✅ CRITICAL: Update Redux store immediately for instant Navbar update
@@ -179,7 +181,7 @@ const LoginPage = () => {
           redirect: data.redirect || '/dashboard',
         }, '', {}));
 
-        console.log('[Email Login] Auth state updated, navigating to:', data.redirect || '/dashboard');
+        logger.info('[Email Login] Auth state updated, navigating to:', data.redirect || '/dashboard');
 
         setTimeout(() => {
           navigate(data.redirect || '/dashboard');

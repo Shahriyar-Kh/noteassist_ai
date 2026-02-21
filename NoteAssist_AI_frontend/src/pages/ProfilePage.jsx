@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { User, Mail, MapPin, BookOpen, Globe, Clock, Target, Bell, Lock, Camera, Save, X, Calendar, TrendingUp, FileText, Award, Loader2, Loader } from 'lucide-react';
 import { profileService } from '@/services/profile.service';
 import { toast } from 'react-hot-toast';
+import { sanitizeString, isStrongPassword } from '@/utils/validation';
+import logger from '@/utils/logger';
 
 const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState('personal');
@@ -83,7 +85,7 @@ const ProfilePage = () => {
         skillInterests: response.skillInterests || [],
       });
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      // Production: log error to monitoring service or show safe message
       toast.error('Failed to load profile data');
     } finally {
       setLoading(false);
@@ -105,7 +107,7 @@ const ProfilePage = () => {
         longestStreak: response.longestStreak || 0,
       });
     } catch (error) {
-      console.error('Error fetching activity:', error);
+      // Production: log error to monitoring service or show safe message
     }
   };
 
@@ -118,7 +120,7 @@ const ProfilePage = () => {
         study_reminders: response.study_reminders !== undefined ? response.study_reminders : true,
       });
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      // Production: log error to monitoring service or show safe message
     }
   };
 
@@ -154,7 +156,7 @@ const ProfilePage = () => {
         setSelectedImage(null);
       }
     } catch (error) {
-      console.error('Error uploading avatar:', error);
+      logger.error('Avatar upload error:', String(error));
       toast.error(error.response?.data?.error || 'Failed to upload avatar');
     } finally {
       setSaving(false);
@@ -164,20 +166,21 @@ const ProfilePage = () => {
   const handleSaveProfile = async () => {
     try {
       setLoadingSaveProfile(true);
-      const response = await profileService.updateProfile({
-        fullName: userData.fullName,
-        country: userData.country,
-        educationLevel: userData.educationLevel,
-        fieldOfStudy: userData.fieldOfStudy,
-        bio: userData.bio,
-      });
+      const payload = {
+        fullName: sanitizeString(userData.fullName || ''),
+        country: sanitizeString(userData.country || ''),
+        educationLevel: sanitizeString(userData.educationLevel || ''),
+        fieldOfStudy: sanitizeString(userData.fieldOfStudy || ''),
+        bio: sanitizeString(userData.bio || ''),
+      };
+      const response = await profileService.updateProfile(payload);
 
       if (response.success) {
         toast.success('✨ Profile updated successfully!');
         setIsEditing(false);
       }
     } catch (error) {
-      console.error('Error saving profile:', error);
+      logger.error('Save profile error:', String(error));
       toast.error('❌ ' + (error.response?.data?.error || 'Failed to update profile'));
     } finally {
       setLoadingSaveProfile(false);
@@ -187,18 +190,19 @@ const ProfilePage = () => {
   const handleSavePreferences = async () => {
     try {
       setLoadingSavePreferences(true);
-      const response = await profileService.updatePreferences({
-        learningGoal: userData.learningGoal,
-        preferredStudyHours: userData.preferredStudyHours,
-        timezone: userData.timezone,
-        skillInterests: userData.skillInterests,
-      });
+      const payload = {
+        learningGoal: sanitizeString(userData.learningGoal || ''),
+        preferredStudyHours: Number(userData.preferredStudyHours) || 0,
+        timezone: sanitizeString(userData.timezone || ''),
+        skillInterests: Array.isArray(userData.skillInterests) ? userData.skillInterests.map(s => sanitizeString(s)) : [],
+      };
+      const response = await profileService.updatePreferences(payload);
 
       if (response.success) {
         toast.success('✨ Preferences updated successfully!');
       }
     } catch (error) {
-      console.error('Error saving preferences:', error);
+      logger.error('Save preferences error:', String(error));
       toast.error('❌ ' + (error.response?.data?.error || 'Failed to update preferences'));
     } finally {
       setLoadingSavePreferences(false);
@@ -208,13 +212,18 @@ const ProfilePage = () => {
   const handleSaveNotifications = async () => {
     try {
       setLoadingSaveNotifications(true);
-      const response = await profileService.updateNotifications(notifications);
+      const payload = {
+        email_notifications: !!notifications.email_notifications,
+        weekly_summary: !!notifications.weekly_summary,
+        study_reminders: !!notifications.study_reminders,
+      };
+      const response = await profileService.updateNotifications(payload);
 
       if (response.success) {
         toast.success('✨ Notification settings updated!');
       }
     } catch (error) {
-      console.error('Error saving notifications:', error);
+      logger.error('Save notifications error:', String(error));
       toast.error('❌ Failed to update notification settings');
     } finally {
       setLoadingSaveNotifications(false);
@@ -224,19 +233,23 @@ const ProfilePage = () => {
   const handleChangePassword = async (e) => {
     e.preventDefault();
 
-    if (passwordData.new_password !== passwordData.new_password_confirm) {
+    const oldPwd = sanitizeString(passwordData.old_password || '');
+    const newPwd = sanitizeString(passwordData.new_password || '');
+    const newPwdConfirm = sanitizeString(passwordData.new_password_confirm || '');
+
+    if (newPwd !== newPwdConfirm) {
       toast.error('❌ New passwords do not match');
       return;
     }
 
-    if (passwordData.new_password.length < 8) {
-      toast.error('❌ Password must be at least 8 characters');
+    if (!isStrongPassword(newPwd)) {
+      toast.error('❌ Password must be at least 8 characters and include a number');
       return;
     }
 
     try {
       setLoadingChangePassword(true);
-      const response = await profileService.changePassword(passwordData);
+      const response = await profileService.changePassword({ old_password: oldPwd, new_password: newPwd, new_password_confirm: newPwdConfirm });
 
       if (response.success) {
         toast.success('✨ Password changed successfully!');
@@ -247,7 +260,7 @@ const ProfilePage = () => {
         });
       }
     } catch (error) {
-      console.error('Error changing password:', error);
+      logger.error('Change password error:', String(error));
       toast.error('❌ ' + (error.response?.data?.errors?.old_password?.[0] || 'Failed to change password'));
     } finally {
       setLoadingChangePassword(false);

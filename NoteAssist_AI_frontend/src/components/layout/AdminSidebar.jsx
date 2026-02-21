@@ -8,6 +8,7 @@ import {
   Shield, TrendingUp, Database, Mail
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import logger from '@/utils/logger';
 
 const AdminSidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
@@ -88,7 +89,7 @@ const AdminSidebar = ({ isOpen, onClose }) => {
       toast.success('Logged out successfully');
       navigate('/home');
     } catch (error) {
-      console.error('Logout error:', error);
+      logger.error('Logout error:', error);
       toast.error('Logout failed');
     }
   };

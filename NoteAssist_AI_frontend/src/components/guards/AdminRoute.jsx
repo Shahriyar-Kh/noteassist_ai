@@ -8,6 +8,8 @@ import { Navigate } from 'react-router-dom';
  * Admin-Only Route Component
  * Restricts access to admin users only
  */
+import logger from '@/utils/logger';
+
 const AdminRoute = ({ children }) => {
   const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
   const userStr = localStorage.getItem('user');
@@ -28,13 +30,13 @@ const AdminRoute = ({ children }) => {
 
     if (!isAdmin) {
       // Not an admin - redirect to user dashboard
-      console.warn('Non-admin user attempted to access admin page');
+      logger.warn('Non-admin user attempted to access admin page');
       return <Navigate to="/dashboard" replace />;
     }
 
     return children;
   } catch (error) {
-    console.error('Error parsing user data:', error);
+    logger.error('Error parsing user data:', error);
     return <Navigate to="/login" replace />;
   }
 };

@@ -1,4 +1,5 @@
 import api from './api';
+import logger from '@/utils/logger';
 
 const DASHBOARD_BASE = '/api/dashboard';
 
@@ -75,7 +76,7 @@ const dashboardService = {
         total: data.ai_usage || 0
       };
     } catch (error) {
-      console.error('Error getting AI tool breakdown:', error);
+      logger.error('Error getting AI tool breakdown:', String(error));
       return {
         generate: { name: 'Generate Topic', count: 0, icon: 'sparkles', color: 'bg-blue-100 text-blue-800' },
         improve: { name: 'Improve Content', count: 0, icon: 'zap', color: 'bg-purple-100 text-purple-800' },
@@ -92,7 +93,7 @@ const dashboardService = {
       const response = await api.get(`${DASHBOARD_BASE}/plan_info/`);
       return response.data;
     } catch (error) {
-      console.error('Error getting plan info:', error);
+      logger.error('Error getting plan info:', String(error));
       return null;
     }
   },

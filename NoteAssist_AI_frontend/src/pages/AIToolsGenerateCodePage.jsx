@@ -16,6 +16,7 @@ import {
 import { noteService } from '@/services/note.service';
 import { exportCodeToPDF, exportCodeToPDFBlob } from '@/utils/pdfExport';
 import { toast } from 'react-hot-toast';
+import logger from '@/utils/logger';
 
 // Import reusable code components
 import { CodeEditor, CodeInputModal, CodeExecutionOutput, detectInputRequirements } from '@/components/code';
@@ -297,7 +298,7 @@ const AIToolsGenerateCodePage = () => {
       setHistoryId(result.history_id || null);
       toast.success('Code generated successfully!');
     } catch (err) {
-      console.error('Code generation error:', err);
+      logger.error('Code generation error:', err);
       toast.error(err.message || 'Failed to generate code');
     } finally {
       setGenerating(false);
@@ -358,7 +359,7 @@ const AIToolsGenerateCodePage = () => {
         }
       }
     } catch (err) {
-      console.error('Execution error:', err);
+      logger.error('Execution error:', err);
       setExecutionOutput(`Error: ${err.message || 'Unknown error'}`);
       setExecSuccess(false);
     } finally {

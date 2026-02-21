@@ -16,6 +16,7 @@ import { Helmet } from 'react-helmet-async';
 import { Mail, Lock, User, Globe, GraduationCap, BookOpen, Eye, EyeOff, CheckCircle, AlertCircle, ArrowRight, Shield, ChevronLeft } from 'lucide-react';
 import { Button, Card, FormInput, PageContainer } from '@/components/design-system';
 import { useFormValidation, validators } from '@/hooks/useFormValidation';
+import { isEmail, isStrongPassword, sanitizeString } from '@/utils/validation';
 import { API_BASE_URL } from '@/utils/constants';
 
 const EDUCATION_LEVELS = [
@@ -68,14 +69,15 @@ export default function RegisterPage() {
             'Accept': 'application/json',
           },
           body: JSON.stringify({
-            email: data.email.toLowerCase().trim(),
-            password: data.password,
-            password_confirm: data.password_confirm,
-            full_name: data.full_name.trim(),
-            country: data.country.trim(),
+            // Sanitize and validate critical fields client-side before sending
+            email: sanitizeString(data.email || '').toLowerCase(),
+            password: sanitizeString(data.password || ''),
+            password_confirm: sanitizeString(data.password_confirm || ''),
+            full_name: sanitizeString(data.full_name || ''),
+            country: sanitizeString(data.country || ''),
             education_level: data.education_level,
-            field_of_study: data.field_of_study.trim(),
-            terms_accepted: data.terms_accepted,
+            field_of_study: sanitizeString(data.field_of_study || ''),
+            terms_accepted: !!data.terms_accepted,
           }),
         });
 
@@ -124,7 +126,7 @@ export default function RegisterPage() {
           }
         }
       } catch (error) {
-        console.error('[Registration] Error:', error);
+        // Production: log error to monitoring service or show safe message
         setAuthError('Cannot connect to server. Please check your connection.');
       } finally {
         setIsSubmitting(false);

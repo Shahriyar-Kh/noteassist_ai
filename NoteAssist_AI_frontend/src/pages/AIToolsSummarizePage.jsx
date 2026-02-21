@@ -17,6 +17,7 @@ import '@/styles/animations.css';
 import { noteService } from '@/services/note.service';
 import { exportToPDF, exportToPDFBlob } from '@/utils/pdfExport';
 import { toast } from 'react-hot-toast';
+import logger from '@/utils/logger';
 
 /* ─── Reusable header nav pill ─────────────────────────────────────────── */
 const NavPill = ({ onClick, to, icon: Icon, label, variant = 'default' }) => {
@@ -96,7 +97,7 @@ const AIToolsSummarizePage = () => {
       const levelLabel = summaryLevels.find(l => l.value === summaryLevel)?.label || summaryLevel;
       toast.success(`✨ Content summarized successfully (${levelLabel} level)!`);
     } catch (error) {
-      console.error('Summarization error:', error);
+      logger.error('Summarization error:', String(error));
       toast.error('❌ ' + (error.message || 'Failed to summarize content'));
     } finally { setLoading(false); }
   };
@@ -109,7 +110,7 @@ const AIToolsSummarizePage = () => {
       toast.success('✨ PDF exported successfully!');
       setTimeout(() => setLoadingPdf(false), 800);
     } catch (error) {
-      console.error('PDF export error:', error);
+      logger.error('PDF export error:', String(error));
       toast.error('❌ ' + (error.message || 'Failed to export PDF'));
       setLoadingPdf(false);
     }
@@ -137,7 +138,7 @@ const AIToolsSummarizePage = () => {
       }
       setTimeout(() => setLoadingUpload(false), 800);
     } catch (error) {
-      console.error('Google Drive upload error:', error);
+      logger.error('Google Drive upload error:', String(error));
       toast.error('❌ ' + (error.message || 'Failed to upload to Google Drive'));
       setLoadingUpload(false);
     }

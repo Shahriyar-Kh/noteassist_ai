@@ -18,10 +18,12 @@ import { Toaster } from 'react-hot-toast';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import NotesPage from './pages/NotesPage';
-import DashboardPage from '@/pages/User_DashboardPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+
+// Lazy-load heavier pages to improve initial bundle
+const NotesPage = lazy(() => import('./pages/NotesPage'));
+const DashboardPage = lazy(() => import('@/pages/User_DashboardPage'));
 
 // Static Pages (loaded immediately)
 import PrivacyPolicy from './pages/PrivacyPolicy';

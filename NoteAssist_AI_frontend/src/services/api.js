@@ -5,6 +5,8 @@
 import axios from 'axios';
 import { API_BASE_URL } from '@/utils/constants';
 import { performanceMonitor } from '@/utils/performanceMonitor';
+import { authService } from './auth.service';
+import logger from '@/utils/logger';
 
 // Create axios instance
 const api = axios.create({
@@ -18,12 +20,11 @@ const api = axios.create({
 
 // Helper functions for token management
 const getAccessToken = () => {
-  // Support both 'token' and 'accessToken' for backward compatibility
-  return localStorage.getItem('token') || localStorage.getItem('accessToken');
+  return authService.getAccessToken ? authService.getAccessToken() : (localStorage.getItem('token') || localStorage.getItem('accessToken'));
 };
 
 const getRefreshToken = () => {
-  return localStorage.getItem('refreshToken');
+  return authService.getRefreshToken ? authService.getRefreshToken() : localStorage.getItem('refreshToken');
 };
 
 const setTokens = (access, refresh) => {
@@ -88,7 +89,7 @@ api.interceptors.response.use(
 
       // Log slow requests in development
       if (process.env.NODE_ENV === 'development' && duration > 1000) {
-        console.warn(`⚠️ Slow API: ${method.toUpperCase()} ${endpoint} took ${duration}ms`);
+        logger.warn(`⚠️ Slow API: ${method.toUpperCase()} ${endpoint} took ${duration}ms`);
       }
     }
     

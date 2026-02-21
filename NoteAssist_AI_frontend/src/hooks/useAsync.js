@@ -4,6 +4,7 @@
 // ============================================================================
 
 import { useState, useCallback, useRef } from 'react';
+import logger from '@/utils/logger';
 
 /**
  * Custom hook for handling async operations with loading, error, and data states
@@ -35,7 +36,7 @@ export const useAsync = (asyncFunction, options = {}) => {
   const execute = useCallback(async (...args) => {
     // Prevent duplicate requests
     if (requestInProgress.current) {
-      console.warn('Request already in progress');
+      logger.warn('Request already in progress');
       return state.data;
     }
 

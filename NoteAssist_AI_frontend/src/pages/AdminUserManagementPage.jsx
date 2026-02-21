@@ -13,6 +13,7 @@ import {
 import AdminLayout from '@/components/layout/AdminLayout';
 import { toast } from 'react-hot-toast';
 import adminAnalyticsService from '@/services/adminAnalytics.service';
+import logger from '@/utils/logger';
 
 const AdminUserManagementPage = () => {
   const navigate = useNavigate();
@@ -90,9 +91,9 @@ const AdminUserManagementPage = () => {
         sort_by: sortBy,
       };
       
-      console.log('Fetching users with params:', params);
+      logger.info('Fetching users with params:', params);
       const response = await adminAnalyticsService.getAllUsers(params);
-      console.log('Users response:', response);
+      logger.info('Users response:', response);
 
       setUsers(response.results || []);
       setPagination(prev => ({
@@ -101,7 +102,7 @@ const AdminUserManagementPage = () => {
         pages: Math.ceil((response.count || 0) / 20)
       }));
     } catch (error) {
-      console.error('Error fetching users:', error);
+      logger.error('Error fetching users:', error);
       toast.error('Failed to load users');
       setUsers([]);
     } finally {
@@ -112,12 +113,12 @@ const AdminUserManagementPage = () => {
   const fetchStats = async () => {
     try {
       setStatsLoading(true);
-      console.log('Fetching stats...');
+      logger.info('Fetching stats...');
       const data = await adminAnalyticsService.getUserStats();
-      console.log('Stats response:', data);
+      logger.info('Stats response:', data);
       setStats(data);
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      logger.error('Error fetching stats:', error);
       toast.error('Failed to load stats');
     } finally {
       setStatsLoading(false);
@@ -127,12 +128,12 @@ const AdminUserManagementPage = () => {
   const fetchInsights = async () => {
     try {
       setInsightLoading(true);
-      console.log('Fetching insights for:', selectedInsight);
+      logger.info('Fetching insights for:', selectedInsight);
       const data = await adminAnalyticsService.getUserInsights(selectedInsight, 10);
-      console.log('Insights response:', data);
+      logger.info('Insights response:', data);
       setInsightData(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error fetching insights:', error);
+      logger.error('Error fetching insights:', error);
       setInsightData([]);
     } finally {
       setInsightLoading(false);
@@ -163,7 +164,7 @@ const AdminUserManagementPage = () => {
       fetchUsers();
       fetchStats();
     } catch (error) {
-      console.error('Error blocking user:', error);
+      logger.error('Error blocking user:', error);
       toast.error('Failed to block user');
     }
   };
@@ -182,7 +183,7 @@ const AdminUserManagementPage = () => {
       fetchUsers();
       fetchStats();
     } catch (error) {
-      console.error('Error unblocking user:', error);
+      logger.error('Error unblocking user:', error);
       toast.error('Failed to unblock user');
     }
   };

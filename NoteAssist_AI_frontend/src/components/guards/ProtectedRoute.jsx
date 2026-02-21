@@ -3,6 +3,7 @@
 
 import { Navigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import logger from '@/utils/logger';
 
 const ProtectedRoute = ({ children, allowedRoles = [], allowGuest = false }) => {
   // Check for guest mode
@@ -10,13 +11,13 @@ const ProtectedRoute = ({ children, allowedRoles = [], allowGuest = false }) => 
   
   // If guest mode is allowed for this route, let them through
   if (allowGuest && isGuest) {
-    console.log('[ProtectedRoute] Guest access allowed for this route');
+    logger.info('[ProtectedRoute] Guest access allowed for this route');
     return children;
   }
   
   // If guest but not allowed, redirect to login with message
   if (isGuest && !allowGuest) {
-    console.log('[ProtectedRoute] Guest trying to access protected route, redirecting to login');
+    logger.info('[ProtectedRoute] Guest trying to access protected route, redirecting to login');
     return <Navigate to="/login" state={{ message: 'Please login or register to access this page.' }} replace />;
   }
 
@@ -26,24 +27,24 @@ const ProtectedRoute = ({ children, allowedRoles = [], allowGuest = false }) => 
 
   // If no token, redirect to login
   if (!token) {
-    console.log('[ProtectedRoute] No token found, redirecting to login');
+    logger.info('[ProtectedRoute] No token found, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
   // If no user data, redirect to login
   if (!userStr) {
-    console.log('[ProtectedRoute] No user data found, redirecting to login');
+    logger.info('[ProtectedRoute] No user data found, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
   try {
     const user = JSON.parse(userStr);
-    console.log('[ProtectedRoute] User:', user);
-    console.log('[ProtectedRoute] Allowed roles:', allowedRoles);
+    logger.info('[ProtectedRoute] User:', user);
+    logger.info('[ProtectedRoute] Allowed roles:', allowedRoles);
     
     // If no role restrictions, allow access to all authenticated users
     if (allowedRoles.length === 0) {
-      console.log('[ProtectedRoute] No role restrictions, allowing access');
+      logger.info('[ProtectedRoute] No role restrictions, allowing access');
       return children;
     }
 
@@ -55,21 +56,21 @@ const ProtectedRoute = ({ children, allowedRoles = [], allowGuest = false }) => 
       userRole = 'admin';
     }
 
-    console.log('[ProtectedRoute] User role:', userRole);
+    logger.info('[ProtectedRoute] User role:', userRole);
 
     // Check if user's role is in allowed roles
     if (allowedRoles.includes(userRole)) {
-      console.log('[ProtectedRoute] Role authorized, allowing access');
+      logger.info('[ProtectedRoute] Role authorized, allowing access');
       return children;
     } else {
       // User doesn't have required role - redirect to appropriate dashboard
-      console.log('[ProtectedRoute] Role not authorized, redirecting');
+      logger.info('[ProtectedRoute] Role not authorized, redirecting');
       const redirectTo = userRole === 'admin' ? '/admin-dashboard' : '/dashboard';
       return <Navigate to={redirectTo} replace />;
     }
 
   } catch (error) {
-    console.error('[ProtectedRoute] Error parsing user data:', error);
+    logger.error('[ProtectedRoute] Error parsing user data:', error);
     // Clear corrupted data
     localStorage.removeItem('user');
     localStorage.removeItem('accessToken');

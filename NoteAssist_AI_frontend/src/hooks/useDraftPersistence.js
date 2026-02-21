@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { toast } from 'react-hot-toast';
+import logger from '@/utils/logger';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -24,7 +25,7 @@ const safeGetItem = (key) => {
     const item = localStorage.getItem(key);
     return item ? JSON.parse(item) : null;
   } catch (error) {
-    console.warn(`[DraftPersistence] Failed to read draft: ${key}`, error);
+    logger.warn(`[DraftPersistence] Failed to read draft: ${key}`, error);
     return null;
   }
 };
@@ -38,7 +39,7 @@ const safeSetItem = (key, value) => {
     
     // Check if data is too large
     if (serialized.length > MAX_STORAGE_SIZE) {
-      console.warn(`[DraftPersistence] Draft too large to save: ${key}`);
+      logger.warn(`[DraftPersistence] Draft too large to save: ${key}`);
       return false;
     }
     
@@ -47,11 +48,11 @@ const safeSetItem = (key, value) => {
   } catch (error) {
     // Handle quota exceeded or other errors
     if (error.name === 'QuotaExceededError' || error.code === 22) {
-      console.warn(`[DraftPersistence] Storage quota exceeded: ${key}`);
+      logger.warn(`[DraftPersistence] Storage quota exceeded: ${key}`);
       // Try to clear old drafts
       clearOldDrafts();
     } else {
-      console.error(`[DraftPersistence] Failed to save draft: ${key}`, error);
+      logger.error(`[DraftPersistence] Failed to save draft: ${key}`, error);
     }
     return false;
   }
@@ -65,7 +66,7 @@ const safeRemoveItem = (key) => {
     localStorage.removeItem(key);
     return true;
   } catch (error) {
-    console.error(`[DraftPersistence] Failed to remove draft: ${key}`, error);
+    logger.error(`[DraftPersistence] Failed to remove draft: ${key}`, error);
     return false;
   }
 };
@@ -88,7 +89,7 @@ const clearOldDrafts = () => {
       }
     }
   } catch (error) {
-    console.warn('[DraftPersistence] Failed to clear old drafts', error);
+    logger.warn('[DraftPersistence] Failed to clear old drafts', error);
   }
 };
 
@@ -405,7 +406,7 @@ export const clearAllDrafts = () => {
     }
     return true;
   } catch (error) {
-    console.error('[DraftPersistence] Failed to clear all drafts', error);
+    logger.error('[DraftPersistence] Failed to clear all drafts', error);
     return false;
   }
 };
