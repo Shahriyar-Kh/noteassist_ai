@@ -6,16 +6,18 @@
 
 import { useState, useRef, useCallback, lazy, Suspense, useMemo, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useDraftPersistence, DRAFT_KEYS } from '@/hooks/useDraftPersistence';
 import {
   Code, Play, Loader2, ArrowLeft, RotateCcw, Download, Copy,
   Terminal, CheckCircle, XCircle, Clock, Keyboard, Info, Zap,
-  FileDown, Settings2, Maximize2, X, AlertTriangle, RefreshCw
+  FileDown, Settings2, Maximize2, X, AlertTriangle, RefreshCw,
+  FileText, Sparkles, Trash2
 } from 'lucide-react';
 import { noteService } from '@/services/note.service';
 import { toast } from 'react-hot-toast';
+import '@/styles/animations.css';
 
 // Lazy load Monaco Editor for better performance
 const Editor = lazy(() => import('@monaco-editor/react'));
@@ -23,6 +25,22 @@ const CodeInputModal = lazy(() => import('@/components/code/CodeInputModal'));
 
 // Import input detection helper
 import { detectInputRequirements } from '@/components/code';
+
+// ─── Reusable NavPill Component ──────────────────────────────────────────────
+
+const NavPill = ({ onClick, to, icon: Icon, label, variant = 'default' }) => {
+  const base =
+    'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ' +
+    'whitespace-nowrap flex-shrink-0 transition-all duration-200 border ';
+  const styles = {
+    default: base + 'border-gray-200 bg-white text-gray-600 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50 shadow-sm hover:shadow',
+    back:    base + 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100 font-semibold shadow-sm',
+  };
+  const cls = styles[variant] || styles.default;
+  return to
+    ? <Link to={to} className={cls}><Icon size={12} />{label}</Link>
+    : <button type="button" onClick={onClick} className={cls}><Icon size={12} />{label}</button>;
+};
 
 // ─── Default Code Templates ──────────────────────────────────────────────────
 
@@ -211,10 +229,15 @@ function parseErrorLine(output, language) {
 // ─── Loading Fallback ────────────────────────────────────────────────────────
 
 const EditorLoader = () => (
-  <div className="flex items-center justify-center h-80 bg-gray-900 rounded-2xl">
-    <div className="flex items-center gap-3 text-gray-400">
-      <Loader2 size={20} className="animate-spin" />
-      <span>Loading editor...</span>
+  <div className="flex items-center justify-center h-80 bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl">
+    <div className="flex flex-col items-center gap-3 text-gray-400">
+      <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center animate-pulse">
+        <Code size={20} className="text-blue-400" />
+      </div>
+      <div className="flex items-center gap-2">
+        <Loader2 size={16} className="animate-spin text-blue-400" />
+        <span className="text-sm">Loading editor...</span>
+      </div>
     </div>
   </div>
 );
@@ -545,7 +568,10 @@ const OnlineCodeRunnerPage = () => {
       <select
         value={language}
         onChange={(e) => handleLanguageChange(e.target.value)}
-        className="px-3 sm:px-4 py-2 sm:py-2.5 border-2 border-gray-200 rounded-xl text-sm text-gray-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none bg-white min-w-[120px] sm:min-w-[160px]"
+        className="px-3 sm:px-4 py-2 sm:py-2.5 border-2 border-gray-200 rounded-xl text-sm text-gray-800 
+          focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none bg-white 
+          min-w-[130px] sm:min-w-[160px] transition-all duration-200 cursor-pointer
+          hover:border-gray-300 shadow-sm"
       >
         {groups.map(group => (
           <optgroup key={group} label={`── ${group} ──`}>
@@ -570,90 +596,163 @@ const OnlineCodeRunnerPage = () => {
         <meta name="description" content="Write, run, and test code in 15+ programming languages directly in your browser. Free online code editor with syntax highlighting." />
       </Helmet>
 
-      <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 ${isFullscreen ? 'fixed inset-0 z-50 bg-white' : ''}`}>
-        {/* Header */}
-        <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-30">
-          <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-              {/* Left: Back + Title */}
-              <div className="flex items-center gap-3">
+      <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/50 ${isFullscreen ? 'fixed inset-0 z-50 bg-white' : ''}`}>
+        
+        {/* ── Sticky Header ── */}
+        <header className="bg-white/90 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-30 animate-fadeInDown">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="flex items-center justify-between gap-3 h-14 sm:h-16">
+              {/* Left: Title */}
+              <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                 {!isFullscreen && (
                   <button
                     onClick={() => navigate(-1)}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-xl transition-all duration-200"
+                    aria-label="Go back"
                   >
-                    <ArrowLeft size={20} className="text-gray-600" />
+                    <ArrowLeft size={18} className="text-gray-600" />
                   </button>
                 )}
-                <div>
-                  <h1 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
-                    <Code className="text-blue-600" size={22} />
-                    Online Code Runner
+                <span className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-100 flex-shrink-0 shadow-sm">
+                  <Code size={16} className="text-blue-600" />
+                </span>
+                <div className="hidden xs:block">
+                  <h1 className="text-sm sm:text-base font-bold text-gray-900 whitespace-nowrap">
+                    Code Runner
                   </h1>
-                  <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">
-                    Write, run, and download code in 15+ languages
+                  <p className="text-xs text-gray-500 hidden sm:block">
+                    15+ languages supported
                   </p>
                 </div>
               </div>
 
-              {/* Right: Language Select + Actions */}
-              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                {/* Draft Status Indicator */}
+              {/* Right: Nav Pills & Actions */}
+              <nav
+                className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto flex-shrink-0"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {/* Draft Status */}
                 {hasContent && (
-                  <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full border border-green-200">
+                  <span className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full border border-green-200 flex-shrink-0">
                     <CheckCircle size={12} />
-                    {lastSaved ? `Draft saved` : 'Auto-saving...'}
+                    Draft saved
                   </span>
                 )}
                 
+                {/* Nav Pills - Hidden on small screens */}
+                <div className="hidden md:flex items-center gap-1.5">
+                  <NavPill to="/note-editor" icon={FileText} label="Note Editor" />
+                  <NavPill to="/ai-tools" icon={Sparkles} label="AI Tools" />
+                </div>
+
+                {/* Clear Draft Button */}
+                {hasContent && (
+                  <button
+                    onClick={handleReset}
+                    className="p-1.5 sm:p-2 hover:bg-red-50 rounded-xl transition-all duration-200 group"
+                    title="Clear draft"
+                  >
+                    <Trash2 size={15} className="text-gray-500 group-hover:text-red-500 transition-colors" />
+                  </button>
+                )}
+              </nav>
+            </div>
+          </div>
+        </header>
+
+        {/* ── Action Bar (Secondary) ── */}
+        <div className="bg-white/70 backdrop-blur-sm border-b border-gray-100 sticky top-14 sm:top-16 z-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 sm:py-3">
+            <div className="flex items-center justify-between gap-3">
+              {/* Left: Execution Status Badge */}
+              <div className="flex items-center gap-2">
+                {execSuccess !== null && (
+                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+                    execSuccess 
+                      ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
+                      : 'bg-red-100 text-red-700 border border-red-200'
+                  }`}>
+                    {execSuccess ? <CheckCircle size={12} /> : <XCircle size={12} />}
+                    {execSuccess ? 'Success' : 'Error'}
+                    {execSuccess && execRuntime && (
+                      <span className="flex items-center gap-0.5 text-emerald-600 font-normal ml-1">
+                        <Clock size={10} />{execRuntime}ms
+                      </span>
+                    )}
+                  </div>
+                )}
+                {!execSuccess && execSuccess !== false && (
+                  <span className="text-xs text-gray-500 hidden sm:block">
+                    {canExecute ? 'Ready to run' : 'View-only mode'}
+                  </span>
+                )}
+              </div>
+
+              {/* Right Actions */}
+              <div className="flex items-center gap-2 sm:gap-3">
+                {/* Language Select + Run Button */}
                 {renderLanguageSelect()}
-                
                 <button
                   onClick={handleRun}
                   disabled={executing || !canExecute}
-                  className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-medium text-sm hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                  className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 
+                    bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl font-semibold text-sm 
+                    hover:from-emerald-700 hover:to-green-700 hover:shadow-lg hover:shadow-emerald-500/25
+                    disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 
+                    active:scale-[.98] shadow-md whitespace-nowrap"
                 >
                   {executing ? (
                     <>
-                      <Loader2 size={16} className="animate-spin" />
-                      <span className="hidden sm:inline">Running...</span>
+                      <Loader2 size={15} className="animate-spin" />
+                      <span>Running...</span>
                     </>
                   ) : (
                     <>
-                      <Play size={16} />
-                      <span>Run</span>
+                      <Play size={15} fill="white" />
+                      <span>Run Code</span>
                     </>
                   )}
                 </button>
 
-                <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+                {/* Action Buttons Group */}
+                <div className="flex items-center gap-0.5 bg-gray-100/80 rounded-xl p-1 border border-gray-200/50">
                   <button
                     onClick={handleDownload}
-                    className="p-2 hover:bg-white rounded-lg transition-colors"
+                    className="p-2 hover:bg-white rounded-lg transition-all duration-200 hover:shadow-sm group"
                     title={`Download as ${langMeta?.ext || '.txt'}`}
                   >
-                    <FileDown size={16} className="text-gray-600" />
+                    <FileDown size={16} className="text-gray-500 group-hover:text-blue-600 transition-colors" />
                   </button>
                   <button
                     onClick={handleCopy}
-                    className="p-2 hover:bg-white rounded-lg transition-colors"
+                    className="p-2 hover:bg-white rounded-lg transition-all duration-200 hover:shadow-sm group"
                     title="Copy code"
                   >
-                    <Copy size={16} className="text-gray-600" />
+                    <Copy size={16} className="text-gray-500 group-hover:text-blue-600 transition-colors" />
                   </button>
                   <button
                     onClick={handleReset}
-                    className="p-2 hover:bg-white rounded-lg transition-colors"
+                    className="p-2 hover:bg-white rounded-lg transition-all duration-200 hover:shadow-sm group"
                     title="Reset to template"
                   >
-                    <RefreshCw size={16} className="text-gray-600" />
+                    <RefreshCw size={16} className="text-gray-500 group-hover:text-orange-600 transition-colors" />
+                  </button>
+                  <button
+                    onClick={toggleTheme}
+                    className="p-2 hover:bg-white rounded-lg transition-all duration-200 hover:shadow-sm hidden sm:block"
+                    title={editorTheme === 'vs-dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+                  >
+                    <span className="text-sm">{editorTheme === 'vs-dark' ? '☀️' : '🌙'}</span>
                   </button>
                   <button
                     onClick={toggleFullscreen}
-                    className="p-2 hover:bg-white rounded-lg transition-colors"
+                    className="p-2 hover:bg-white rounded-lg transition-all duration-200 hover:shadow-sm group"
                     title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
                   >
-                    {isFullscreen ? <X size={16} className="text-gray-600" /> : <Maximize2 size={16} className="text-gray-600" />}
+                    {isFullscreen 
+                      ? <X size={16} className="text-gray-500 group-hover:text-red-600 transition-colors" /> 
+                      : <Maximize2 size={16} className="text-gray-500 group-hover:text-blue-600 transition-colors" />
+                    }
                   </button>
                 </div>
               </div>
@@ -662,16 +761,18 @@ const OnlineCodeRunnerPage = () => {
         </div>
 
         {/* Main Content */}
-        <div className={`max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 ${isFullscreen ? 'h-[calc(100vh-70px)]' : ''}`}>
+        <div className={`max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 ${isFullscreen ? 'h-[calc(100vh-120px)]' : ''}`}>
           {/* Guest Banner */}
           {(!isAuthenticated || isGuest) && !isFullscreen && (
-            <div className="mb-4 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-xl flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-              <Info size={18} className="text-blue-600 flex-shrink-0" />
+            <div className="mb-4 sm:mb-5 p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/60 rounded-2xl flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 animate-fadeIn shadow-sm">
+              <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <Info size={16} className="text-blue-600" />
+              </div>
               <p className="text-sm text-blue-800">
-                <span className="font-medium">Guest Mode:</span> Write and run code freely. 
+                <span className="font-semibold">Guest Mode:</span> Write and run code freely. 
                 <button 
                   onClick={() => navigate('/login')}
-                  className="text-blue-600 hover:text-blue-800 underline ml-1"
+                  className="text-blue-600 hover:text-blue-800 underline ml-1 font-medium transition-colors"
                 >
                   Sign in
                 </button> to save your code to notes.
@@ -680,200 +781,243 @@ const OnlineCodeRunnerPage = () => {
           )}
 
           {/* Editor + Output Grid */}
-          <div className={`grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 ${isFullscreen ? 'h-full' : ''}`}>
-            {/* Code Editor */}
-            <div className={`order-1 ${isFullscreen ? 'h-full' : ''}`}>
-              <div className="flex items-center justify-between mb-2 sm:mb-3">
-                <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                  <Code size={16} />
-                  Code Editor
-                  {errorLine && (
-                    <span className="flex items-center gap-1 text-red-600 text-xs">
-                      <AlertTriangle size={12} />
-                      Error on line {errorLine}
+          <div className={`grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 ${isFullscreen ? 'h-full' : ''}`}>
+            
+            {/* ── Code Editor Card ── */}
+            <div className={`order-1 ${isFullscreen ? 'h-full' : ''} animate-fadeIn`}>
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden h-full flex flex-col">
+                {/* Card Header */}
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+                  <h2 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                    <Code size={16} className="text-blue-600" />
+                    Code Editor
+                    {errorLine && (
+                      <span className="flex items-center gap-1 text-red-600 text-xs font-medium bg-red-50 px-2 py-0.5 rounded-full">
+                        <AlertTriangle size={11} />
+                        Line {errorLine}
+                      </span>
+                    )}
+                  </h2>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500 font-mono bg-gray-100 px-2 py-1 rounded-lg hidden sm:block">
+                      {langMeta?.label}
                     </span>
-                  )}
-                </h2>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={toggleTheme}
-                    className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 hover:bg-gray-100 rounded"
-                  >
-                    {editorTheme === 'vs-dark' ? '☀️ Light' : '🌙 Dark'}
-                  </button>
-                  <span className="text-xs text-gray-500 font-mono">{langMeta?.label}</span>
-                </div>
-              </div>
-              
-              <div className={`rounded-2xl overflow-hidden border border-gray-200 shadow-sm flex flex-col ${isFullscreen ? 'h-[calc(100%-40px)]' : 'h-[450px]'}`}>
-                {/* Editor Toolbar */}
-                <div className="flex items-center justify-between px-4 py-2.5 bg-gray-900 border-b border-gray-700/60">
-                  <div className="flex items-center gap-3">
-                    <div className="flex gap-1.5">
-                      <span className="w-3 h-3 rounded-full bg-red-500 opacity-80" />
-                      <span className="w-3 h-3 rounded-full bg-yellow-400 opacity-80" />
-                      <span className="w-3 h-3 rounded-full bg-green-500 opacity-80" />
-                    </div>
-                    <span className="text-xs font-mono text-gray-400">
-                      main{langMeta?.ext || '.txt'}
+                    <span className="text-xs text-gray-400 hidden md:block">
+                      {lineCount} {lineCount === 1 ? 'line' : 'lines'}
                     </span>
                   </div>
-                  <span className="text-xs text-gray-500 font-mono">
-                    {lineCount} {lineCount === 1 ? 'line' : 'lines'}
-                  </span>
                 </div>
+              
+                {/* Editor Container */}
+                <div className={`flex flex-col flex-1 min-h-0 ${isFullscreen ? '' : 'max-h-[420px] sm:max-h-[480px]'}`}>
+                  {/* Terminal-style Header */}
+                  <div className="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-700/60">
+                    <div className="flex items-center gap-3">
+                      <div className="flex gap-1.5">
+                        <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500/80 hover:bg-red-500 transition-colors" />
+                        <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-yellow-400/80 hover:bg-yellow-400 transition-colors" />
+                        <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-green-500/80 hover:bg-green-500 transition-colors" />
+                      </div>
+                      <span className="text-xs font-mono text-gray-400/80 hidden xs:block">
+                        main{langMeta?.ext || '.txt'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {canExecute ? (
+                        <span className="text-xs text-emerald-400/80 hidden sm:block">✓ Executable</span>
+                      ) : (
+                        <span className="text-xs text-amber-400/80 hidden sm:block">⚠️ View only</span>
+                      )}
+                    </div>
+                  </div>
 
-                {/* Monaco Editor */}
-                <div className="flex-1 min-h-0">
-                  <Suspense fallback={<EditorLoader />}>
-                    <Editor
-                      height="100%"
-                      language={langMeta?.monaco || 'plaintext'}
-                      value={code}
-                      onChange={(val) => {
-                        setCode(val || '');
-                        // Clear error highlighting when code changes
-                        if (errorLine) {
-                          clearErrorDecorations();
-                          setErrorLine(null);
-                        }
-                      }}
-                      theme={editorTheme}
-                      onMount={handleEditorMount}
-                      options={editorOptions}
-                      loading={<EditorLoader />}
-                    />
-                  </Suspense>
-                </div>
+                  {/* Monaco Editor */}
+                  <div className="flex-1 min-h-[280px] sm:min-h-[320px]">
+                    <Suspense fallback={<EditorLoader />}>
+                      <Editor
+                        height="100%"
+                        language={langMeta?.monaco || 'plaintext'}
+                        value={code}
+                        onChange={(val) => {
+                          setCode(val || '');
+                          if (errorLine) {
+                            clearErrorDecorations();
+                            setErrorLine(null);
+                          }
+                        }}
+                        theme={editorTheme}
+                        onMount={handleEditorMount}
+                        options={editorOptions}
+                        loading={<EditorLoader />}
+                      />
+                    </Suspense>
+                  </div>
 
-                {/* Editor Footer */}
-                <div className="px-4 py-1.5 bg-gray-800 border-t border-gray-700 flex items-center justify-between">
-                  <span className="text-xs text-gray-500 font-mono">
-                    {langMeta?.label}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {canExecute ? '✓ Executable' : '⚠️ View only'}
-                  </span>
+                  {/* Editor Footer */}
+                  <div className="px-4 py-1.5 bg-gray-800 border-t border-gray-700/50 flex items-center justify-between">
+                    <span className="text-xs text-gray-400 font-mono flex items-center gap-2">
+                      <Keyboard size={11} />
+                      <span className="hidden sm:inline">Ctrl+Enter to run</span>
+                      <span className="sm:hidden">⌘+↵</span>
+                    </span>
+                    <span className="text-xs text-gray-500">UTF-8</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Output Terminal */}
-            <div className={`order-2 ${isFullscreen ? 'h-full' : ''}`}>
-              <div className="flex items-center justify-between mb-2 sm:mb-3">
-                <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                  <Terminal size={16} />
-                  Output
-                </h2>
-                <div className="flex items-center gap-2">
-                  {execSuccess !== null && (
-                    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                      execSuccess ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
-                    }`}>
-                      {execSuccess ? <CheckCircle size={12} /> : <XCircle size={12} />}
-                      {execSuccess ? 'Success' : 'Error'}
-                      {execSuccess && execRuntime && (
-                        <span className="flex items-center gap-0.5 text-emerald-500 font-normal ml-1">
-                          <Clock size={10} />{execRuntime}ms
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {output && (
-                    <button
-                      onClick={handleClearOutput}
-                      className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 hover:bg-gray-100 rounded"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-              </div>
-              
-              <div className={`rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-gray-950 flex flex-col ${isFullscreen ? 'h-[calc(100%-40px)]' : 'h-[450px]'}`}>
-                {/* Output Header */}
-                <div className="flex items-center justify-between px-4 py-2.5 bg-gray-900 border-b border-gray-700/60">
+            {/* ── Output Terminal Card ── */}
+            <div className={`order-2 ${isFullscreen ? 'h-full' : ''} animate-fadeIn`} style={{ animationDelay: '100ms' }}>
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden h-full flex flex-col">
+                {/* Card Header */}
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+                  <h2 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                    <Terminal size={16} className="text-emerald-600" />
+                    Output
+                  </h2>
                   <div className="flex items-center gap-2">
-                    <Terminal size={14} className="text-gray-400" />
-                    <span className="text-xs text-gray-400">Terminal Output</span>
+                    {lastStdin && (
+                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-lg">
+                        stdin provided
+                      </span>
+                    )}
+                    {output && (
+                      <button
+                        onClick={handleClearOutput}
+                        className="text-xs text-gray-500 hover:text-red-600 px-2 py-1 hover:bg-red-50 rounded-lg transition-all duration-200"
+                      >
+                        Clear
+                      </button>
+                    )}
                   </div>
-                  {lastStdin && (
-                    <span className="text-xs text-gray-500">stdin provided</span>
-                  )}
                 </div>
-
-                {/* Output Content */}
-                <div className="flex-1 min-h-0 p-4 overflow-auto font-mono text-sm">
-                  {executing ? (
-                    <div className="flex items-center gap-2 text-blue-400">
-                      <Loader2 size={14} className="animate-spin" />
-                      <span>Executing your code...</span>
+              
+                {/* Terminal Container */}
+                <div className={`flex flex-col flex-1 min-h-0 ${isFullscreen ? '' : 'max-h-[420px] sm:max-h-[480px]'}`}>
+                  {/* Terminal Header */}
+                  <div className="flex items-center justify-between px-4 py-2 bg-gray-950 border-b border-gray-800/60">
+                    <div className="flex items-center gap-2">
+                      <Terminal size={13} className="text-gray-500" />
+                      <span className="text-xs text-gray-500">Terminal Output</span>
                     </div>
-                  ) : output ? (
-                    <pre className={`whitespace-pre-wrap break-words ${
-                      execSuccess === false ? 'text-red-400' : 
-                      execSuccess === true ? 'text-emerald-400' : 'text-gray-300'
-                    }`}>
-                      {output}
-                    </pre>
-                  ) : (
-                    <div className="text-gray-500 flex flex-col items-center justify-center h-full">
-                      <Terminal size={32} className="mb-2 opacity-50" />
-                      <p>Output will appear here</p>
-                      <p className="text-xs mt-1">Press "Run" or use Ctrl+Enter</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Input Required Banner */}
-                {inputRequired && (
-                  <div className="px-4 py-3 bg-amber-900/50 border-t border-amber-700/50 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-amber-300">
-                      <Keyboard size={14} />
-                      <span className="text-sm">This program requires input</span>
-                    </div>
-                    <button
-                      onClick={() => {
-                        const inputCheck = checkInputRequirements();
-                        setInputHints(inputCheck.hints);
-                        setInputCount(inputCheck.count);
-                        setShowInputModal(true);
-                      }}
-                      className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-sm rounded-lg transition-colors"
-                    >
-                      Provide Input
-                    </button>
+                    <span className="text-xs text-gray-600 font-mono">
+                      {canExecute ? 'piston' : 'readonly'}
+                    </span>
                   </div>
-                )}
 
-                {/* Output Footer */}
-                <div className="px-4 py-1.5 bg-gray-900 border-t border-gray-700/50 flex items-center justify-between">
-                  <span className="text-xs text-gray-500">
-                    {canExecute ? 'Piston Runtime' : 'Not executable'}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    15s timeout
-                  </span>
+                  {/* Output Content */}
+                  <div className="flex-1 min-h-[280px] sm:min-h-[320px] p-4 overflow-auto font-mono text-sm bg-gray-950">
+                    {executing ? (
+                      <div className="flex flex-col items-center justify-center h-full gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center animate-pulse">
+                          <Loader2 size={20} className="text-blue-400 animate-spin" />
+                        </div>
+                        <span className="text-blue-400 text-sm">Executing your code...</span>
+                      </div>
+                    ) : output ? (
+                      <pre className={`whitespace-pre-wrap break-words leading-relaxed ${
+                        execSuccess === false ? 'text-red-400' : 
+                        execSuccess === true ? 'text-emerald-400' : 'text-gray-300'
+                      }`}>
+                        {output}
+                      </pre>
+                    ) : (
+                      <div className="text-gray-500 flex flex-col items-center justify-center h-full">
+                        <div className="w-14 h-14 rounded-2xl bg-gray-800 flex items-center justify-center mb-3">
+                          <Terminal size={24} className="text-gray-600" />
+                        </div>
+                        <p className="text-gray-400 text-sm font-medium">Output will appear here</p>
+                        <p className="text-gray-600 text-xs mt-1">Press "Run Code" or Ctrl+Enter</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Input Required Banner */}
+                  {inputRequired && (
+                    <div className="px-4 py-3 bg-gradient-to-r from-amber-900/60 to-orange-900/60 border-t border-amber-700/50 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-amber-300">
+                        <Keyboard size={14} />
+                        <span className="text-sm font-medium">This program requires input</span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const inputCheck = checkInputRequirements();
+                          setInputHints(inputCheck.hints);
+                          setInputCount(inputCheck.count);
+                          setShowInputModal(true);
+                        }}
+                        className="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-white text-sm font-medium rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-amber-500/25"
+                      >
+                        Provide Input
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Output Footer */}
+                  <div className="px-4 py-1.5 bg-gray-900 border-t border-gray-800/50 flex items-center justify-between">
+                    <span className="text-xs text-gray-500">
+                      {canExecute ? 'Piston Runtime' : 'Code not executable'}
+                    </span>
+                    <span className="text-xs text-gray-600">15s timeout</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Quick Tips - hidden in fullscreen */}
+          {/* Quick Tips Card - hidden in fullscreen */}
           {!isFullscreen && (
-            <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                <Zap size={14} className="text-yellow-500" />
+            <div className="mt-5 sm:mt-6 p-4 sm:p-5 bg-white rounded-2xl border border-gray-200 shadow-sm animate-fadeIn" style={{ animationDelay: '200ms' }}>
+              <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                <span className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center">
+                  <Zap size={14} className="text-amber-600" />
+                </span>
                 Quick Tips
               </h3>
-              <ul className="text-xs sm:text-sm text-gray-600 space-y-1 grid grid-cols-1 md:grid-cols-2 gap-x-4">
-                <li>• <strong>Run Code:</strong> Click Run button or press <kbd className="px-1 py-0.5 bg-gray-200 rounded text-xs">Ctrl+Enter</kbd></li>
-                <li>• <strong>Download:</strong> Code downloads with correct file extension ({langMeta?.ext})</li>
-                <li>• <strong>15+ Languages:</strong> Python, JavaScript, Java, C++, Go, Rust, and more</li>
-                <li>• <strong>Secure:</strong> Code runs in sandboxed environment with 15s timeout</li>
-                <li>• <strong>Input:</strong> Programs requiring input will prompt for values</li>
-                <li>• <strong>Errors:</strong> Error lines are highlighted in the editor</li>
-              </ul>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-gray-50/80 hover:bg-gray-50 transition-colors">
+                  <Play size={14} className="text-emerald-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-gray-800">Run Code</p>
+                    <p className="text-xs text-gray-500">Click Run or <kbd className="px-1 py-0.5 bg-white border rounded text-[10px]">Ctrl+Enter</kbd></p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-gray-50/80 hover:bg-gray-50 transition-colors">
+                  <FileDown size={14} className="text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-gray-800">Download</p>
+                    <p className="text-xs text-gray-500">Saves with extension {langMeta?.ext}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-gray-50/80 hover:bg-gray-50 transition-colors">
+                  <Code size={14} className="text-purple-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-gray-800">15+ Languages</p>
+                    <p className="text-xs text-gray-500">Python, JS, Java, C++, Go, Rust...</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-gray-50/80 hover:bg-gray-50 transition-colors">
+                  <CheckCircle size={14} className="text-teal-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-gray-800">Secure Sandbox</p>
+                    <p className="text-xs text-gray-500">15s timeout, isolated environment</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-gray-50/80 hover:bg-gray-50 transition-colors">
+                  <Keyboard size={14} className="text-orange-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-gray-800">Input Support</p>
+                    <p className="text-xs text-gray-500">Programs can request user input</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-gray-50/80 hover:bg-gray-50 transition-colors">
+                  <AlertTriangle size={14} className="text-red-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-gray-800">Error Highlighting</p>
+                    <p className="text-xs text-gray-500">Error lines marked in editor</p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>

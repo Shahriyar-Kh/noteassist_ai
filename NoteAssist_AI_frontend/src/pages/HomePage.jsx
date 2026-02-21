@@ -482,9 +482,6 @@ const HomePage = () => {
             }
           })}
         </script>
-
-        {/* Preload Fonts */}
-        <link rel="preload" as="font" href="/fonts/inter.woff2" type="font/woff2" crossOrigin="anonymous" />
       </Helmet>
 
       <div className="min-h-screen bg-white overflow-x-hidden">

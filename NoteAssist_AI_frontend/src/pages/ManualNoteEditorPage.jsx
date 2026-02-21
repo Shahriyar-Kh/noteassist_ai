@@ -6,7 +6,7 @@
 
 import { useState, useCallback, useRef, lazy, Suspense, useMemo, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useDraftPersistence, DRAFT_KEYS } from '@/hooks/useDraftPersistence';
 import {
@@ -14,11 +14,12 @@ import {
   Bold, Italic, List, Heading, Type, Loader2, Info, CheckCircle,
   Copy, Trash2, Play, Terminal, Eye, Edit, AlignLeft, Image,
   Table, AlignCenter, AlignRight, AlignJustify, Quote, ListOrdered,
-  FileCode, Undo2, Redo2, Maximize2, X
+  FileCode, Undo2, Redo2, Maximize2, X, Sparkles, Zap
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { noteService } from '@/services/note.service';
 import { exportNoteToPDF } from '@/utils/pdfExport';
+import '@/styles/animations.css';
 
 // Lazy load ReactQuill for better performance
 const ReactQuill = lazy(() => import('react-quill'));
@@ -29,7 +30,7 @@ const quillStyles = `
   .note-editor-quill .ql-container {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: 15px;
-    line-height: 1.7;
+    line-height: 1.75;
     min-height: 320px;
   }
   .note-editor-quill .ql-editor {
@@ -42,56 +43,62 @@ const quillStyles = `
   .note-editor-quill .ql-editor h4 { font-size: 1.1em; font-weight: 600; margin: 1em 0; color: #4b5563; }
   .note-editor-quill .ql-editor h5 { font-size: 1em; font-weight: 600; margin: 1em 0; color: #6b7280; }
   .note-editor-quill .ql-editor h6 { font-size: 0.9em; font-weight: 600; margin: 1em 0; color: #9ca3af; }
-  .note-editor-quill .ql-editor p { margin: 0.5em 0; }
+  .note-editor-quill .ql-editor p { margin: 0.5em 0; color: #374151; }
   .note-editor-quill .ql-editor blockquote {
     border-left: 4px solid #3b82f6;
     padding-left: 16px;
     margin: 1em 0;
     color: #4b5563;
     font-style: italic;
-    background: #f8fafc;
-    padding: 12px 16px;
-    border-radius: 0 8px 8px 0;
+    background: linear-gradient(to right, #f0f9ff, #f8fafc);
+    padding: 14px 18px;
+    border-radius: 0 12px 12px 0;
   }
   .note-editor-quill .ql-editor pre.ql-syntax {
-    background: #1e293b;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
     color: #e2e8f0;
-    border-radius: 8px;
-    padding: 16px;
+    border-radius: 12px;
+    padding: 18px;
     font-family: 'JetBrains Mono', 'Fira Code', monospace;
     font-size: 13px;
     overflow-x: auto;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
   }
   .note-editor-quill .ql-editor ul, .note-editor-quill .ql-editor ol {
     padding-left: 1.5em;
     margin: 0.5em 0;
   }
-  .note-editor-quill .ql-editor li { margin: 0.25em 0; }
-  .note-editor-quill .ql-editor a { color: #2563eb; text-decoration: underline; }
+  .note-editor-quill .ql-editor li { margin: 0.3em 0; }
+  .note-editor-quill .ql-editor a { color: #2563eb; text-decoration: underline; transition: color 0.2s; }
+  .note-editor-quill .ql-editor a:hover { color: #1d4ed8; }
   .note-editor-quill .ql-editor img {
     max-width: 100%;
     height: auto;
-    border-radius: 8px;
+    border-radius: 12px;
     margin: 1em 0;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
   }
   .note-editor-quill .ql-editor table {
     border-collapse: collapse;
     width: 100%;
     margin: 1em 0;
+    border-radius: 8px;
+    overflow: hidden;
   }
   .note-editor-quill .ql-editor table td, .note-editor-quill .ql-editor table th {
     border: 1px solid #e5e7eb;
-    padding: 8px 12px;
+    padding: 10px 14px;
   }
-  .note-editor-quill .ql-editor table th { background: #f9fafb; font-weight: 600; }
+  .note-editor-quill .ql-editor table th { background: linear-gradient(to bottom, #f9fafb, #f3f4f6); font-weight: 600; }
   .note-editor-quill .ql-toolbar.ql-snow {
     border: none;
     border-bottom: 1px solid #e5e7eb;
     padding: 12px 16px;
-    background: #fafbfc;
+    background: linear-gradient(to bottom, #fafbfc, #f5f6f7);
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
+    border-radius: 12px 12px 0 0;
   }
   .note-editor-quill .ql-toolbar .ql-formats {
     margin-right: 8px;
@@ -99,11 +106,15 @@ const quillStyles = `
     align-items: center;
   }
   .note-editor-quill .ql-container.ql-snow { border: none; }
-  .note-editor-quill .ql-snow .ql-picker-label { padding: 2px 8px; }
-  .note-editor-quill .ql-snow .ql-stroke { stroke: #6b7280; }
-  .note-editor-quill .ql-snow .ql-fill { fill: #6b7280; }
+  .note-editor-quill .ql-snow .ql-picker-label { padding: 2px 8px; border-radius: 6px; }
+  .note-editor-quill .ql-snow .ql-picker-label:hover { background: #e5e7eb; }
+  .note-editor-quill .ql-snow .ql-stroke { stroke: #6b7280; transition: stroke 0.2s; }
+  .note-editor-quill .ql-snow .ql-fill { fill: #6b7280; transition: fill 0.2s; }
+  .note-editor-quill .ql-snow button { border-radius: 6px; transition: all 0.2s; }
+  .note-editor-quill .ql-snow button:hover { background: #e5e7eb; }
   .note-editor-quill .ql-snow button:hover .ql-stroke { stroke: #2563eb; }
   .note-editor-quill .ql-snow button:hover .ql-fill { fill: #2563eb; }
+  .note-editor-quill .ql-snow button.ql-active { background: #dbeafe; }
   .note-editor-quill .ql-snow button.ql-active .ql-stroke { stroke: #2563eb; }
   .note-editor-quill .ql-snow button.ql-active .ql-fill { fill: #2563eb; }
   .note-editor-quill .ql-editor.ql-blank::before {
@@ -111,11 +122,15 @@ const quillStyles = `
     font-style: normal;
     left: 24px;
   }
+  .note-editor-quill .ql-editor:focus {
+    outline: none;
+  }
   @media (max-width: 640px) {
-    .note-editor-quill .ql-toolbar.ql-snow { padding: 8px 12px; }
-    .note-editor-quill .ql-editor { padding: 16px; min-height: 280px; }
-    .note-editor-quill .ql-container { min-height: 280px; }
-    .note-editor-quill .ql-toolbar .ql-formats { margin-right: 4px; }
+    .note-editor-quill .ql-toolbar.ql-snow { padding: 8px 10px; gap: 2px; }
+    .note-editor-quill .ql-editor { padding: 14px 16px; min-height: 260px; font-size: 14px; }
+    .note-editor-quill .ql-container { min-height: 260px; }
+    .note-editor-quill .ql-toolbar .ql-formats { margin-right: 3px; }
+    .note-editor-quill .ql-snow button { padding: 4px; }
   }
 `;
 
@@ -125,13 +140,34 @@ const Editor = lazy(() => import('@monaco-editor/react'));
 // ─── Loading Fallback ────────────────────────────────────────────────────────
 
 const EditorLoader = () => (
-  <div className="flex items-center justify-center h-64 bg-gray-50 rounded-xl border border-gray-200">
-    <div className="flex items-center gap-3 text-gray-400">
-      <Loader2 size={20} className="animate-spin" />
-      <span>Loading editor...</span>
+  <div className="flex items-center justify-center h-64 bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl border border-gray-200">
+    <div className="flex flex-col items-center gap-3 text-gray-400">
+      <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center animate-pulse">
+        <FileText size={20} className="text-blue-500" />
+      </div>
+      <div className="flex items-center gap-2">
+        <Loader2 size={16} className="animate-spin text-blue-500" />
+        <span className="text-sm text-gray-500">Loading editor...</span>
+      </div>
     </div>
   </div>
 );
+
+// ─── NavPill Component ───────────────────────────────────────────────────────
+
+const NavPill = ({ onClick, to, icon: Icon, label, variant = 'default' }) => {
+  const base =
+    'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ' +
+    'whitespace-nowrap flex-shrink-0 transition-all duration-200 border ';
+  const styles = {
+    default: base + 'border-gray-200 bg-white text-gray-600 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50 shadow-sm hover:shadow',
+    back:    base + 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100 font-semibold shadow-sm',
+  };
+  const cls = styles[variant] || styles.default;
+  return to
+    ? <Link to={to} className={cls}><Icon size={12} />{label}</Link>
+    : <button type="button" onClick={onClick} className={cls}><Icon size={12} />{label}</button>;
+};
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -540,44 +576,50 @@ const ManualNoteEditorPage = () => {
     switch (activeTab) {
       case 'content':
         return (
-          <div className="space-y-4">
+          <div className="space-y-5">
             {/* Topic Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Topic Name *
+              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+                Topic Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={topicName}
                 onChange={(e) => setTopicName(e.target.value)}
                 placeholder="e.g., Python Functions, JavaScript Promises..."
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm 
+                  placeholder:text-gray-400 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 
+                  outline-none transition-all duration-200 hover:border-gray-300"
               />
             </div>
 
             {/* Rich Text Editor with Advanced Formatting */}
             <div ref={editorContainerRef}>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-sm font-medium text-gray-700">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide">
                   Explanation / Content
                 </label>
                 <button
                   onClick={toggleFullscreen}
-                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-500 hover:text-gray-700"
+                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-all duration-200 text-gray-500 hover:text-blue-600 group"
                   title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen editor'}
                 >
-                  <Maximize2 size={16} />
+                  <Maximize2 size={16} className="group-hover:scale-110 transition-transform" />
                 </button>
               </div>
-              <div className={`border border-gray-200 rounded-xl overflow-hidden transition-all note-editor-quill ${
-                isFullscreen ? 'fixed inset-4 z-50 bg-white shadow-2xl' : ''
+              <div className={`border-2 border-gray-200 rounded-xl overflow-hidden transition-all duration-300 note-editor-quill 
+                hover:border-gray-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 ${
+                isFullscreen ? 'fixed inset-4 z-50 bg-white shadow-2xl border-0' : ''
               }`}>
                 {isFullscreen && (
-                  <div className="flex items-center justify-between px-4 py-2 bg-gray-50 border-b border-gray-200">
-                    <span className="text-sm font-medium text-gray-700">Rich Text Editor</span>
+                  <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-gray-50 to-slate-50 border-b border-gray-200">
+                    <div className="flex items-center gap-2">
+                      <AlignLeft size={16} className="text-blue-600" />
+                      <span className="text-sm font-semibold text-gray-800">Rich Text Editor</span>
+                    </div>
                     <button
                       onClick={toggleFullscreen}
-                      className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors text-gray-600"
+                      className="p-1.5 hover:bg-gray-200 rounded-lg transition-all duration-200 text-gray-600 hover:text-red-500"
                     >
                       <X size={18} />
                     </button>
@@ -609,57 +651,62 @@ const ManualNoteEditorPage = () => {
 
       case 'code':
         return (
-          <div className="space-y-4">
-            {/* Language Select */}
-            <div className="flex flex-col sm:flex-row gap-3">
+          <div className="space-y-5">
+            {/* Language Select & Run Button */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
                   Language
                 </label>
                 <select
                   value={codeLanguage}
                   onChange={(e) => setCodeLanguage(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm 
+                    focus:ring-2 focus:ring-emerald-100 focus:border-emerald-500 outline-none bg-white
+                    hover:border-gray-300 transition-all duration-200 cursor-pointer"
                 >
                   {CODE_LANGUAGES.map(lang => (
                     <option key={lang.value} value={lang.value}>{lang.label}</option>
                   ))}
                 </select>
               </div>
-              <div className="flex items-end gap-2">
-                <button
-                  onClick={handleRunCode}
-                  disabled={runningCode || !codeContent.trim()}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {runningCode ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      Running...
-                    </>
-                  ) : (
-                    <>
-                      <Play size={16} />
-                      Run Code
-                    </>
-                  )}
-                </button>
-              </div>
+              <button
+                onClick={handleRunCode}
+                disabled={runningCode || !codeContent.trim()}
+                className="flex items-center justify-center gap-2 px-5 py-2.5 
+                  bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl text-sm font-semibold 
+                  hover:from-emerald-700 hover:to-green-700 hover:shadow-lg hover:shadow-emerald-500/25
+                  disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 
+                  active:scale-[.98] shadow-md"
+              >
+                {runningCode ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Running...
+                  </>
+                ) : (
+                  <>
+                    <Play size={16} fill="white" />
+                    Run Code
+                  </>
+                )}
+              </button>
             </div>
 
             {/* Code Editor */}
-            <div className="border border-gray-200 rounded-xl overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-700">
-                <div className="flex items-center gap-2">
+            <div className="border-2 border-gray-200 rounded-xl overflow-hidden hover:border-gray-300 transition-all duration-200">
+              <div className="flex items-center justify-between px-4 py-2.5 bg-gray-900 border-b border-gray-700/60">
+                <div className="flex items-center gap-3">
                   <div className="flex gap-1.5">
-                    <span className="w-3 h-3 rounded-full bg-red-500 opacity-80" />
-                    <span className="w-3 h-3 rounded-full bg-yellow-400 opacity-80" />
-                    <span className="w-3 h-3 rounded-full bg-green-500 opacity-80" />
+                    <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500/80 hover:bg-red-500 transition-colors" />
+                    <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-yellow-400/80 hover:bg-yellow-400 transition-colors" />
+                    <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-green-500/80 hover:bg-green-500 transition-colors" />
                   </div>
-                  <span className="text-xs text-gray-400 font-mono ml-2">
+                  <span className="text-xs text-gray-400 font-mono">
                     {CODE_LANGUAGES.find(l => l.value === codeLanguage)?.label || 'Code'}
                   </span>
                 </div>
+                <span className="text-xs text-emerald-400/80">✓ Executable</span>
               </div>
               <Suspense fallback={<EditorLoader />}>
                 <Editor
@@ -685,16 +732,21 @@ const ManualNoteEditorPage = () => {
 
             {/* Output Terminal */}
             {(codeOutput || codeError) && (
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-2 bg-gray-900 border-b border-gray-700">
-                  <Terminal size={14} className="text-gray-400" />
-                  <span className="text-xs text-gray-400">Output</span>
+              <div className="border-2 border-gray-200 rounded-xl overflow-hidden transition-all duration-200">
+                <div className="flex items-center justify-between px-4 py-2.5 bg-gray-900 border-b border-gray-700/60">
+                  <div className="flex items-center gap-2">
+                    <Terminal size={14} className="text-gray-400" />
+                    <span className="text-xs text-gray-400 font-medium">Output</span>
+                  </div>
+                  <span className={`text-xs font-medium ${codeError ? 'text-red-400' : 'text-emerald-400'}`}>
+                    {codeError ? '✗ Error' : '✓ Success'}
+                  </span>
                 </div>
                 <div className="p-4 bg-gray-950 min-h-[100px] max-h-[200px] overflow-auto">
                   {codeError ? (
-                    <pre className="text-red-400 text-sm font-mono whitespace-pre-wrap">{codeError}</pre>
+                    <pre className="text-red-400 text-sm font-mono whitespace-pre-wrap leading-relaxed">{codeError}</pre>
                   ) : (
-                    <pre className="text-green-400 text-sm font-mono whitespace-pre-wrap">{codeOutput}</pre>
+                    <pre className="text-emerald-400 text-sm font-mono whitespace-pre-wrap leading-relaxed">{codeOutput}</pre>
                   )}
                 </div>
               </div>
@@ -704,12 +756,15 @@ const ManualNoteEditorPage = () => {
 
       case 'source':
         return (
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600">
-              Add reference sources for your content (optional).
-            </p>
+          <div className="space-y-5">
+            <div className="flex items-start gap-3 p-3 bg-purple-50/50 border border-purple-200/50 rounded-xl">
+              <LinkIcon size={16} className="text-purple-600 mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-purple-800">
+                Add reference sources for your content (optional). These will be included when you export or share your note.
+              </p>
+            </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
                 Source Title
               </label>
               <input
@@ -717,11 +772,13 @@ const ManualNoteEditorPage = () => {
                 value={sourceTitle}
                 onChange={(e) => setSourceTitle(e.target.value)}
                 placeholder="e.g., MDN Web Docs, Python Documentation..."
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm 
+                  placeholder:text-gray-400 focus:ring-2 focus:ring-purple-100 focus:border-purple-500 
+                  outline-none transition-all duration-200 hover:border-gray-300"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
                 Source URL
               </label>
               <input
@@ -729,7 +786,9 @@ const ManualNoteEditorPage = () => {
                 value={sourceUrl}
                 onChange={(e) => setSourceUrl(e.target.value)}
                 placeholder="https://..."
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm 
+                  placeholder:text-gray-400 focus:ring-2 focus:ring-purple-100 focus:border-purple-500 
+                  outline-none transition-all duration-200 hover:border-gray-300"
               />
             </div>
           </div>
@@ -739,33 +798,52 @@ const ManualNoteEditorPage = () => {
         return (
           <div className="bg-white rounded-xl border border-gray-200 p-6 min-h-[400px]">
             {topicName && (
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">{topicName}</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 pb-3 border-b border-gray-100">{topicName}</h2>
             )}
             {explanation && (
               <div 
-                className="prose prose-sm max-w-none mb-6"
+                className="prose prose-sm sm:prose max-w-none mb-6 prose-headings:text-gray-900 prose-p:text-gray-700 
+                  prose-a:text-blue-600 prose-strong:text-gray-900 prose-code:text-pink-600 prose-code:bg-pink-50 
+                  prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-gray-900"
                 dangerouslySetInnerHTML={{ __html: explanation }}
               />
             )}
             {codeContent && (
               <div className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                  <Code size={14} />
+                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-emerald-100 flex items-center justify-center">
+                    <Code size={12} className="text-emerald-600" />
+                  </div>
                   Code ({CODE_LANGUAGES.find(l => l.value === codeLanguage)?.label})
                 </h3>
-                <pre className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm font-mono">
-                  {codeContent}
-                </pre>
+                <div className="border-2 border-gray-200 rounded-xl overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-700/60">
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-yellow-400/80" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
+                      </div>
+                      <span className="text-xs text-gray-400 font-mono">{codeLanguage}</span>
+                    </div>
+                  </div>
+                  <pre className="bg-gray-950 text-emerald-400 p-4 overflow-x-auto text-sm font-mono leading-relaxed">
+                    {codeContent}
+                  </pre>
+                </div>
               </div>
             )}
             {(sourceTitle || sourceUrl) && (
-              <div className="border-t border-gray-200 pt-4 mt-4">
-                <h3 className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
-                  <LinkIcon size={14} />
+              <div className="border-t-2 border-gray-100 pt-4 mt-4">
+                <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-purple-100 flex items-center justify-center">
+                    <LinkIcon size={12} className="text-purple-600" />
+                  </div>
                   Source
                 </h3>
                 {sourceUrl ? (
-                  <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
+                  <a href={sourceUrl} target="_blank" rel="noopener noreferrer" 
+                    className="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium transition-colors">
                     {sourceTitle || sourceUrl}
                   </a>
                 ) : (
@@ -774,8 +852,12 @@ const ManualNoteEditorPage = () => {
               </div>
             )}
             {!topicName && !explanation && !codeContent && (
-              <div className="flex items-center justify-center h-64 text-gray-400">
-                <p>Add content to see preview</p>
+              <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mb-3">
+                  <Eye size={24} className="text-gray-400" />
+                </div>
+                <p className="text-gray-500 font-medium">No content yet</p>
+                <p className="text-sm text-gray-400 mt-1">Add content in other tabs to preview</p>
               </div>
             )}
           </div>
@@ -793,96 +875,111 @@ const ManualNoteEditorPage = () => {
         <meta name="description" content="Create and edit notes with rich text formatting, code snippets, and more. Export to PDF or upload to Google Drive." />
       </Helmet>
 
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-        {/* Header */}
-        <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-30">
-          <div className="max-w-5xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              {/* Left: Back + Title */}
-              <div className="flex items-center gap-3">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/50">
+        
+        {/* ── Sticky Header ── */}
+        <header className="bg-white/90 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-30 animate-fadeInDown">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="flex items-center justify-between gap-3 h-14 sm:h-16">
+              {/* Left: Title */}
+              <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                 <button
                   onClick={() => navigate(-1)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-xl transition-all duration-200"
+                  aria-label="Go back"
                 >
-                  <ArrowLeft size={20} className="text-gray-600" />
+                  <ArrowLeft size={18} className="text-gray-600" />
                 </button>
-                <div>
-                  <h1 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
-                    <FileText className="text-blue-600" size={22} />
+                <span className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-100 flex-shrink-0 shadow-sm">
+                  <FileText size={16} className="text-blue-600" />
+                </span>
+                <div className="hidden xs:block">
+                  <h1 className="text-sm sm:text-base font-bold text-gray-900 whitespace-nowrap">
                     Note Editor
                   </h1>
-                  <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">
-                    Create notes with rich formatting
+                  <p className="text-xs text-gray-500 hidden sm:block">
+                    Rich text & code
                   </p>
                 </div>
               </div>
 
-              {/* Right: Actions */}
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* Draft Status Indicator */}
+              {/* Right: Nav & Actions */}
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                {/* Draft Status */}
                 {hasContent && (
-                  <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full border border-green-200">
+                  <span className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full border border-green-200 flex-shrink-0">
                     <CheckCircle size={12} />
-                    {lastSaved ? `Draft saved` : 'Auto-saving...'}
+                    Draft saved
                   </span>
                 )}
 
-                <button
-                  onClick={handleCopyContent}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  title="Copy content"
-                >
-                  <Copy size={18} className="text-gray-600" />
-                </button>
+                {/* Nav Pills - Hidden on small screens */}
+                <div className="hidden md:flex items-center gap-1.5">
+                  <NavPill to="/code-runner" icon={Code} label="Code Runner" />
+                  <NavPill to="/ai-tools" icon={Sparkles} label="AI Tools" />
+                </div>
 
-                <button
-                  onClick={handleClear}
-                  disabled={!hasContent}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  title="Clear draft"
-                >
-                  <Trash2 size={18} className="text-gray-600" />
-                </button>
+                {/* Action Buttons */}
+                <div className="flex items-center gap-0.5 bg-gray-100/80 rounded-xl p-1 border border-gray-200/50">
+                  <button
+                    onClick={handleCopyContent}
+                    className="p-2 hover:bg-white rounded-lg transition-all duration-200 hover:shadow-sm group"
+                    title="Copy content"
+                  >
+                    <Copy size={16} className="text-gray-500 group-hover:text-blue-600 transition-colors" />
+                  </button>
+                  <button
+                    onClick={handleClear}
+                    disabled={!hasContent}
+                    className="p-2 hover:bg-white rounded-lg transition-all duration-200 hover:shadow-sm group disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="Clear draft"
+                  >
+                    <Trash2 size={16} className="text-gray-500 group-hover:text-red-500 transition-colors" />
+                  </button>
+                  <button
+                    onClick={handleDownloadPDF}
+                    disabled={downloading}
+                    className="p-2 hover:bg-white rounded-lg transition-all duration-200 hover:shadow-sm group"
+                    title="Download PDF"
+                  >
+                    {downloading ? (
+                      <Loader2 size={16} className="text-blue-600 animate-spin" />
+                    ) : (
+                      <Download size={16} className="text-gray-500 group-hover:text-blue-600 transition-colors" />
+                    )}
+                  </button>
+                  <button
+                    onClick={handleUploadToDrive}
+                    disabled={uploading}
+                    className="p-2 hover:bg-white rounded-lg transition-all duration-200 hover:shadow-sm group"
+                    title="Upload to Google Drive"
+                  >
+                    {uploading ? (
+                      <Loader2 size={16} className="text-blue-600 animate-spin" />
+                    ) : (
+                      <Upload size={16} className="text-gray-500 group-hover:text-blue-600 transition-colors" />
+                    )}
+                  </button>
+                </div>
 
-                <button
-                  onClick={handleDownloadPDF}
-                  disabled={downloading}
-                  className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 disabled:opacity-50 transition-colors"
-                >
-                  {downloading ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <Download size={16} />
-                  )}
-                  <span className="hidden sm:inline">PDF</span>
-                </button>
-
-                <button
-                  onClick={handleUploadToDrive}
-                  disabled={uploading}
-                  className="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-xl text-sm font-medium hover:bg-blue-200 disabled:opacity-50 transition-colors"
-                >
-                  {uploading ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <Upload size={16} />
-                  )}
-                  <span className="hidden sm:inline">Drive</span>
-                </button>
-
+                {/* Save Button */}
                 <button
                   onClick={handleSaveToNotes}
                   disabled={saving}
-                  className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-medium hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 transition-all shadow-sm"
+                  className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 
+                    bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-semibold 
+                    hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg hover:shadow-blue-500/25
+                    disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 
+                    active:scale-[.98] shadow-md"
                 >
                   {saving ? (
                     <>
-                      <Loader2 size={16} className="animate-spin" />
+                      <Loader2 size={15} className="animate-spin" />
                       <span className="hidden sm:inline">Saving...</span>
                     </>
                   ) : (
                     <>
-                      <Save size={16} />
+                      <Save size={15} />
                       <span>Save</span>
                     </>
                   )}
@@ -890,19 +987,21 @@ const ManualNoteEditorPage = () => {
               </div>
             </div>
           </div>
-        </div>
+        </header>
 
         {/* Main Content */}
-        <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
           {/* Guest Banner */}
           {(!isAuthenticated || isGuest) && (
-            <div className="mb-4 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-xl flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-              <Info size={18} className="text-blue-600 flex-shrink-0" />
+            <div className="mb-4 sm:mb-5 p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/60 rounded-2xl flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 animate-fadeIn shadow-sm">
+              <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <Info size={16} className="text-blue-600" />
+              </div>
               <p className="text-sm text-blue-800">
-                <span className="font-medium">Guest Mode:</span> You can create notes and download PDFs. 
+                <span className="font-semibold">Guest Mode:</span> You can create notes and download PDFs. 
                 <button 
                   onClick={() => navigate('/login')}
-                  className="text-blue-600 hover:text-blue-800 underline ml-1"
+                  className="text-blue-600 hover:text-blue-800 underline ml-1 font-medium transition-colors"
                 >
                   Sign in
                 </button> to save notes or upload to Google Drive.
@@ -910,36 +1009,43 @@ const ManualNoteEditorPage = () => {
             </div>
           )}
 
-          {/* Note Title */}
-          <div className="mb-4">
-            <input
-              type="text"
-              value={noteTitle}
-              onChange={(e) => setNoteTitle(e.target.value)}
-              placeholder="Note Title (optional)"
-              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-lg font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-            />
+          {/* Note Title Input Card */}
+          <div className="mb-4 sm:mb-5 animate-fadeIn">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5">
+              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+                Note Title
+              </label>
+              <input
+                type="text"
+                value={noteTitle}
+                onChange={(e) => setNoteTitle(e.target.value)}
+                placeholder="Enter a title for your note (optional)"
+                className="w-full px-4 py-3 bg-gray-50/50 border-2 border-gray-200 rounded-xl text-base sm:text-lg font-medium 
+                  placeholder:text-gray-400 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all duration-200"
+              />
+            </div>
           </div>
 
-          {/* Tabs */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          {/* Main Editor Card with Tabs */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-fadeIn" style={{ animationDelay: '100ms' }}>
             {/* Tab Header */}
-            <div className="flex border-b border-gray-200 overflow-x-auto">
+            <div className="flex border-b border-gray-200 overflow-x-auto bg-gray-50/50" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {[
-                { id: 'content', label: 'Content', icon: AlignLeft },
-                { id: 'code', label: 'Code', icon: Code },
-                { id: 'source', label: 'Source', icon: LinkIcon },
-                { id: 'preview', label: 'Preview', icon: Eye },
+                { id: 'content', label: 'Content', icon: AlignLeft, color: 'text-blue-600' },
+                { id: 'code', label: 'Code', icon: Code, color: 'text-emerald-600' },
+                { id: 'source', label: 'Source', icon: LinkIcon, color: 'text-purple-600' },
+                { id: 'preview', label: 'Preview', icon: Eye, color: 'text-orange-600' },
               ].map((tab) => {
                 const Icon = tab.icon;
                 return (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 px-4 sm:px-6 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
+                    className={`flex items-center gap-2 px-4 sm:px-6 py-3.5 text-sm font-medium whitespace-nowrap 
+                      transition-all duration-200 border-b-2 ${
                       activeTab === tab.id
-                        ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                        ? `${tab.color} border-current bg-white shadow-sm`
+                        : 'text-gray-500 border-transparent hover:text-gray-700 hover:bg-white/50'
                     }`}
                   >
                     <Icon size={16} />
@@ -955,18 +1061,44 @@ const ManualNoteEditorPage = () => {
             </div>
           </div>
 
-          {/* Quick Tips */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-              <CheckCircle size={14} className="text-green-500" />
+          {/* Quick Tips Card */}
+          <div className="mt-5 sm:mt-6 p-4 sm:p-5 bg-white rounded-2xl border border-gray-200 shadow-sm animate-fadeIn" style={{ animationDelay: '200ms' }}>
+            <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <span className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center">
+                <Zap size={14} className="text-emerald-600" />
+              </span>
               Quick Tips
             </h3>
-            <ul className="text-xs sm:text-sm text-gray-600 space-y-1">
-              <li>• Use the rich text editor for formatted explanations with headers, lists, and code blocks</li>
-              <li>• Add code snippets in the Code tab - supports 15+ languages with syntax highlighting</li>
-              <li>• Click "Run Code" to execute your code directly in the browser</li>
-              <li>• Download as PDF anytime, or save to your account for later access</li>
-            </ul>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-gray-50/80 hover:bg-gray-50 transition-colors">
+                <AlignLeft size={14} className="text-blue-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-gray-800">Rich Text Editor</p>
+                  <p className="text-xs text-gray-500">Headers, lists, images, code blocks</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-gray-50/80 hover:bg-gray-50 transition-colors">
+                <Code size={14} className="text-emerald-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-gray-800">Code Snippets</p>
+                  <p className="text-xs text-gray-500">15+ languages with syntax highlighting</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-gray-50/80 hover:bg-gray-50 transition-colors">
+                <Play size={14} className="text-orange-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-gray-800">Run Code</p>
+                  <p className="text-xs text-gray-500">Execute code directly in browser</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-gray-50/80 hover:bg-gray-50 transition-colors">
+                <Download size={14} className="text-purple-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-gray-800">Export & Save</p>
+                  <p className="text-xs text-gray-500">PDF download or save to account</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
