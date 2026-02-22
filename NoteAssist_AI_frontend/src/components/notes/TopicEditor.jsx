@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { 
   Save, X, Wand2, Code, Link, Plus, Trash2, 
   FileText, Loader, CheckCircle, Sparkles, Play, Terminal,
   AlertCircle
 } from 'lucide-react';
-import ReactQuill from 'react-quill';
+import QuillNoStrict from '@/components/QuillNoStrict';
 import 'react-quill/dist/quill.snow.css';
 import Editor from '@monaco-editor/react';
 import ReactMarkdown from 'react-markdown';
@@ -661,7 +661,7 @@ const showToast = (message, type = 'success') => {
           </div>
         </div>
         <div className="min-h-[250px]">
-          <ReactQuill
+          <QuillNoStrict
             theme="snow"
             value={formData.explanation}
             onChange={(value) => setFormData(prev => ({ ...prev, explanation: value }))}

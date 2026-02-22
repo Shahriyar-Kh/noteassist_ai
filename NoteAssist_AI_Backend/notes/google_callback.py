@@ -223,7 +223,7 @@ BACKEND_URL=https://noteassist-ai.onrender.com
     
     def _error_response(self, error_message):
         """Generate error response HTML"""
-        return HttpResponse(f"""
+        resp = HttpResponse(f"""
             <html>
             <head>
                 <title>Token Exchange Failed</title>
@@ -282,13 +282,27 @@ BACKEND_URL=https://noteassist-ai.onrender.com
                     <p style="margin-top: 20px;">Please try connecting again.</p>
                 </div>
                 <script>
-                    // Send error message to opener
+                    // Send error message to opener if same-origin — avoid COOP postMessage warnings
                     try {{
                         if (window.opener && !window.opener.closed) {{
-                            window.opener.postMessage({{
-                                type: 'google-auth-error',
-                                error: 'Token exchange failed'
-                            }}, '*');
+                            let openerIsSameOrigin = false;
+                            try {{
+                                // Attempt to access a safe property on opener to detect same-origin
+                                void window.opener.location.href;
+                                openerIsSameOrigin = true;
+                            }} catch(_) {{
+                                openerIsSameOrigin = false;
+                            }}
+
+                            if (openerIsSameOrigin) {{
+                                // Use current origin as targetOrigin for safety
+                                window.opener.postMessage({{
+                                    type: 'google-auth-error',
+                                    error: 'Token exchange failed'
+                                }}, window.location.origin);
+                            }} else {{
+                                console.log('Opener is cross-origin; skipping postMessage to avoid COOP warning.');
+                            }}
                         }}
                     }} catch(e) {{
                         console.log('Could not send error to opener:', e);
@@ -301,10 +315,13 @@ BACKEND_URL=https://noteassist-ai.onrender.com
             </body>
             </html>
         """, status=400)
+        # Allow opener postMessage from popups by permitting same-origin-allow-popups
+        resp["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups"
+        return resp
     
     def _success_response(self, user):
         """Generate success response HTML"""
-        return HttpResponse(f"""
+        resp = HttpResponse(f"""
             <html>
             <head>
                 <title>Google Drive Connected</title>
@@ -345,19 +362,31 @@ BACKEND_URL=https://noteassist-ai.onrender.com
                     <p style="margin-top: 20px; font-size: 14px;">This window will close automatically...</p>
                 </div>
                 <script>
-                    // Send success message to opener
+                    // Send success message to opener if same-origin — avoid COOP postMessage warnings
                     try {{
                         if (window.opener && !window.opener.closed) {{
-                            window.opener.postMessage({{
-                                type: 'google-auth-success',
-                                message: 'Google Drive connected successfully!',
-                                userId: {user.id}
-                            }}, '*');
-                            
-                            // Also trigger a page reload to refresh auth status
-                            setTimeout(function() {{
-                                window.opener.location.reload();
-                            }}, 1000);
+                            let openerIsSameOrigin = false;
+                            try {{
+                                void window.opener.location.href;
+                                openerIsSameOrigin = true;
+                            }} catch(_) {{
+                                openerIsSameOrigin = false;
+                            }}
+
+                            if (openerIsSameOrigin) {{
+                                window.opener.postMessage({{
+                                    type: 'google-auth-success',
+                                    message: 'Google Drive connected successfully!',
+                                    userId: {user.id}
+                                }}, window.location.origin);
+
+                                // Also trigger a page reload to refresh auth status
+                                setTimeout(function() {{
+                                    window.opener.location.reload();
+                                }}, 1000);
+                            }} else {{
+                                console.log('Opener is cross-origin; skipping postMessage to avoid COOP warning.');
+                            }}
                         }}
                     }} catch(e) {{
                         console.log('Could not send message to opener:', e);
@@ -371,3 +400,6 @@ BACKEND_URL=https://noteassist-ai.onrender.com
             </body>
             </html>
         """)
+        # Allow opener postMessage from popups by permitting same-origin-allow-popups
+        resp["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups"
+        return resp

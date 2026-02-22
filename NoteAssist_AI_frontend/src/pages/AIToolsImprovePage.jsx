@@ -3,7 +3,7 @@
 // ✅ All logic unchanged | ✅ Fully responsive | ✅ UX improved
 // ============================================================================
 
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDraftPersistence, DRAFT_KEYS } from '@/hooks/useDraftPersistence';
@@ -11,7 +11,7 @@ import {
   Wand2, Download, Upload, Loader2, AlertCircle,
   Copy, ArrowLeft, AlignLeft, Code, Sparkles, FileText, CheckCircle, Trash2,
 } from 'lucide-react';
-import ReactQuill from 'react-quill';
+import QuillNoStrict from '@/components/QuillNoStrict';
 import 'react-quill/dist/quill.snow.css';
 import '@/styles/animations.css';
 import { noteService } from '@/services/note.service';
@@ -237,14 +237,12 @@ const AIToolsImprovePage = () => {
                   disabled={loading}
                   className={`p-3 rounded-xl text-left border-2 transition-all duration-150 ${
                     improvementType === t.value
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 bg-white hover:border-gray-300'
-                  } disabled:opacity-60`}
+                      ? 'border-blue-500 bg-blue-50 text-blue-800 shadow-sm'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-blue-400 hover:bg-blue-50'
+                  }`}
                 >
-                  <div className={`text-sm font-semibold ${improvementType === t.value ? 'text-blue-700' : 'text-gray-900'}`}>
-                    {t.label}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-0.5">{t.description}</div>
+                  <div className="font-semibold">{t.label}</div>
+                  <div className="text-xs text-gray-500">{t.description}</div>
                 </button>
               ))}
             </div>
@@ -263,7 +261,7 @@ const AIToolsImprovePage = () => {
                 </button>
               )}
             </div>
-            <ReactQuill
+            <QuillNoStrict
               theme="snow"
               value={improvedContent || inputContent}
               onChange={value => { improvedContent ? setImprovedContent(value) : setInputContent(value); }}

@@ -19,11 +19,11 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { noteService } from '@/services/note.service';
+import { sanitizeString } from '@/utils/validation';
 import { exportNoteToPDF } from '@/utils/pdfExport';
 import '@/styles/animations.css';
 
-// Lazy load ReactQuill for better performance
-const ReactQuill = lazy(() => import('react-quill'));
+import QuillNoStrict from '@/components/QuillNoStrict';
 import 'react-quill/dist/quill.snow.css';
 
 // Custom Quill styles for enhanced editor
@@ -523,14 +523,14 @@ const ManualNoteEditorPage = () => {
         name: 'Chapter 1'
       });
 
-      // Create the topic with content
+      // Create the topic with sanitized content
       await noteService.addTopic(chapter.id, {
-        name: topicName,
-        explanation_content: explanation,
-        code_language: codeLanguage,
-        code_content: codeContent,
-        source_title: sourceTitle,
-        source_url: sourceUrl
+        name: sanitizeString(topicName || ''),
+        explanation_content: DOMPurify.sanitize(explanation || ''),
+        code_language: sanitizeString(codeLanguage || ''),
+        code_content: (codeContent || '').toString(),
+        source_title: sanitizeString(sourceTitle || ''),
+        source_url: sanitizeString(sourceUrl || ''),
       });
 
       toast.success('Note saved successfully!');
@@ -626,19 +626,17 @@ const ManualNoteEditorPage = () => {
                     </button>
                   </div>
                 )}
-                <Suspense fallback={<EditorLoader />}>
-                  <ReactQuill
-                    ref={quillRef}
-                    theme="snow"
-                    value={explanation}
-                    onChange={setExplanation}
-                    modules={quillModules}
-                    formats={QUILL_FORMATS}
-                    placeholder="Start writing... Use the toolbar above for formatting including headings, lists, images, tables, and more."
-                    className="bg-white"
-                    style={{ minHeight: isFullscreen ? 'calc(100% - 50px)' : '320px' }}
-                  />
-                </Suspense>
+                <QuillNoStrict
+                  ref={quillRef}
+                  theme="snow"
+                  value={explanation}
+                  onChange={setExplanation}
+                  modules={quillModules}
+                  formats={QUILL_FORMATS}
+                  placeholder="Start writing... Use the toolbar above for formatting including headings, lists, images, tables, and more."
+                  className="bg-white"
+                  style={{ minHeight: isFullscreen ? 'calc(100% - 50px)' : '320px' }}
+                />
               </div>
               {isFullscreen && <div className="fixed inset-0 bg-black/50 -z-10" onClick={toggleFullscreen} />}
               

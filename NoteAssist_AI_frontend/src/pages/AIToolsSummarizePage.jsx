@@ -3,7 +3,7 @@
 // ✅ All logic unchanged | ✅ Fully responsive | ✅ UX improved
 // ============================================================================
 
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDraftPersistence, DRAFT_KEYS } from '@/hooks/useDraftPersistence';
@@ -11,7 +11,7 @@ import {
   FileText, Download, Upload, Loader2, AlertCircle, CheckCircle,
   Copy, ArrowLeft, Sparkles, Code, Wand2, Trash2,
 } from 'lucide-react';
-import ReactQuill from 'react-quill';
+import QuillNoStrict from '@/components/QuillNoStrict';
 import 'react-quill/dist/quill.snow.css';
 import '@/styles/animations.css';
 import { noteService } from '@/services/note.service';
@@ -320,10 +320,10 @@ const AIToolsSummarizePage = () => {
               </div>
             </div>
             <div className="border border-gray-200 rounded-xl p-4">
-              <ReactQuill
+              <QuillNoStrict
                 theme="snow"
                 value={editableSummary}
-                onChange={value => setEditableSummary(value)}
+                onChange={(val) => setEditableSummary(val)}
                 modules={quillModules}
                 formats={quillFormats}
                 placeholder="Your summary will appear here... You can edit it using the toolbar above."

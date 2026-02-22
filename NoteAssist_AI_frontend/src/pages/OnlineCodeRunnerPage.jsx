@@ -16,6 +16,7 @@ import {
   FileDown, Settings2, Maximize2, X, AlertTriangle, RefreshCw,
   FileText, Sparkles, Trash2
 } from 'lucide-react';
+import { Button } from '@/components/design-system';
 import { noteService } from '@/services/note.service';
 import { toast } from 'react-hot-toast';
 import '@/styles/animations.css';

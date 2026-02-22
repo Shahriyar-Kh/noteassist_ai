@@ -3,7 +3,7 @@
 // ✅ All logic unchanged | ✅ Fully responsive | ✅ UX improved
 // ============================================================================
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useDraftPersistence, DRAFT_KEYS } from '@/hooks/useDraftPersistence';
@@ -11,7 +11,7 @@ import {
   Wand2, FileText, Loader, CheckCircle, Sparkles, Download, Cloud,
   AlertCircle, ArrowLeft, AlignLeft, Code, Trash2,
 } from 'lucide-react';
-import ReactQuill from 'react-quill';
+import QuillNoStrict from '@/components/QuillNoStrict';
 import 'react-quill/dist/quill.snow.css';
 import '@/styles/animations.css';
 import { noteService } from '@/services/note.service';
@@ -354,7 +354,7 @@ const AIToolsGenerateTopicPage = ({ topic, onSave, onCancel, onAIAction }) => {
                   : <><Sparkles size={13} /> Generate ({learningLevel})</>}
               </button>
             </div>
-            <ReactQuill
+            <QuillNoStrict
               theme="snow"
               value={formData.explanation}
               onChange={value => setFormData(prev => ({ ...prev, explanation: value }))}
