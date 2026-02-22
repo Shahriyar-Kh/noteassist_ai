@@ -73,11 +73,10 @@ Built with a production-first mindset, the platform demonstrates scalable backen
 ## 📊 Architecture Diagram
 
 <p align="center">
-<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/architecture.png" width="700"/>
+<img src="./NoteAssiss-AI_Architecture.png" width="700" alt="NoteAssist AI architecture diagram" />
 </p>
 
-> 🔹 Replace this with your real architecture diagram later.
-
+>
 ---
 
 ## 🏗️ System Architecture
