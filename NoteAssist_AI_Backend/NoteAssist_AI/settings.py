@@ -54,7 +54,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'utils.middleware.CoopMiddleware',            # ← ADD: must be first (outermost)
+    'utils.middleware.CoopMiddleware',   
+    'utils.middleware.CorsOnErrorMiddleware',          # ← ADD: must be first (outermost)
     'corsheaders.middleware.CorsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.security.SecurityMiddleware',

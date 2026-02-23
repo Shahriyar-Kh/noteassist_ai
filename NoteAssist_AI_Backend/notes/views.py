@@ -188,35 +188,60 @@ class NoteViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def export_pdf(self, request, pk=None):
-        """Export note to PDF"""
         note = self.get_object()
-        
+
         try:
+            from .pdf_service import export_note_to_pdf
             pdf_file = export_note_to_pdf(note)
-            
-            response = HttpResponse(pdf_file.read(), content_type='application/pdf')
-            filename = f"note_{note.slug}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
-            response['Content-Length'] = pdf_file.size
-            
-            # Log activity
-            from dashboard.models import ActivityLog
-            ActivityLog.log_activity(
-                user=request.user,
-                activity_type='pdf_exported',
-                description=f"Exported note to PDF: {note.title}",
-                note=note,
-                file_size=pdf_file.size
-            )
-            
-            logger.info(f"PDF exported successfully for note {note.id}, size: {pdf_file.size} bytes")
-            return response
-            
-        except Exception as e:
-            logger.error(f"PDF Export Error for note {note.id}: {str(e)}")
+
+        except Exception as exc:
+            # Log full traceback so we can diagnose pdf_service issues
+            logger.error(f"PDF Export Error for note {note.id}: {exc}", exc_info=True)
+            # Return a *DRF* Response so django-cors-headers adds CORS headers.
+            # (Django's bare 500 handler skips middleware, causing the CORS block.)
             return Response(
-                {'error': f'Failed to export PDF: {str(e)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {'error': f'Failed to generate PDF: {exc}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        try:
+            from django.http import HttpResponse
+            pdf_bytes = pdf_file.read()
+            response = HttpResponse(pdf_bytes, content_type='application/pdf')
+            filename = (
+                f"note_{note.slug}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            )
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            response['Content-Length'] = len(pdf_bytes)
+            response['Access-Control-Allow-Origin'] = request.headers.get('Origin', '*')
+            response['Access-Control-Allow-Credentials'] = 'true'
+
+            # Log activity (best-effort – don't fail PDF delivery if this errors)
+            try:
+                from dashboard.models import ActivityLog
+                ActivityLog.log_activity(
+                    user=request.user,
+                    activity_type='pdf_exported',
+                    description=f"Exported note to PDF: {note.title}",
+                    note=note,
+                    file_size=len(pdf_bytes),
+                )
+            except Exception:
+                pass
+
+            logger.info(
+                f"PDF exported for note {note.id}, size: {len(pdf_bytes)} bytes"
+            )
+            return response
+
+        except Exception as exc:
+            logger.error(
+                f"PDF response assembly error for note {note.id}: {exc}",
+                exc_info=True,
+            )
+            return Response(
+                {'error': 'PDF was generated but could not be delivered.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
     
     @action(detail=False, methods=['get'])

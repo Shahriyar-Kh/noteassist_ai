@@ -57,131 +57,179 @@ class IEEEColors:
 # ============================================================================
 # Custom Flowables for Enhanced Visual Elements
 # ============================================================================
-
 class CodeEditorBlock(Flowable):
     """
-    Custom flowable that renders code like a VS Code editor
-    with header bar, language label, and line numbers
+    VS Code-style code block for ReportLab PDF generation.
+    Safely handles large code via line-capping and page-split support.
     """
-    
-    def __init__(self, code, language='python', title=None, show_line_numbers=True, 
-                 max_width=None, execution_output=None, execution_success=True):
+
+    MAX_LINES = 50          # never render more than this many lines
+    MIN_WIDTH  = 50
+    MIN_HEIGHT = 20
+
+    def __init__(self, code, language='python', title=None,
+                 show_line_numbers=True, max_width=None,
+                 execution_output=None, execution_success=True):
         Flowable.__init__(self)
-        self.code = code
-        self.language = language.upper() if language else 'CODE'
-        self.title = title
+        self.language   = language.upper() if language else 'CODE'
+        self.title      = title
         self.show_line_numbers = show_line_numbers
-        self.max_width = max_width or 6.5 * inch
-        self.execution_output = execution_output
-        self.execution_success = execution_success
-        
-        # Calculate dimensions
-        self.lines = code.split('\n')
-        self.line_height = 12
-        self.header_height = 24
-        self.padding = 12
+        self.max_width  = max_width or 6.5 * inch
+        self.execution_output   = execution_output
+        self.execution_success  = execution_success
+
+        # ── cap lines ────────────────────────────────────────────────────────
+        all_lines = (code or '').split('\n')
+        truncated = len(all_lines) > self.MAX_LINES
+        self.lines = all_lines[:self.MAX_LINES]
+        if truncated:
+            self.lines.append(f'... [{len(all_lines) - self.MAX_LINES} more lines truncated]')
+        self.code = '\n'.join(self.lines)
+
+        # ── geometry ─────────────────────────────────────────────────────────
+        self.line_height       = 12
+        self.header_height     = 24
+        self.padding           = 12
         self.line_number_width = 35 if show_line_numbers else 0
-        
-        # Calculate heights
-        self.code_height = len(self.lines) * self.line_height + (2 * self.padding)
-        
+
+        self.code_height = len(self.lines) * self.line_height + 2 * self.padding
+
         self.output_height = 0
         if execution_output:
-            output_lines = execution_output.split('\n')
-            self.output_height = len(output_lines) * self.line_height + (2 * self.padding) + 20
-        
+            out_lines = execution_output.split('\n')
+            self.output_height = (len(out_lines) * self.line_height
+                                  + 2 * self.padding + 20)
+
         self.total_height = self.header_height + self.code_height + self.output_height
-    
+
+    # ── ReportLab interface ──────────────────────────────────────────────────
+
     def wrap(self, availWidth, availHeight):
-        width = max(min(self.max_width, availWidth), 50)  # Minimum width 50
-        height = max(self.total_height, 20)  # Minimum height 20
-        # If code is empty, avoid zero-size block
-        if not self.code.strip():
-            height = 20
+        """Return (w, h) that fits within the available frame."""
+        width  = max(min(self.max_width, availWidth),  self.MIN_WIDTH)
+        # Never claim more height than the frame can provide.
+        # Use MIN_HEIGHT as a floor so ReportLab knows we need *something*.
+        height = max(min(self.total_height, availHeight or self.total_height),
+                     self.MIN_HEIGHT)
+        self._render_height = height   # remember for draw()
         return (width, height)
-    
+
+    def split(self, availWidth, availHeight):
+        """
+        Allow ReportLab to split this block across pages.
+        We split on whole lines so the top fragment fits in availHeight and
+        a second CodeEditorBlock carries the remainder.
+        """
+        if availHeight >= self.total_height:
+            return [self]           # fits – no split needed
+
+        # How many lines fit in the available height?
+        usable = availHeight - self.header_height - 2 * self.padding
+        lines_fit = max(int(usable // self.line_height), 1)
+
+        if lines_fit >= len(self.lines):
+            return [self]
+
+        top_lines  = self.lines[:lines_fit]
+        rest_lines = self.lines[lines_fit:]
+
+        top = CodeEditorBlock(
+            code='\n'.join(top_lines),
+            language=self.language.lower(),
+            title=self.title,
+            show_line_numbers=self.show_line_numbers,
+            max_width=self.max_width,
+        )
+        bottom = CodeEditorBlock(
+            code='\n'.join(rest_lines),
+            language=self.language.lower(),
+            title=(self.title + ' (cont.)') if self.title else '(cont.)',
+            show_line_numbers=self.show_line_numbers,
+            max_width=self.max_width,
+            execution_output=self.execution_output,
+            execution_success=self.execution_success,
+        )
+        return [top, bottom]
+
     def draw(self):
+        """Render the VS Code-style editor block onto the canvas."""
         canvas = self.canv
-        width = min(self.max_width, 6.5 * inch)
-        
-        # Starting Y position (reportlab draws from bottom)
-        y = self.total_height
-        
-        # Draw header bar (macOS-style window chrome)
-        y -= self.header_height
-        canvas.setFillColor(colors.HexColor('#2d2d2d'))
-        canvas.roundRect(0, y, width, self.header_height, 4, fill=1, stroke=0)
-        
-        # Traffic light buttons
-        canvas.setFillColor(colors.HexColor('#ff5f56'))
-        canvas.circle(14, y + self.header_height/2, 5, fill=1, stroke=0)
-        canvas.setFillColor(colors.HexColor('#ffbd2e'))
-        canvas.circle(30, y + self.header_height/2, 5, fill=1, stroke=0)
-        canvas.setFillColor(colors.HexColor('#27c93f'))
-        canvas.circle(46, y + self.header_height/2, 5, fill=1, stroke=0)
-        
-        # Language label
-        canvas.setFillColor(colors.HexColor('#888888'))
-        canvas.setFont('Helvetica-Bold', 9)
-        title_text = self.title or self.language
-        canvas.drawCentredString(width/2, y + 7, title_text)
-        
-        # Draw code area background
-        y -= self.code_height
-        canvas.setFillColor(IEEEColors.CODE_BG)
-        canvas.rect(0, y, width, self.code_height, fill=1, stroke=0)
-        
-        # Draw line numbers background
-        if self.show_line_numbers:
-            canvas.setFillColor(colors.HexColor('#252526'))
-            canvas.rect(0, y, self.line_number_width, self.code_height, fill=1, stroke=0)
-        
-        # Draw code lines
-        code_y = y + self.code_height - self.padding - 10
-        for i, line in enumerate(self.lines):
-            # Line number
+        width  = min(self.max_width, 6.5 * inch)
+
+        # Guard: if wrap() gave us near-zero height, skip drawing
+        render_h = getattr(self, '_render_height', self.total_height)
+        if render_h < self.MIN_HEIGHT:
+            return
+
+        y = render_h   # start from the top of our allocated space
+
+        # ── header bar (macOS chrome) ────────────────────────────────────────
+        if y >= self.header_height:
+            y -= self.header_height
+            canvas.setFillColor(colors.HexColor('#2d2d2d'))
+            canvas.roundRect(0, y, width, self.header_height, 4, fill=1, stroke=0)
+
+            # traffic-light buttons
+            for cx, col in [(14, '#ff5f56'), (30, '#ffbd2e'), (46, '#27c93f')]:
+                canvas.setFillColor(colors.HexColor(col))
+                canvas.circle(cx, y + self.header_height / 2, 5, fill=1, stroke=0)
+
+            # language / title label
+            canvas.setFillColor(colors.HexColor('#888888'))
+            canvas.setFont('Helvetica-Bold', 9)
+            canvas.drawCentredString(width / 2, y + 7, self.title or self.language)
+
+        # ── code area ────────────────────────────────────────────────────────
+        code_h = min(self.code_height, y)   # don't exceed remaining space
+        if code_h > 0:
+            y -= code_h
+            canvas.setFillColor(colors.HexColor('#1e1e1e'))
+            canvas.rect(0, y, width, code_h, fill=1, stroke=0)
+
             if self.show_line_numbers:
-                canvas.setFillColor(colors.HexColor('#858585'))
-                canvas.setFont('Courier', 9)
-                canvas.drawRightString(self.line_number_width - 8, code_y, str(i + 1))
-            
-            # Code text
-            canvas.setFillColor(IEEEColors.CODE_TEXT)
-            canvas.setFont('Courier', 10)
-            # Truncate long lines
-            display_line = line[:100] + '...' if len(line) > 100 else line
-            canvas.drawString(self.line_number_width + 8, code_y, display_line)
-            
-            code_y -= self.line_height
-        
-        # Draw execution output if present
-        if self.execution_output:
-            # Output header
+                canvas.setFillColor(colors.HexColor('#252526'))
+                canvas.rect(0, y, self.line_number_width, code_h, fill=1, stroke=0)
+
+            code_y = y + code_h - self.padding - 10
+            for i, line in enumerate(self.lines):
+                if code_y < y:
+                    break
+                if self.show_line_numbers:
+                    canvas.setFillColor(colors.HexColor('#858585'))
+                    canvas.setFont('Courier', 9)
+                    canvas.drawRightString(self.line_number_width - 8, code_y, str(i + 1))
+
+                canvas.setFillColor(colors.HexColor('#d4d4d4'))
+                canvas.setFont('Courier', 10)
+                display = (line[:100] + '...') if len(line) > 100 else line
+                canvas.drawString(self.line_number_width + 8, code_y, display)
+                code_y -= self.line_height
+
+        # ── execution output ─────────────────────────────────────────────────
+        if self.execution_output and y > 20:
+            out_h = min(self.output_height, y)
             y -= 20
             canvas.setFillColor(colors.HexColor('#1a1a1a'))
-            canvas.rect(0, y - (self.output_height - 20), width, self.output_height - 20, fill=1, stroke=0)
-            
-            # Output label
-            canvas.setFillColor(IEEEColors.OUTPUT_SUCCESS if self.execution_success else IEEEColors.OUTPUT_ERROR)
+            canvas.rect(0, y - (out_h - 20), width, out_h - 20, fill=1, stroke=0)
+
+            ok = self.execution_success
+            canvas.setFillColor(colors.HexColor('#3fb950') if ok else colors.HexColor('#f85149'))
             canvas.setFont('Helvetica-Bold', 9)
-            status_label = "OUTPUT" if self.execution_success else "ERROR"
-            canvas.drawString(10, y - 12, f"> {status_label}")
-            
-            # Output text
-            output_y = y - 28
-            output_color = IEEEColors.OUTPUT_SUCCESS if self.execution_success else IEEEColors.OUTPUT_ERROR
-            canvas.setFillColor(output_color)
+            canvas.drawString(10, y - 12, '> OUTPUT' if ok else '> ERROR')
+
+            out_y = y - 28
             canvas.setFont('Courier', 9)
-            
-            for line in self.execution_output.split('\n')[:20]:  # Limit output lines
-                display_line = line[:100] + '...' if len(line) > 100 else line
-                canvas.drawString(12, output_y, display_line)
-                output_y -= self.line_height
-        
-        # Draw border
-        canvas.setStrokeColor(IEEEColors.CODE_BORDER)
+            for ln in self.execution_output.split('\n')[:20]:
+                if out_y < 0:
+                    break
+                canvas.drawString(12, out_y, (ln[:100] + '...') if len(ln) > 100 else ln)
+                out_y -= self.line_height
+
+        # ── border ───────────────────────────────────────────────────────────
+        canvas.setStrokeColor(colors.HexColor('#3c3c3c'))
         canvas.setLineWidth(1)
-        canvas.roundRect(0, 0, width, self.total_height, 4, fill=0, stroke=1)
+        canvas.roundRect(0, 0, width, render_h, 4, fill=0, stroke=1)
+
 
 
 class SectionDivider(Flowable):

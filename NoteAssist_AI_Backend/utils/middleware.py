@@ -39,6 +39,53 @@ class CoopMiddleware:
         response['Cross-Origin-Opener-Policy'] = 'same-origin-allow-popups'
         return response
 
+class CorsOnErrorMiddleware:
+    """
+    Guarantee that CORS headers are present on every response, including
+    Django's bare 500 error responses that bypass django-cors-headers.
+    """
+
+    CORS_HEADER = 'Access-Control-Allow-Origin'
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        self._ensure_cors(request, response)
+        return response
+
+    def process_exception(self, request, exception):
+        """
+        Called by Django when a view raises an unhandled exception.
+        Return None so Django continues with its normal exception handling,
+        but we'll patch the CORS header in __call__ when the response comes back.
+        """
+        return None
+
+    # ── helpers ──────────────────────────────────────────────────────────────
+
+    def _ensure_cors(self, request, response):
+        """Add CORS header if missing and the request came from a known origin."""
+        if self.CORS_HEADER in response:
+            return  # already handled by django-cors-headers
+
+        origin = request.META.get('HTTP_ORIGIN')
+        if not origin:
+            return
+
+        from django.conf import settings
+        allowed = getattr(settings, 'CORS_ALLOWED_ORIGINS', [])
+        allow_all = getattr(settings, 'CORS_ALLOW_ALL_ORIGINS', False)
+
+        if allow_all or origin in allowed:
+            response[self.CORS_HEADER] = origin
+            if getattr(settings, 'CORS_ALLOW_CREDENTIALS', False):
+                response['Access-Control-Allow-Credentials'] = 'true'
+
+
+
+
 
 class CacheHeadersMiddleware:
     """
