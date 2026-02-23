@@ -54,21 +54,23 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'utils.middleware.CoopMiddleware',            # ← ADD: must be first (outermost)
     'corsheaders.middleware.CorsMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # WhiteNoise for static files in production
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.gzip.GZipMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'accounts.middleware.guest_middleware.GuestSessionMiddleware',  # Guest session management
-    'accounts.middleware.blocking_middleware.UserBlockingMiddleware',  # ✅ ADD THIS LINE
+    'accounts.middleware.guest_middleware.GuestSessionMiddleware',
+    'accounts.middleware.blocking_middleware.UserBlockingMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'utils.middleware.CacheHeadersMiddleware',
     'utils.middleware.QueryCountDebugMiddleware',
 ]
+
 
 ROOT_URLCONF = 'NoteAssist_AI.urls'
 
@@ -379,30 +381,23 @@ SIMPLE_JWT = {
 # CORS Settings
 # ============================================================================
 if DEBUG:
-    CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOW_ALL_ORIGINS = False
     CORS_ALLOWED_ORIGINS = [
-        'http://localhost:3000',
         'http://localhost:5173',
+        'http://localhost:3000',
+        'http://127.0.0.1:5173',
+        'http://127.0.0.1:3000',
     ]
 else:
     CORS_ALLOW_ALL_ORIGINS = False
-    CORS_ALLOWED_ORIGINS = [
-        'https://noteassistai.vercel.app',
-        'http://localhost:5173',
-        'http://localhost:3000',
-    ]
-
-# Only override with config if not in DEBUG mode
-if not DEBUG:
     CORS_ALLOWED_ORIGINS = config(
         'CORS_ALLOWED_ORIGINS',
-        default=','.join(CORS_ALLOWED_ORIGINS),
+        default='https://noteassistai.vercel.app,http://localhost:5173,http://localhost:3000',
         cast=lambda v: [s.strip() for s in v.split(',')]
     )
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
-CORS_EXPOSE_HEADERS = ['Content-Disposition', 'Content-Length']  # Expose headers for file downloads
+CORS_ALLOW_METHODS = ['DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT']
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',
@@ -416,7 +411,9 @@ CORS_ALLOW_HEADERS = [
     'access-control-allow-credentials',
     'access-control-allow-origin',
 ]
+CORS_EXPOSE_HEADERS = ['Content-Disposition', 'Content-Length']
 CORS_PREFLIGHT_MAX_AGE = 86400
+
 
 # Celery Configuration - ⚡ OPTIMIZED FOR RENDER FREE-TIER
 # ⚡ TEMPORARILY DISABLED: Redis broker caused issues, re-examine when infrastructure is ready
@@ -654,9 +651,14 @@ if ENVIRONMENT == 'production':
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
+    # Do NOT set SECURE_CROSS_ORIGIN_OPENER_POLICY here —
+    # CoopMiddleware handles it with 'same-origin-allow-popups'.
 else:
     SECURE_SSL_REDIRECT = False
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
+
+
+
 
 logger.info(f"✅ NoteAssist AI Settings loaded successfully (Environment: {ENVIRONMENT}, Debug: {DEBUG})")

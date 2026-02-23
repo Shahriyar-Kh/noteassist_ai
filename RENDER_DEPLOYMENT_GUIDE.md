@@ -67,9 +67,9 @@ SECRET_KEY=generate-new-secret-key
 ALLOWED_HOSTS=noteassist-backend.onrender.com,localhost
 DATABASE_URL=postgresql://postgres:YOUR_SUPABASE_PASSWORD@db.uxbdbkopymgjqwccghvq.supabase.co:5432/postgres
 GOOGLE_OAUTH_CLIENT_ID=732779644819-77j15g59nbfh8qe3ffjkhpg47o48hd05.apps.googleusercontent.com
-GOOGLE_OAUTH_CLIENT_SECRET=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
-EMAIL_HOST_USER=shahriyarkhanpk1@gmail.com
-EMAIL_HOST_PASSWORD=qsazgleqkccsgnuk
+GOOGLE_OAUTH_CLIENT_SECRET=<REDACTED_GOOGLE_OAUTH_CLIENT_SECRET>
+EMAIL_HOST_USER=<REDACTED_EMAIL_USER>
+EMAIL_HOST_PASSWORD=<REDACTED_EMAIL_HOST_PASSWORD>
 CORS_ALLOWED_ORIGINS=https://noteassesstai.vercel.app,http://localhost:5173,http://localhost:3000
 ```
 
@@ -226,12 +226,12 @@ DEBUG=False
 ENVIRONMENT=production
 SECRET_KEY=<generate-new>
 ALLOWED_HOSTS=noteassist-backend.onrender.com,localhost
-DATABASE_URL=postgresql://postgres:PASSWORD@db.uxbdbkopymgjqwccghvq.supabase.co:5432/postgres
-GOOGLE_OAUTH_CLIENT_ID=732779644819-77j15g59nbfh8qe3ffjkhpg47o48hd05.apps.googleusercontent.com
-GOOGLE_OAUTH_CLIENT_SECRET=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
+DATABASE_URL=postgresql://postgres:<REDACTED_PASSWORD>@db.uxbdbkopymgjqwccghvq.supabase.co:5432/postgres
+GOOGLE_OAUTH_CLIENT_ID=<YOUR_GOOGLE_OAUTH_CLIENT_ID>
+GOOGLE_OAUTH_CLIENT_SECRET=<REDACTED_GOOGLE_OAUTH_CLIENT_SECRET>
 CORS_ALLOWED_ORIGINS=https://noteassesstai.vercel.app,http://localhost:5173,http://localhost:3000
-EMAIL_HOST_USER=shahriyarkhanpk1@gmail.com
-EMAIL_HOST_PASSWORD=qsazgleqkccsgnuk
+EMAIL_HOST_USER=<REDACTED_EMAIL_USER>
+EMAIL_HOST_PASSWORD=<REDACTED_EMAIL_HOST_PASSWORD>
 ```
 
 ---
