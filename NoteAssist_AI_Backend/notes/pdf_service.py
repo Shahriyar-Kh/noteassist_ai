@@ -93,7 +93,12 @@ class CodeEditorBlock(Flowable):
         self.total_height = self.header_height + self.code_height + self.output_height
     
     def wrap(self, availWidth, availHeight):
-        return (min(self.max_width, availWidth), self.total_height)
+        width = max(min(self.max_width, availWidth), 50)  # Minimum width 50
+        height = max(self.total_height, 20)  # Minimum height 20
+        # If code is empty, avoid zero-size block
+        if not self.code.strip():
+            height = 20
+        return (width, height)
     
     def draw(self):
         canvas = self.canv
