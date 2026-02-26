@@ -338,10 +338,13 @@ const NotesPage = () => {
     try {
       if (deleteConfirm.type === 'note') {
         await noteService.deleteNote(deleteConfirm.id);
+        // Optimistically remove note from state
+        setNotes(prevNotes => prevNotes.filter(n => n.id !== deleteConfirm.id));
         setSelectedNote(null);
         setNoteTitleValue('');
-        await fetchNotes();
         showToast('✨ Note deleted successfully!', 'success');
+        // Optionally sync with backend in background
+        fetchNotes();
       } else if (deleteConfirm.type === 'chapter') {
         await noteService.deleteChapter(deleteConfirm.id);
         if (selectedNote) {
@@ -350,10 +353,22 @@ const NotesPage = () => {
         showToast('✨ Chapter deleted successfully!', 'success');
       } else if (deleteConfirm.type === 'topic') {
         await noteService.deleteTopic(deleteConfirm.id);
+        // Optimistically remove topic from selectedNote
         if (selectedNote) {
-          await fetchNoteDetail(selectedNote.id);
+          setSelectedNote(prevNote => {
+            if (!prevNote) return prevNote;
+            return {
+              ...prevNote,
+              chapters: prevNote.chapters?.map(chapter => ({
+                ...chapter,
+                topics: chapter.topics?.filter(topic => topic.id !== deleteConfirm.id)
+              }))
+            };
+          });
         }
         showToast('✨ Topic deleted successfully!', 'success');
+        // Optionally sync with backend in background
+        if (selectedNote) fetchNoteDetail(selectedNote.id);
       }
     } catch (error) {
       logger.error('Error deleting:', String(error));

@@ -193,45 +193,40 @@ class NoteViewSet(viewsets.ModelViewSet):
         try:
             from .pdf_service import export_note_to_pdf
             pdf_file = export_note_to_pdf(note)
-
         except Exception as exc:
-            # Log full traceback so we can diagnose pdf_service issues
             logger.error(f"PDF Export Error for note {note.id}: {exc}", exc_info=True)
-            # Return a *DRF* Response so django-cors-headers adds CORS headers.
-            # (Django's bare 500 handler skips middleware, causing the CORS block.)
             return Response(
                 {'error': f'Failed to generate PDF: {exc}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
         try:
-            from django.http import HttpResponse
-            pdf_bytes = pdf_file.read()
-            response = HttpResponse(pdf_bytes, content_type='application/pdf')
-            filename = (
-                f"note_{note.slug}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-            )
+            from django.http import FileResponse
+            import os
+            pdf_file.seek(0)
+            filename = f"note_{note.slug}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            response = FileResponse(pdf_file, content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
-            response['Content-Length'] = len(pdf_bytes)
             response['Access-Control-Allow-Origin'] = request.headers.get('Origin', '*')
             response['Access-Control-Allow-Credentials'] = 'true'
 
-            # Log activity (best-effort – don't fail PDF delivery if this errors)
+            # Log activity (best-effort)
             try:
                 from dashboard.models import ActivityLog
+                pdf_file.seek(0, os.SEEK_END)
+                file_size = pdf_file.tell()
+                pdf_file.seek(0)
                 ActivityLog.log_activity(
                     user=request.user,
                     activity_type='pdf_exported',
                     description=f"Exported note to PDF: {note.title}",
                     note=note,
-                    file_size=len(pdf_bytes),
+                    file_size=file_size,
                 )
             except Exception:
                 pass
 
-            logger.info(
-                f"PDF exported for note {note.id}, size: {len(pdf_bytes)} bytes"
-            )
+            logger.info(f"PDF exported for note {note.id}")
             return response
 
         except Exception as exc:

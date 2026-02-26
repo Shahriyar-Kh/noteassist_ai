@@ -42,9 +42,7 @@ export const useAuthHydration = () => {
 
         if (isAuth && storedUser) {
           logger.info('[useAuthHydration] User found in localStorage:', storedUser.email);
-          
           // Dispatch login to update Redux state
-          // Create a synthetic login payload that matches the auth action format
           dispatch(login.fulfilled({
             user: storedUser,
             access: localStorage.getItem('accessToken'),
@@ -56,8 +54,6 @@ export const useAuthHydration = () => {
         else if (authService.isGuest()) {
           logger.info('[useAuthHydration] Guest session found in localStorage');
           const guestSession = authService.getStoredGuestSession();
-          
-          // Dispatch guest session to update Redux state
           dispatch(startGuestSession.fulfilled(guestSession, '', {}));
         }
         // No auth data - user is a fresh visitor
@@ -68,6 +64,8 @@ export const useAuthHydration = () => {
         logger.info('[useAuthHydration] Hydration complete');
       } catch (error) {
         logger.error('[useAuthHydration] Error during hydration:', error);
+        // Do not clear Redux/localStorage data on error
+        // Optionally, set a global error state or show a warning
       } finally {
         setIsHydrating(false);
       }
