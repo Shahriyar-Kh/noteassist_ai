@@ -117,39 +117,52 @@ class CodeEditorBlock(Flowable):
     def split(self, availWidth, availHeight):
         """
         Allow ReportLab to split this block across pages.
-        We split on whole lines so the top fragment fits in availHeight and
-        a second CodeEditorBlock carries the remainder.
+        If splitting fails (e.g., due to ReportLab bug), truncate and add a warning line.
         """
-        if availHeight >= self.total_height:
-            return [self]           # fits – no split needed
+        try:
+            if availHeight >= self.total_height:
+                return [self]           # fits – no split needed
 
-        # How many lines fit in the available height?
-        usable = availHeight - self.header_height - 2 * self.padding
-        lines_fit = max(int(usable // self.line_height), 1)
+            # How many lines fit in the available height?
+            usable = availHeight - self.header_height - 2 * self.padding
+            lines_fit = max(int(usable // self.line_height), 1)
 
-        if lines_fit >= len(self.lines):
-            return [self]
+            if lines_fit >= len(self.lines):
+                return [self]
 
-        top_lines  = self.lines[:lines_fit]
-        rest_lines = self.lines[lines_fit:]
+            top_lines  = self.lines[:lines_fit]
+            rest_lines = self.lines[lines_fit:]
 
-        top = CodeEditorBlock(
-            code='\n'.join(top_lines),
-            language=self.language.lower(),
-            title=self.title,
-            show_line_numbers=self.show_line_numbers,
-            max_width=self.max_width,
-        )
-        bottom = CodeEditorBlock(
-            code='\n'.join(rest_lines),
-            language=self.language.lower(),
-            title=(self.title + ' (cont.)') if self.title else '(cont.)',
-            show_line_numbers=self.show_line_numbers,
-            max_width=self.max_width,
-            execution_output=self.execution_output,
-            execution_success=self.execution_success,
-        )
-        return [top, bottom]
+            top = CodeEditorBlock(
+                code='\n'.join(top_lines),
+                language=self.language.lower(),
+                title=self.title,
+                show_line_numbers=self.show_line_numbers,
+                max_width=self.max_width,
+            )
+            bottom = CodeEditorBlock(
+                code='\n'.join(rest_lines),
+                language=self.language.lower(),
+                title=(self.title + ' (cont.)') if self.title else '(cont.)',
+                show_line_numbers=self.show_line_numbers,
+                max_width=self.max_width,
+                execution_output=self.execution_output,
+                execution_success=self.execution_success,
+            )
+            return [top, bottom]
+        except Exception as e:
+            # If splitting fails, truncate and add a warning line
+            warning = f'... [PDF truncated: code block too long for page, {len(self.lines)} lines shown]'
+            truncated_code = '\n'.join(self.lines[:max(1, len(self.lines)-1)]) + '\n' + warning
+            return [CodeEditorBlock(
+                code=truncated_code,
+                language=self.language.lower(),
+                title=self.title,
+                show_line_numbers=self.show_line_numbers,
+                max_width=self.max_width,
+                execution_output=self.execution_output,
+                execution_success=self.execution_success,
+            )]
 
     def draw(self):
         """Render the VS Code-style editor block onto the canvas."""
