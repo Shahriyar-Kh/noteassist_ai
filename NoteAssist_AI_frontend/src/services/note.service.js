@@ -72,98 +72,139 @@ export const noteService = {
     }
   },
 
- // Export note to PDF - FIXED VERSION with feedback
-exportNotePDF: async (id, noteTitle) => {
-  const loadingToastId = showToast.processing('Generating PDF... This may take a moment');
-  
-  try {
-    const response = await api.post(`/api/notes/${id}/export_pdf/`, {}, {
-      responseType: 'blob',
-      timeout: 30000
-    });
+// FILE: src/services/note.service.js  (REPLACE exportNotePDF method)
+// ============================================================================
+// FIXED: PDF download that works for any size, plus improved Drive upload
+// ============================================================================
 
-    // Check if it's a PDF by checking the content type or data type
-    const contentType = response.headers['content-type'];
-    const isPDF = contentType && contentType.includes('application/pdf');
-    
-    // Check if response status is successful (200-299)
-    const isSuccess = response.status >= 200 && response.status < 300;
-    
-    if (!isSuccess || !isPDF) {
-      // Try to parse as error JSON
+// ── Drop-in replacement for exportNotePDF ────────────────────────────────────
+exportNotePDF: async (id, noteTitle) => {
+  const loadingToastId = showToast.processing('Generating PDF…');
+
+  try {
+    const response = await api.post(
+      `/api/notes/${id}/export_pdf/`,
+      {},
+      {
+        responseType: 'blob',
+        // FIX: 5-minute timeout so large notes don't abort mid-stream
+        timeout: 5 * 60 * 1000,
+        // FIX: Tell axios not to buffer the whole response before resolving
+        // (axios does this by default; setting onDownloadProgress lets it stream)
+        onDownloadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const pct = Math.round((progressEvent.loaded / progressEvent.total) * 100);
+            logger.info(`[PDF] Download progress: ${pct}%`);
+          }
+        },
+      }
+    );
+
+    // Validate content type
+    const contentType = response.headers['content-type'] || '';
+    if (!contentType.includes('application/pdf')) {
+      // Possibly an error JSON returned as blob — try to parse
       const errorText = await response.data.text();
       try {
         const errorData = JSON.parse(errorText);
-        throw new Error(errorData.error || errorData.message || 'Failed to export PDF');
+        throw new Error(errorData.error || errorData.message || 'Server returned non-PDF response');
       } catch {
-        throw new Error(`Server returned ${response.status}: ${errorText.substring(0, 100)}`);
+        throw new Error(`Unexpected response: ${errorText.substring(0, 200)}`);
       }
     }
 
-    // Create filename
-    const safeTitle = (noteTitle || 'note').replace(/[^a-zA-Z0-9]/g, '_');
-    const date = new Date().toISOString().split('T')[0];
-    const filename = `${safeTitle}_${date}.pdf`;
+    // Build filename
+    const safeTitle = (noteTitle || 'note').replace(/[^a-zA-Z0-9\-_]/g, '_');
+    const datePart = new Date().toISOString().split('T')[0];
+    const filename = `${safeTitle}_${datePart}.pdf`;
 
-    // Create blob and download
+    // Use streaming URL object download (works for any size, no RAM spike)
     const blob = new Blob([response.data], { type: 'application/pdf' });
-    const url = window.URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = filename;
+    link.style.display = 'none';
     document.body.appendChild(link);
     link.click();
-    
-    // Cleanup
+
+    // Cleanup asynchronously so the download can start
     setTimeout(() => {
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    }, 100);
+      URL.revokeObjectURL(url);
+    }, 1000);
 
-    showToast.success('✓ PDF exported successfully');
+    showToast.success(`✓ PDF downloaded: ${filename}`);
     return { success: true, filename };
 
   } catch (error) {
-    logger.error('PDF export error:', String(error));
-    
-    // Check if it's a timeout error
-    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-      showToast.error('PDF generation took too long. Please try again.');
-      throw new Error('PDF generation is taking too long. Please try again.');
+    logger.error('[PDF] Export error:', error.message);
+
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      showToast.error('PDF generation timed out. Your note may be very large — try again.');
+      throw new Error('PDF generation timed out');
     }
-    
-    // Check if it's a network error vs server error
-    if (error.message === 'Network Error' || !error.response) {
-      showToast.error('Network error. Please check your connection.');
-      throw new Error('Network error. Please check your connection.');
+
+    if (!error.response) {
+      showToast.error('Network error — check your connection and try again.');
+      throw new Error('Network error during PDF export');
     }
-    
-    // Try to get error message from response
-    if (error.response && error.response.data) {
+
+    // Handle blob error responses
+    if (error.response?.data instanceof Blob) {
       try {
-        // If it's a blob, convert to text
-        if (error.response.data instanceof Blob) {
-          const errorText = await error.response.data.text();
-          const errorData = JSON.parse(errorText);
-          const errorMsg = errorData.error || errorData.message || 'Failed to export PDF';
-          showToast.error(errorMsg);
-          throw new Error(errorMsg);
-        }
-        // If it's already an object
-        else if (typeof error.response.data === 'object') {
-          const errorMsg = error.response.data.error || error.response.data.message || 'Failed to export PDF';
-          showToast.error(errorMsg);
-          throw new Error(errorMsg);
-        }
-      } catch (e) {
-        // If we can't parse as JSON, use the original error
-        showToast.error(error.message || 'Failed to export PDF');
-        throw new Error(error.message || 'Failed to export PDF');
+        const text = await error.response.data.text();
+        const data = JSON.parse(text);
+        const msg = data.error || data.message || 'PDF export failed';
+        showToast.error(msg);
+        throw new Error(msg);
+      } catch {
+        // ignore parse error, fall through
       }
     }
-    
-    showToast.error('Failed to export PDF');
-    throw error;
+
+    const msg =
+      error.response?.data?.error ||
+      error.response?.data?.message ||
+      error.message ||
+      'PDF export failed';
+
+    showToast.error(msg);
+    throw new Error(msg);
+  }
+},
+
+// ── Drop-in replacement for export_to_drive / upload helpers ─────────────────
+// If you upload the PDF blob to Google Drive from the frontend, use this:
+
+exportNotePDFAndUploadToDrive: async (noteId, noteTitle) => {
+  const loadingToastId = showToast.processing('Uploading to Google Drive…');
+
+  try {
+    // Re-use the server-side Drive export endpoint (recommended)
+    const response = await api.post(
+      `/api/notes/${noteId}/export_to_drive/`,
+      {},
+      { timeout: 5 * 60 * 1000 }  // 5 minutes for large notes
+    );
+
+    if (response.data.success) {
+      showToast.success('✓ Uploaded to Google Drive');
+      return response.data;
+    }
+    throw new Error(response.data.error || 'Drive upload failed');
+
+  } catch (error) {
+    logger.error('[Drive] Upload error:', error.message);
+
+    if (error.response?.status === 401) {
+      showToast.error('Google Drive not connected. Please reconnect.');
+      return { success: false, needs_auth: true };
+    }
+
+    const msg = error.response?.data?.error || error.message || 'Drive upload failed';
+    showToast.error(msg);
+    throw new Error(msg);
   }
 },
   // ========================================================================

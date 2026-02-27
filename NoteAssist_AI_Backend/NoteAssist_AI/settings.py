@@ -359,12 +359,26 @@ REST_FRAMEWORK = {
     'NUM_PROXIES': 1 if ENVIRONMENT == 'production' else None,  # ⚡ For Render proxy
 }
 
-# JWT Settings
+# JWT Settings - FIXED for persistent sessions
 SIMPLE_JWT = {
+    # Access token: 60 minutes gives a good balance.
+    # The frontend refreshes it proactively 3 minutes before expiry,
+    # so users are never actually interrupted.
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+
+    # Refresh token: 30 days. Users stay logged in for a month of inactivity.
+    # On each successful access-token refresh, the refresh token itself is
+    # rotated (re-issued with a fresh 30-day window), so active users
+    # effectively never get logged out.
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
+
+    # Issue a new refresh token on every access-token refresh.
+    # This gives active users a rolling 30-day window.
     'ROTATE_REFRESH_TOKENS': True,
+
+    # Blacklist the old refresh token after rotation so it can't be reused.
     'BLACKLIST_AFTER_ROTATION': True,
+
     'UPDATE_LAST_LOGIN': True,
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': SECRET_KEY,
@@ -376,7 +390,14 @@ SIMPLE_JWT = {
     'TOKEN_TYPE_CLAIM': 'token_type',
     'TOKEN_USER_CLASS': 'rest_framework_simplejwt.models.TokenUser',
     'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
+
+    # Return refresh token in the /api/token/refresh/ response so the
+    # frontend can always store the latest rotated refresh token.
+    'ROTATE_REFRESH_TOKENS': True,
 }
+
+
+
 
 # ============================================================================
 # CORS Settings

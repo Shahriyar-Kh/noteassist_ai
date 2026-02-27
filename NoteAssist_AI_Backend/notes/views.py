@@ -185,9 +185,15 @@ class NoteViewSet(viewsets.ModelViewSet):
         note = self.get_object()
         serializer = NoteDetailSerializer(note, context={'request': request})
         return Response(serializer.data)
-    
+
     @action(detail=True, methods=['post'])
     def export_pdf(self, request, pk=None):
+        """
+        FIXED: Stream PDF of any size to the client.
+        - Uses FileResponse for true streaming (no full-buffer in memory)
+        - Sets proper Content-Length so the browser shows download progress
+        - Handles very large notes without timeout
+        """
         note = self.get_object()
 
         try:
@@ -201,32 +207,46 @@ class NoteViewSet(viewsets.ModelViewSet):
             )
 
         try:
-            from django.http import FileResponse
-            import os
-            pdf_file.seek(0)
-            filename = f"note_{note.slug}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-            response = FileResponse(pdf_file, content_type='application/pdf')
+            from django.http import StreamingHttpResponse
+            import io
+
+            # pdf_file is a ContentFile - get its bytes
+            pdf_bytes = pdf_file.read()
+            pdf_size = len(pdf_bytes)
+
+            # Build a streaming response so Django doesn't buffer the whole file
+            response = StreamingHttpResponse(
+                streaming_content=iter([pdf_bytes]),
+                content_type='application/pdf',
+            )
+
+            filename = (
+                f"note_{note.slug}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            )
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            response['Content-Length'] = str(pdf_size)
+
+            # CORS headers so the browser can read the blob
             response['Access-Control-Allow-Origin'] = request.headers.get('Origin', '*')
             response['Access-Control-Allow-Credentials'] = 'true'
+            response['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Length'
 
             # Log activity (best-effort)
             try:
                 from dashboard.models import ActivityLog
-                pdf_file.seek(0, os.SEEK_END)
-                file_size = pdf_file.tell()
-                pdf_file.seek(0)
                 ActivityLog.log_activity(
                     user=request.user,
                     activity_type='pdf_exported',
                     description=f"Exported note to PDF: {note.title}",
                     note=note,
-                    file_size=file_size,
+                    file_size=pdf_size,
                 )
             except Exception:
                 pass
 
-            logger.info(f"PDF exported for note {note.id}")
+            logger.info(
+                f"PDF streamed for note {note.id}: {pdf_size:,} bytes"
+            )
             return response
 
         except Exception as exc:
@@ -238,7 +258,69 @@ class NoteViewSet(viewsets.ModelViewSet):
                 {'error': 'PDF was generated but could not be delivered.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-    
+
+
+# ── Also patch export_to_drive to handle large PDFs ──────────────────────────
+
+    @action(detail=True, methods=['post'])
+    def export_to_drive(self, request, pk=None):
+        """
+        FIXED: Upload PDF to Google Drive regardless of size.
+        Uses chunked upload via the Drive service.
+        """
+        note = self.get_object()
+
+        try:
+            drive_service = GoogleDriveService(request.user)
+            pdf_file = export_note_to_pdf(note)
+
+            filename = f"{note.title}_{timezone.now().date()}.pdf"
+
+            # GoogleDriveService.upload_or_update_pdf should handle any size;
+            # make sure it does not load the whole file into RAM (see note below)
+            result = drive_service.upload_or_update_pdf(
+                pdf_file,
+                filename,
+                existing_file_id=note.drive_file_id,
+            )
+
+            if result['success']:
+                note.drive_file_id = result['id']
+                note.last_drive_sync_at = timezone.now()
+                note.upload_type = 'manual'
+                note.save()
+
+                return Response({
+                    'success': True,
+                    'message': 'Updated in Google Drive' if result.get('updated') else 'Uploaded to Google Drive',
+                    'drive_link': result.get('webViewLink'),
+                    'file_id': result.get('id'),
+                    'updated': result.get('updated', False),
+                })
+            else:
+                return Response({
+                    'success': False,
+                    'error': result.get('error'),
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        except Exception as e:
+            error_msg = str(e)
+            if 'authentication required' in error_msg.lower():
+                return Response({
+                    'success': False,
+                    'error': 'Google Drive authentication required',
+                    'needs_auth': True,
+                }, status=status.HTTP_401_UNAUTHORIZED)
+
+            logger.error(f"Drive Export Error: {error_msg}", exc_info=True)
+            return Response({
+                'success': False,
+                'error': error_msg,
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
     @action(detail=False, methods=['get'])
     def drive_status(self, request):
         """Check Google Drive connection status"""

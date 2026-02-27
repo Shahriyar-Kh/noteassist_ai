@@ -1,34 +1,37 @@
 // FILE: src/hooks/useAuthHydration.js
 // ============================================================================
-// Auth Hydration Hook - Syncs Redux state with localStorage on app mount
-// Ensures auth state is always in sync across browser sessions
+// FIXED: Auth Hydration with session restoration + logout event listener
 // ============================================================================
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
-import { login, startGuestSession } from '@/store/slices/authSlice';
+import { login, logout, startGuestSession } from '@/store/slices/authSlice';
 import { authService } from '@/services/auth.service';
 import logger from '@/utils/logger';
 
-/**
- * useAuthHydration
- * 
- * Hydrates Redux auth state from localStorage on app mount.
- * This ensures:
- * - Auth state is properly initialized from localStorage
- * - Redux store stays in sync with localStorage
- * - Guests are properly handled
- * - No delays when reading stored auth data
- * 
- * @returns {object} Hydration status
- */
 export const useAuthHydration = () => {
   const dispatch = useDispatch();
   const hasHydrated = useRef(false);
   const [isHydrating, setIsHydrating] = useState(true);
 
+  // ── Handle forced logout from API interceptor ────────────────────────────────
+  const handleForcedLogout = useCallback(
+    (event) => {
+      const reason = event?.detail?.reason || 'unknown';
+      logger.warn(`[useAuthHydration] Forced logout received: ${reason}`);
+      dispatch(logout());
+    },
+    [dispatch]
+  );
+
+  // ── Listen for auth:logout events dispatched by the API interceptor ──────────
   useEffect(() => {
-    // Prevent double hydration (React 18 strict mode)
+    window.addEventListener('auth:logout', handleForcedLogout);
+    return () => window.removeEventListener('auth:logout', handleForcedLogout);
+  }, [handleForcedLogout]);
+
+  // ── Hydrate on mount ─────────────────────────────────────────────────────────
+  useEffect(() => {
     if (hasHydrated.current) return;
     hasHydrated.current = true;
 
@@ -36,36 +39,42 @@ export const useAuthHydration = () => {
       try {
         logger.info('[useAuthHydration] Starting auth hydration...');
 
-        // Check if user is logged in
         const storedUser = authService.getStoredUser();
         const isAuth = authService.isAuthenticated();
 
         if (isAuth && storedUser) {
-          logger.info('[useAuthHydration] User found in localStorage:', storedUser.email);
-          // Dispatch login to update Redux state
-          dispatch(login.fulfilled({
-            user: storedUser,
-            access: localStorage.getItem('accessToken'),
-            refresh: localStorage.getItem('refreshToken'),
-            redirect: authService.getRedirectUrl(),
-          }, '', {}));
-        }
-        // Check if guest session exists
-        else if (authService.isGuest()) {
-          logger.info('[useAuthHydration] Guest session found in localStorage');
+          logger.info('[useAuthHydration] Restoring user session:', storedUser.email);
+
+          // Restore the proactive refresh scheduler
+          authService.restoreSession();
+
+          dispatch(
+            login.fulfilled(
+              {
+                user: storedUser,
+                access: authService.getAccessToken(),
+                refresh: authService.getRefreshToken(),
+                redirect: authService.getRedirectUrl(),
+              },
+              '',
+              {}
+            )
+          );
+
+          // Silently validate session in background (optional)
+          authService.getCurrentUser().catch((err) => {
+            logger.warn('[useAuthHydration] Background user validation failed:', err.message);
+            // Don't log out - the token interceptor will handle 401 if truly expired
+          });
+        } else if (authService.isGuest()) {
+          logger.info('[useAuthHydration] Restoring guest session');
           const guestSession = authService.getStoredGuestSession();
           dispatch(startGuestSession.fulfilled(guestSession, '', {}));
+        } else {
+          logger.info('[useAuthHydration] No session found - fresh visitor');
         }
-        // No auth data - user is a fresh visitor
-        else {
-          logger.info('[useAuthHydration] No auth data found - fresh visitor');
-        }
-
-        logger.info('[useAuthHydration] Hydration complete');
       } catch (error) {
         logger.error('[useAuthHydration] Error during hydration:', error);
-        // Do not clear Redux/localStorage data on error
-        // Optionally, set a global error state or show a warning
       } finally {
         setIsHydrating(false);
       }
