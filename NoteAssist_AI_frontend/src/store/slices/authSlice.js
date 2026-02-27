@@ -156,9 +156,11 @@ const authSlice = createSlice({
       .addCase(getCurrentUser.rejected, (state) => {
         // Do not clear user data on token expiry or API error
         // Instead, set an error state and keep data visible until logout
-        state.error = 'Session expired or authentication error. Please log in again.';
-        // Optionally, set a flag to show a warning in the UI
-        state.sessionExpired = true;
+        if (!state.sessionExpired) {
+          state.error = 'Session expired or authentication error. Please log in again.';
+          state.sessionExpired = true;
+        }
+        // Do NOT clear user, isAuthenticated, or guest data here
       })
       // Start guest session
       .addCase(startGuestSession.pending, (state) => {
