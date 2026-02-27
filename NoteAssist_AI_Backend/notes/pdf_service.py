@@ -1,9 +1,12 @@
 # FILE: NoteAssist_AI_Backend/notes/pdf_service.py
 # ============================================================================
-# FINAL FIX: ReportLab LayoutError "Splitting error(n==2)" resolved
-#
-# Root cause: split() must guarantee S[0] fits within availHeight.
-# If even one line can't fit, return [] so ReportLab forces a page break.
+# PROFESSIONAL PDF EXPORT - v3
+#  • Fixed split() contract (no more LayoutError)
+#  • Spacious code blocks that breathe
+#  • Subtopic numbering: Chapter 1 → Topic 1.1 → Heading 1.1.1, 1.1.2
+#  • Running header/footer with page numbers on every page
+#  • Professional cover page with decorative border
+#  • Color-coded chapter banners
 # ============================================================================
 
 from io import BytesIO
@@ -11,10 +14,10 @@ from datetime import date
 from django.core.files.base import ContentFile
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
+from reportlab.lib.units import inch, mm
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, PageBreak,
-    Table, TableStyle, Flowable
+    Table, TableStyle, Flowable, KeepTogether
 )
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_JUSTIFY, TA_RIGHT
@@ -25,82 +28,169 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# ── Page geometry ──────────────────────────────────────────────────────────
+PAGE_W, PAGE_H = A4
+LEFT_MARGIN   = 0.85 * inch
+RIGHT_MARGIN  = 0.85 * inch
+TOP_MARGIN    = 0.9 * inch
+BOTTOM_MARGIN = 0.9 * inch
+CONTENT_W     = PAGE_W - LEFT_MARGIN - RIGHT_MARGIN
+
 
 # ============================================================================
 # Color Palette
 # ============================================================================
-class IEEEColors:
-    PRIMARY          = colors.HexColor('#1a365d')
-    SECONDARY        = colors.HexColor('#2c5282')
-    ACCENT           = colors.HexColor('#3182ce')
-    TEXT_PRIMARY     = colors.HexColor('#1a202c')
-    TEXT_SECONDARY   = colors.HexColor('#4a5568')
-    TEXT_MUTED       = colors.HexColor('#718096')
-    CODE_BG          = colors.HexColor('#1e1e1e')
-    CODE_BORDER      = colors.HexColor('#3c3c3c')
-    CODE_TEXT        = colors.HexColor('#d4d4d4')
-    OUTPUT_SUCCESS   = colors.HexColor('#3fb950')
-    OUTPUT_ERROR     = colors.HexColor('#f85149')
-    BLOCKQUOTE_BG    = colors.HexColor('#edf2f7')
-    BLOCKQUOTE_BORDER= colors.HexColor('#3182ce')
-    DIVIDER          = colors.HexColor('#e2e8f0')
-    DIVIDER_ACCENT   = colors.HexColor('#3182ce')
+class C:
+    NAVY        = colors.HexColor('#1a2e4a')
+    BLUE        = colors.HexColor('#2563eb')
+    BLUE_LIGHT  = colors.HexColor('#3b82f6')
+    BLUE_PALE   = colors.HexColor('#eff6ff')
+    TEAL        = colors.HexColor('#0891b2')
+    TEAL_PALE   = colors.HexColor('#ecfeff')
+    TEXT        = colors.HexColor('#1e293b')
+    TEXT_MED    = colors.HexColor('#475569')
+    TEXT_MUTED  = colors.HexColor('#94a3b8')
+    DIVIDER     = colors.HexColor('#e2e8f0')
+    CODE_BG     = colors.HexColor('#0d1117')
+    CODE_GUTTER = colors.HexColor('#161b22')
+    CODE_TEXT   = colors.HexColor('#e6edf3')
+    CODE_LN     = colors.HexColor('#484f58')
+    CODE_BORDER = colors.HexColor('#30363d')
+    SUCCESS     = colors.HexColor('#22c55e')
+    ERROR       = colors.HexColor('#ef4444')
+    BLOCKQUOTE  = colors.HexColor('#f8fafc')
+    BQ_BORDER   = colors.HexColor('#2563eb')
+    WHITE       = colors.white
+    BLACK       = colors.black
+    CHAPTER_BG  = colors.HexColor('#1e3a5f')
 
 
 # ============================================================================
-# SectionDivider (unchanged)
+# Page-level header / footer  (called by doc.build via onPage callbacks)
 # ============================================================================
-class SectionDivider(Flowable):
-    def __init__(self, width=6.5 * inch, style='line'):
+def _draw_header_footer(canvas, doc, note_title):
+    canvas.saveState()
+    page_num = canvas.getPageNumber()
+
+    # ── Header (skip page 1 = cover, page 2 = TOC) ──────────────────────
+    if page_num > 2:
+        canvas.setFont('Helvetica', 8)
+        canvas.setFillColor(C.TEXT_MUTED)
+        canvas.drawString(LEFT_MARGIN, PAGE_H - 0.55 * inch, note_title)
+        canvas.drawRightString(
+            PAGE_W - RIGHT_MARGIN, PAGE_H - 0.55 * inch,
+            'NoteAssist AI'
+        )
+        # thin rule below header
+        canvas.setStrokeColor(C.DIVIDER)
+        canvas.setLineWidth(0.5)
+        canvas.line(LEFT_MARGIN, PAGE_H - 0.6 * inch,
+                    PAGE_W - RIGHT_MARGIN, PAGE_H - 0.6 * inch)
+
+    # ── Footer on every page except cover ───────────────────────────────
+    if page_num > 1:
+        canvas.setFont('Helvetica', 8)
+        canvas.setFillColor(C.TEXT_MUTED)
+        canvas.setStrokeColor(C.DIVIDER)
+        canvas.setLineWidth(0.5)
+        canvas.line(LEFT_MARGIN, 0.65 * inch,
+                    PAGE_W - RIGHT_MARGIN, 0.65 * inch)
+        canvas.drawCentredString(PAGE_W / 2, 0.45 * inch, f'— {page_num} —')
+
+    canvas.restoreState()
+
+
+# ============================================================================
+# Decorative helpers (drawn directly on canvas)
+# ============================================================================
+class ChapterBanner(Flowable):
+    """Full-width dark-blue banner for chapter titles."""
+    H = 48
+
+    def __init__(self, text, width=None):
         Flowable.__init__(self)
-        self.width = width
-        self.style = style
+        self.text  = text
+        self._w    = width or CONTENT_W
 
-    def wrap(self, availWidth, availHeight):
-        return (min(self.width, availWidth), 20)
+    def wrap(self, aw, ah):
+        self._w = min(self._w, aw)
+        return (self._w, self.H + 12)
 
     def draw(self):
-        canvas = self.canv
-        width = min(self.width, 6.5 * inch)
-        if self.style == 'line':
-            canvas.setStrokeColor(IEEEColors.DIVIDER)
-            canvas.setLineWidth(0.5)
-            canvas.line(0, 10, width, 10)
-        elif self.style == 'dots':
-            canvas.setFillColor(IEEEColors.DIVIDER)
-            for i in range(0, int(width), 8):
-                canvas.circle(i + 4, 10, 1, fill=1, stroke=0)
-        elif self.style == 'accent':
-            canvas.setStrokeColor(IEEEColors.DIVIDER_ACCENT)
-            canvas.setLineWidth(2)
-            center = width / 2
-            canvas.line(center - 40, 10, center + 40, 10)
+        c = self.canv
+        w = self._w
+
+        # background rect
+        c.setFillColor(C.CHAPTER_BG)
+        c.roundRect(0, 6, w, self.H, 6, fill=1, stroke=0)
+
+        # left accent bar
+        c.setFillColor(C.BLUE_LIGHT)
+        c.rect(0, 6, 5, self.H, fill=1, stroke=0)
+
+        # text
+        c.setFillColor(C.WHITE)
+        c.setFont('Helvetica-Bold', 14)
+        c.drawString(18, 6 + self.H / 2 - 5, self.text)
+
+
+class TopicLabel(Flowable):
+    """Coloured pill for topic headings (1.1, 1.2 …)."""
+    H = 34
+
+    def __init__(self, text, width=None):
+        Flowable.__init__(self)
+        self.text = text
+        self._w   = width or CONTENT_W
+
+    def wrap(self, aw, ah):
+        self._w = min(self._w, aw)
+        return (self._w, self.H + 8)
+
+    def draw(self):
+        c   = self.canv
+        w   = self._w
+
+        c.setFillColor(C.BLUE_PALE)
+        c.roundRect(0, 4, w, self.H, 5, fill=1, stroke=0)
+
+        c.setStrokeColor(C.BLUE_LIGHT)
+        c.setLineWidth(1.5)
+        c.roundRect(0, 4, w, self.H, 5, fill=0, stroke=1)
+
+        c.setFillColor(C.NAVY)
+        c.setFont('Helvetica-Bold', 12)
+        c.drawString(14, 4 + self.H / 2 - 5, self.text)
+
+
+class HRule(Flowable):
+    """Thin horizontal rule."""
+    def __init__(self, width=None, color=None, thickness=0.5, vpad=6):
+        Flowable.__init__(self)
+        self._w   = width or CONTENT_W
+        self.color = color or C.DIVIDER
+        self.thick = thickness
+        self.vpad  = vpad
+
+    def wrap(self, aw, ah):
+        self._w = min(self._w, aw)
+        return (self._w, self.thick + self.vpad * 2)
+
+    def draw(self):
+        c = self.canv
+        c.setStrokeColor(self.color)
+        c.setLineWidth(self.thick)
+        c.line(0, self.vpad, self._w, self.vpad)
 
 
 # ============================================================================
-# FIXED CodeEditorBlock
+# FIXED CodeEditorBlock (split() contract preserved, better visual)
 # ============================================================================
 class CodeEditorBlock(Flowable):
-    """
-    VS Code-style code block with correct ReportLab split() contract.
-
-    ReportLab split() contract (MUST obey):
-      - Return []          → nothing fits; ReportLab inserts a page break and retries
-      - Return [self]      → everything fits on this page
-      - Return [A, B]      → A fits within availHeight, B goes to next page(s)
-
-    The previous bug: split() returned [A, B] where A.wrap() could still exceed
-    availHeight, causing "Splitting error(n==2)".
-
-    Fix: compute exactly how many lines fit, build A so its height ≤ availHeight,
-    and return [] if even the header + 1 line won't fit.
-    """
-
-    # Geometry constants
-    LINE_HEIGHT    = 12
-    HEADER_HEIGHT  = 24
-    PADDING        = 12
-    LN_WIDTH       = 35   # line-number gutter width
+    LINE_HEIGHT    = 14   # was 12 – more readable
+    HEADER_HEIGHT  = 28
+    PADDING        = 14   # was 12
+    LN_WIDTH       = 38
 
     def __init__(self, code='', language='python', title=None,
                  show_line_numbers=True, max_width=None,
@@ -110,693 +200,703 @@ class CodeEditorBlock(Flowable):
         self.language          = (language or 'CODE').upper()
         self.title             = title
         self.show_line_numbers = show_line_numbers
-        self.max_width         = max_width or 6.5 * inch
+        self.max_width         = max_width or CONTENT_W
         self.execution_output  = execution_output
         self.execution_success = execution_success
-        self._is_continuation  = _is_continuation   # suppresses output on split pieces
+        self._is_continuation  = _is_continuation
+        self.lines             = (code or '').split('\n')
 
-        # All lines – no truncation
-        self.lines = (code or '').split('\n')
+    # ── height helpers ────────────────────────────────────────────────────
+    def _body_h(self, n):
+        return n * self.LINE_HEIGHT + 2 * self.PADDING
 
-    # ── private helpers ──────────────────────────────────────────────────────
-
-    def _code_body_height(self, n_lines):
-        """Height of the code body (not including the header bar)."""
-        return n_lines * self.LINE_HEIGHT + 2 * self.PADDING
-
-    def _output_height(self):
+    def _out_h(self):
         if not self.execution_output or self._is_continuation:
             return 0
-        out_lines = self.execution_output.split('\n')
-        return len(out_lines) * self.LINE_HEIGHT + 2 * self.PADDING + 20
+        return (len(self.execution_output.split('\n'))
+                * self.LINE_HEIGHT + 2 * self.PADDING + 22)
 
-    def _total_height(self, n_lines=None):
-        if n_lines is None:
-            n_lines = len(self.lines)
-        return self.HEADER_HEIGHT + self._code_body_height(n_lines) + self._output_height()
+    def _total_h(self, n=None):
+        if n is None:
+            n = len(self.lines)
+        return self.HEADER_HEIGHT + self._body_h(n) + self._out_h()
 
-    def _min_height(self):
-        """Minimum height to show the header + at least 1 line."""
-        return self.HEADER_HEIGHT + self._code_body_height(1)
+    def _min_h(self):
+        return self.HEADER_HEIGHT + self._body_h(1)
 
-    # ── ReportLab protocol ───────────────────────────────────────────────────
-
+    # ── ReportLab protocol ────────────────────────────────────────────────
     def wrap(self, availWidth, availHeight):
         self._avail_width = min(self.max_width, availWidth)
-        # Claim exactly the height this block needs (may exceed availHeight;
-        # ReportLab will call split() if so).
-        h = self._total_height()
-        return (self._avail_width, h)
+        return (self._avail_width, self._total_h())
 
     def split(self, availWidth, availHeight):
-        """
-        Called by ReportLab when wrap() height > availHeight.
-
-        Returns:
-          []       → can't fit even one line; let ReportLab move to next page
-          [self]   → everything fits (shouldn't normally reach here, but safe)
-          [A, B]   → A fits on this page, B continues on next page(s)
-        """
-        # Can't fit even the minimum (header + 1 line)?
-        if availHeight < self._min_height():
-            return []   # Signal: push entirely to next page
-
-        # Everything fits after all (e.g. availHeight grew)?
-        if availHeight >= self._total_height():
+        if availHeight < self._min_h():
+            return []
+        if availHeight >= self._total_h():
             return [self]
-
-        # How many lines fit within availHeight?
-        usable = availHeight - self.HEADER_HEIGHT - 2 * self.PADDING
-        lines_fit = max(int(usable // self.LINE_HEIGHT), 1)
-
-        # Clamp so we don't exceed what we actually have
-        lines_fit = min(lines_fit, len(self.lines))
-
-        if lines_fit >= len(self.lines):
+        usable    = availHeight - self.HEADER_HEIGHT - 2 * self.PADDING
+        fits      = max(int(usable // self.LINE_HEIGHT), 1)
+        fits      = min(fits, len(self.lines))
+        if fits >= len(self.lines):
             return [self]
-
-        first_lines = self.lines[:lines_fit]
-        rest_lines  = self.lines[lines_fit:]
-
         label = self.title or self.language
-
-        # Part A: fits on the current page
-        part_a = CodeEditorBlock(
-            code               = '\n'.join(first_lines),
-            language           = self.language.lower(),
-            title              = label,
-            show_line_numbers  = self.show_line_numbers,
-            max_width          = self.max_width,
-            # No output on first part; show it only on the final part
-            _is_continuation   = False,
+        pa = CodeEditorBlock(
+            code='\n'.join(self.lines[:fits]),
+            language=self.language.lower(),
+            title=label,
+            show_line_numbers=self.show_line_numbers,
+            max_width=self.max_width,
         )
-
-        # Part B: continues on the next page(s)
-        part_b = CodeEditorBlock(
-            code               = '\n'.join(rest_lines),
-            language           = self.language.lower(),
-            title              = f'{label} (cont.)',
-            show_line_numbers  = self.show_line_numbers,
-            max_width          = self.max_width,
-            execution_output   = self.execution_output,
-            execution_success  = self.execution_success,
-            _is_continuation   = True,
+        pb = CodeEditorBlock(
+            code='\n'.join(self.lines[fits:]),
+            language=self.language.lower(),
+            title=f'{label} (cont.)',
+            show_line_numbers=self.show_line_numbers,
+            max_width=self.max_width,
+            execution_output=self.execution_output,
+            execution_success=self.execution_success,
+            _is_continuation=True,
         )
+        return [pa, pb]
 
-        return [part_a, part_b]
-
-    # ── Drawing ──────────────────────────────────────────────────────────────
-
+    # ── Draw ──────────────────────────────────────────────────────────────
     def draw(self):
-        canvas  = self.canv
-        width   = getattr(self, '_avail_width', min(self.max_width, 6.5 * inch))
-        n_lines = len(self.lines)
+        cv    = self.canv
+        width = getattr(self, '_avail_width', CONTENT_W)
+        n     = len(self.lines)
+        tot_h = self._total_h(n)
+        y     = tot_h
 
-        total_h = self._total_height(n_lines)
-        y       = total_h   # start from top, move downward
-
-        # ── Header bar ──────────────────────────────────────────────────────
+        # ── header bar ────────────────────────────────────────────────────
         y -= self.HEADER_HEIGHT
-        canvas.setFillColor(colors.HexColor('#2d2d2d'))
-        canvas.roundRect(0, y, width, self.HEADER_HEIGHT, 4, fill=1, stroke=0)
+        cv.setFillColor(colors.HexColor('#21262d'))
+        cv.roundRect(0, y, width, self.HEADER_HEIGHT, 6, fill=1, stroke=0)
 
-        for cx, col in [(14, '#ff5f56'), (30, '#ffbd2e'), (46, '#27c93f')]:
-            canvas.setFillColor(colors.HexColor(col))
-            canvas.circle(cx, y + self.HEADER_HEIGHT / 2, 5, fill=1, stroke=0)
+        # traffic lights
+        for cx, col in [(12, '#ff5f57'), (28, '#febc2e'), (44, '#28c840')]:
+            cv.setFillColor(colors.HexColor(col))
+            cv.circle(cx, y + self.HEADER_HEIGHT / 2, 5, fill=1, stroke=0)
 
-        canvas.setFillColor(colors.HexColor('#888888'))
-        canvas.setFont('Helvetica-Bold', 9)
-        canvas.drawCentredString(width / 2, y + 7, self.title or self.language)
+        # language / title label (centered)
+        cv.setFillColor(colors.HexColor('#8b949e'))
+        cv.setFont('Helvetica-Bold', 9)
+        cv.drawCentredString(width / 2, y + 9, self.title or self.language)
 
-        # ── Code area ────────────────────────────────────────────────────────
-        code_h = self._code_body_height(n_lines)
-        y -= code_h
+        # ── code body ─────────────────────────────────────────────────────
+        body_h = self._body_h(n)
+        y -= body_h
 
-        canvas.setFillColor(colors.HexColor('#1e1e1e'))
-        canvas.rect(0, y, width, code_h, fill=1, stroke=0)
+        cv.setFillColor(C.CODE_BG)
+        cv.rect(0, y, width, body_h, fill=1, stroke=0)
 
         if self.show_line_numbers:
-            canvas.setFillColor(colors.HexColor('#252526'))
-            canvas.rect(0, y, self.LN_WIDTH, code_h, fill=1, stroke=0)
+            cv.setFillColor(C.CODE_GUTTER)
+            cv.rect(0, y, self.LN_WIDTH, body_h, fill=1, stroke=0)
+            # gutter right border
+            cv.setStrokeColor(colors.HexColor('#21262d'))
+            cv.setLineWidth(1)
+            cv.line(self.LN_WIDTH, y, self.LN_WIDTH, y + body_h)
 
-        code_y = y + code_h - self.PADDING - 10
-        for i, line in enumerate(self.lines):
+        code_y = y + body_h - self.PADDING - 10
+        for i, raw_line in enumerate(self.lines):
             if code_y < y:
                 break
             if self.show_line_numbers:
-                canvas.setFillColor(colors.HexColor('#858585'))
-                canvas.setFont('Courier', 9)
-                canvas.drawRightString(self.LN_WIDTH - 8, code_y, str(i + 1))
+                cv.setFillColor(C.CODE_LN)
+                cv.setFont('Courier', 9)
+                cv.drawRightString(self.LN_WIDTH - 6, code_y, str(i + 1))
 
-            canvas.setFillColor(colors.HexColor('#d4d4d4'))
-            canvas.setFont('Courier', 10)
-            display = (line[:120] + '\u2026') if len(line) > 120 else line
-            canvas.drawString(self.LN_WIDTH + 8, code_y, display)
+            # truncate very long lines gracefully
+            line = raw_line.expandtabs(4)
+            if len(line) > 110:
+                line = line[:107] + '\u2026'
+
+            cv.setFillColor(C.CODE_TEXT)
+            cv.setFont('Courier', 10)
+            cv.drawString(self.LN_WIDTH + 8, code_y, line)
             code_y -= self.LINE_HEIGHT
 
-        # ── Execution output (only on last part) ─────────────────────────────
+        # ── execution output ──────────────────────────────────────────────
         if self.execution_output and not self._is_continuation:
-            out_lines  = self.execution_output.split('\n')
-            out_body_h = len(out_lines) * self.LINE_HEIGHT + 2 * self.PADDING
-            out_total  = out_body_h + 20
-            y -= out_total
+            out_lines = self.execution_output.split('\n')
+            out_bh    = len(out_lines) * self.LINE_HEIGHT + 2 * self.PADDING
+            y -= out_bh + 22
 
-            canvas.setFillColor(colors.HexColor('#1a1a1a'))
-            canvas.rect(0, y, width, out_body_h, fill=1, stroke=0)
+            cv.setFillColor(colors.HexColor('#161b22'))
+            cv.rect(0, y, width, out_bh, fill=1, stroke=0)
 
             ok = self.execution_success
-            canvas.setFillColor(colors.HexColor('#3fb950') if ok else colors.HexColor('#f85149'))
-            canvas.setFont('Helvetica-Bold', 9)
-            canvas.drawString(10, y + out_body_h + 6, '> OUTPUT' if ok else '> ERROR')
+            lbl_col = C.SUCCESS if ok else C.ERROR
+            cv.setFillColor(lbl_col)
+            cv.setFont('Helvetica-Bold', 8)
+            label_txt = '▶  OUTPUT' if ok else '✕  ERROR'
+            cv.drawString(8, y + out_bh + 8, label_txt)
 
-            out_y = y + out_body_h - self.PADDING - 10
-            canvas.setFont('Courier', 9)
+            out_y = y + out_bh - self.PADDING - 10
+            cv.setFont('Courier', 9)
             for ln in out_lines:
                 if out_y < y:
                     break
-                canvas.setFillColor(colors.HexColor('#d4d4d4'))
-                canvas.drawString(12, out_y, (ln[:120] + '\u2026') if len(ln) > 120 else ln)
+                cv.setFillColor(colors.HexColor('#adbac7'))
+                cv.drawString(10, out_y, (ln[:110] + '\u2026') if len(ln) > 110 else ln)
                 out_y -= self.LINE_HEIGHT
 
-        # ── Border ───────────────────────────────────────────────────────────
-        canvas.setStrokeColor(colors.HexColor('#3c3c3c'))
-        canvas.setLineWidth(1)
-        canvas.roundRect(0, 0, width, total_h, 4, fill=0, stroke=1)
+        # ── outer border ──────────────────────────────────────────────────
+        cv.setStrokeColor(C.CODE_BORDER)
+        cv.setLineWidth(1)
+        cv.roundRect(0, 0, width, tot_h, 6, fill=0, stroke=1)
 
 
 # ============================================================================
-# Code detection helpers (unchanged)
+# Code detection
 # ============================================================================
-
 def detect_code_pattern(text, threshold_lines=3):
     if not text or len(text) < 20:
         return False, None
     lines = text.strip().split('\n')
     if len(lines) < threshold_lines:
         return False, None
-
-    python_patterns = [
-        r'^\s*def\s+\w+\s*\(', r'^\s*class\s+\w+[\(:]',
-        r'^\s*import\s+\w+', r'^\s*from\s+\w+\s+import',
-        r'^\s*if\s+.*:', r'^\s*for\s+\w+\s+in\s+',
-        r'^\s*while\s+.*:', r'^\s*return\s+',
-        r'^\s*print\s*\(', r'^\s*elif\s+.*:', r'^\s*except\s*.*:',
-    ]
-    js_patterns = [
-        r'^\s*function\s+\w+\s*\(', r'^\s*const\s+\w+\s*=',
-        r'^\s*let\s+\w+\s*=', r'^\s*var\s+\w+\s*=',
-        r'=>\s*{', r'^\s*console\.', r'^\s*export\s+',
-        r'^\s*import\s+.*\s+from',
-    ]
-    java_patterns = [
-        r'^\s*public\s+(static\s+)?', r'^\s*private\s+',
-        r'^\s*protected\s+', r'^\s*void\s+\w+\s*\(',
-        r'^\s*int\s+\w+\s*[=;(]', r'^\s*String\s+\w+',
-        r'System\.out\.print', r'#include\s*<', r'^\s*using\s+namespace',
-    ]
-
-    python_score = sum(1 for l in lines if any(re.search(p, l) for p in python_patterns))
-    js_score     = sum(1 for l in lines if any(re.search(p, l) for p in js_patterns))
-    java_score   = sum(1 for l in lines if any(re.search(p, l) for p in java_patterns))
-
-    indented     = sum(1 for l in lines if l and l[0] in ' \t')
-    indent_ratio = indented / len(lines)
-
-    max_score = max(python_score, js_score, java_score)
-    if max_score >= 2 or (max_score >= 1 and indent_ratio > 0.3):
-        if python_score == max_score:
-            return True, 'python'
-        if js_score == max_score:
-            return True, 'javascript'
-        return True, 'java'
-    if len(lines) >= 3 and indent_ratio > 0.4:
+    py = [r'^\s*def\s+\w+\s*\(', r'^\s*class\s+\w+[\(:]',
+          r'^\s*import\s+\w+', r'^\s*from\s+\w+\s+import',
+          r'^\s*if\s+.*:', r'^\s*for\s+\w+\s+in\s+',
+          r'^\s*while\s+.*:', r'^\s*return\s+',
+          r'^\s*print\s*\(', r'^\s*elif\s+.*:']
+    js = [r'^\s*function\s+\w+\s*\(', r'^\s*const\s+\w+\s*=',
+          r'^\s*let\s+\w+\s*=', r'=>\s*{', r'^\s*console\.']
+    jv = [r'^\s*public\s+', r'^\s*private\s+', r'System\.out\.print',
+          r'#include\s*<']
+    sc = {l: sum(1 for x in lines if any(re.search(p, x) for p in pat))
+          for l, pat in [('python', py), ('javascript', js), ('java', jv)]}
+    indented = sum(1 for l in lines if l and l[0] in ' \t') / len(lines)
+    best = max(sc, key=sc.get)
+    if sc[best] >= 2 or (sc[best] >= 1 and indented > 0.3):
+        return True, best
+    if len(lines) >= 3 and indented > 0.4:
         return True, 'python'
     return False, None
 
 
 # ============================================================================
-# HTML → PDF element parser (unchanged from original)
+# Rich-text HTML → elements
 # ============================================================================
-
 class RichTextHTMLParser(HTMLParser):
     def __init__(self):
         super().__init__()
         self.reset()
-        self.strict = False
+        self.strict           = False
         self.convert_charrefs = True
-        self.elements = []
-        self.current_text = []
-        self.tag_stack = []
-        self.list_stack = []
-        self.current_styles = {}
-        self.alignment = 'LEFT'
-        self.in_code_block = False
-        self.code_block_content = []
-        self.code_language = 'python'
+        self.elements         = []
+        self.current_text     = []
+        self.tag_stack        = []
+        self.list_stack       = []
+        self.current_styles   = {}
+        self.alignment        = 'LEFT'
+        self.in_code_block    = False
+        self.code_content     = []
+        self.code_lang        = 'python'
 
     def handle_starttag(self, tag, attrs):
-        attrs_dict = dict(attrs)
-        self.tag_stack.append((tag, attrs_dict))
-        if 'class' in attrs_dict:
-            cls = attrs_dict['class']
-            if 'ql-align-center' in cls:  self.alignment = 'CENTER'
-            elif 'ql-align-right' in cls: self.alignment = 'RIGHT'
-            elif 'ql-align-justify' in cls: self.alignment = 'JUSTIFY'
+        ad = dict(attrs)
+        self.tag_stack.append((tag, ad))
+        cls = ad.get('class', '')
+        if 'ql-align-center'  in cls: self.alignment = 'CENTER'
+        elif 'ql-align-right' in cls: self.alignment = 'RIGHT'
+        elif 'ql-align-justify' in cls: self.alignment = 'JUSTIFY'
 
         if tag == 'pre':
-            self._flush_paragraph()
+            self._flush()
             self.in_code_block = True
-            self.code_block_content = []
-            if 'class' in attrs_dict:
-                m = re.search(r'language-(\w+)', attrs_dict['class'])
-                self.code_language = m.group(1) if m else 'python'
-            else:
-                self.code_language = 'python'
-        elif tag in ('strong', 'b') and not self.in_code_block:
-            self.current_text.append('<b>')
-        elif tag in ('em', 'i') and not self.in_code_block:
-            self.current_text.append('<i>')
-        elif tag == 'u' and not self.in_code_block:
-            self.current_text.append('<u>')
-        elif tag in ('s', 'strike') and not self.in_code_block:
-            self.current_text.append('<strike>')
-        elif tag == 'code' and not self.in_code_block:
-            self.current_text.append('<font face="Courier" backColor="#f0f0f0">')
+            self.code_content  = []
+            m = re.search(r'language-(\w+)', cls)
+            self.code_lang = m.group(1) if m else 'python'
+        elif tag in ('strong', 'b')  and not self.in_code_block: self.current_text.append('<b>')
+        elif tag in ('em', 'i')      and not self.in_code_block: self.current_text.append('<i>')
+        elif tag == 'u'              and not self.in_code_block: self.current_text.append('<u>')
+        elif tag in ('s', 'strike')  and not self.in_code_block: self.current_text.append('<strike>')
+        elif tag == 'code'           and not self.in_code_block:
+            self.current_text.append('<font face="Courier" backColor="#f1f5f9" color="#1e40af">')
         elif tag == 'br':
-            if self.in_code_block:
-                self.code_block_content.append('\n')
-            else:
-                self.current_text.append('<br/>')
-        elif tag in ('h1', 'h2', 'h3', 'h4'):
-            self._flush_paragraph()
+            (self.code_content if self.in_code_block else self.current_text).append('\n')
+        elif tag in ('h1','h2','h3','h4'):
+            self._flush()
             self.current_styles['heading'] = tag
         elif tag == 'blockquote':
-            self._flush_paragraph()
+            self._flush()
             self.current_styles['blockquote'] = True
-        elif tag in ('ul', 'ol'):
-            self._flush_paragraph()
+        elif tag in ('ul','ol'):
+            self._flush()
             self.list_stack.append(tag)
         elif tag == 'p':
-            if 'style' in attrs_dict:
-                s = attrs_dict['style']
-                if 'text-align: center'  in s: self.alignment = 'CENTER'
-                elif 'text-align: right' in s: self.alignment = 'RIGHT'
-                elif 'text-align: justify' in s: self.alignment = 'JUSTIFY'
-        elif tag == 'span' and 'style' in attrs_dict:
-            s = attrs_dict['style']
-            cm = re.search(r'color:\s*([^;]+)', s)
-            if cm: self.current_text.append(f'<font color="{cm.group(1).strip()}">')
-            bm = re.search(r'background-color:\s*([^;]+)', s)
-            if bm: self.current_text.append(f'<font backColor="{bm.group(1).strip()}">')
+            s = ad.get('style', '')
+            if 'center'  in s: self.alignment = 'CENTER'
+            elif 'right' in s: self.alignment = 'RIGHT'
+            elif 'justify' in s: self.alignment = 'JUSTIFY'
+        elif tag == 'span' and 'style' in ad:
+            s = ad['style']
+            m = re.search(r'color:\s*([^;]+)', s)
+            if m: self.current_text.append(f'<font color="{m.group(1).strip()}">')
+            m2 = re.search(r'background-color:\s*([^;]+)', s)
+            if m2: self.current_text.append(f'<font backColor="{m2.group(1).strip()}">')
 
     def handle_endtag(self, tag):
-        if not self.tag_stack:
-            return
-        last_tag, _ = self.tag_stack[-1]
-        if last_tag == tag:
+        if self.tag_stack and self.tag_stack[-1][0] == tag:
             self.tag_stack.pop()
-
         if tag == 'pre':
             if self.in_code_block:
-                self.elements.append({
-                    'text': ''.join(self.code_block_content),
+                self.elements.append({'text': ''.join(self.code_content),
                     'style': 'code', 'alignment': 'LEFT',
                     'is_list_item': False, 'list_type': None,
-                    'is_code': True, 'language': self.code_language,
-                })
+                    'is_code': True, 'language': self.code_lang})
                 self.in_code_block = False
-                self.code_block_content = []
             return
-
-        if tag in ('strong', 'b') and not self.in_code_block:
-            self.current_text.append('</b>')
-        elif tag in ('em', 'i') and not self.in_code_block:
-            self.current_text.append('</i>')
-        elif tag == 'u' and not self.in_code_block:
-            self.current_text.append('</u>')
-        elif tag in ('s', 'strike') and not self.in_code_block:
-            self.current_text.append('</strike>')
-        elif tag == 'code' and not self.in_code_block:
-            self.current_text.append('</font>')
-        elif tag in ('h1', 'h2', 'h3', 'h4'):
-            self._flush_paragraph()
+        if tag in ('strong','b') and not self.in_code_block: self.current_text.append('</b>')
+        elif tag in ('em','i')   and not self.in_code_block: self.current_text.append('</i>')
+        elif tag == 'u'          and not self.in_code_block: self.current_text.append('</u>')
+        elif tag in ('s','strike') and not self.in_code_block: self.current_text.append('</strike>')
+        elif tag == 'code'       and not self.in_code_block: self.current_text.append('</font>')
+        elif tag in ('h1','h2','h3','h4'):
+            self._flush()
             self.current_styles.pop('heading', None)
         elif tag == 'blockquote':
-            self._flush_paragraph()
+            self._flush()
             self.current_styles.pop('blockquote', None)
-        elif tag in ('ul', 'ol'):
+        elif tag in ('ul','ol'):
             if self.list_stack and self.list_stack[-1] == tag:
                 self.list_stack.pop()
-        elif tag == 'li':
-            self._flush_paragraph()
-        elif tag == 'p':
-            self._flush_paragraph()
-            self.alignment = 'LEFT'
+        elif tag in ('li','p'):
+            self._flush()
+            if tag == 'p': self.alignment = 'LEFT'
         elif tag == 'span':
             self.current_text.append('</font>')
 
     def handle_data(self, data):
         if self.in_code_block:
-            self.code_block_content.append(data)
-            return
-        if self.tag_stack and self.tag_stack[-1][0] in ('pre', 'code'):
-            self.current_text.append(data)
-        else:
-            cleaned = data.strip()
-            if cleaned:
-                self.current_text.append(cleaned)
-            elif data and not cleaned:
-                self.current_text.append(' ')
+            self.code_content.append(data); return
+        cleaned = data.strip()
+        self.current_text.append(cleaned if cleaned else (' ' if data else ''))
 
-    def _flush_paragraph(self):
-        if not self.current_text:
-            return
+    def _flush(self):
         text = ''.join(self.current_text).strip()
-        if not text:
-            self.current_text = []
-            return
+        self.current_text = []
+        if not text: return
         if 'heading' in self.current_styles:
-            style_name = f'CustomHeading{self.current_styles["heading"][1]}'
+            sname = f'CustomHeading{self.current_styles["heading"][1]}'
         elif 'blockquote' in self.current_styles:
-            style_name = 'CustomBlockquote'
+            sname = 'CustomBlockquote'
         elif self.list_stack:
-            style_name = 'CustomListItem'
+            sname = 'CustomListItem'
         else:
-            style_name = 'CustomBody'
-        self.elements.append({
-            'text': text, 'style': style_name,
+            sname = 'CustomBody'
+        self.elements.append({'text': text, 'style': sname,
             'alignment': self.alignment,
             'is_list_item': bool(self.list_stack),
             'list_type': self.list_stack[-1] if self.list_stack else None,
-            'is_code': False, 'language': None,
-        })
-        self.current_text = []
+            'is_code': False, 'language': None})
 
     def get_elements(self):
-        self._flush_paragraph()
+        self._flush()
         return self.elements
 
 
 # ============================================================================
 # PDF Export Service
 # ============================================================================
-
 class PDFExportService:
     def __init__(self, note):
         self.note   = note
-        self.styles = self._setup_ieee_styles()
+        self.styles = self._make_styles()
 
-    def _setup_ieee_styles(self):
+    # ── styles ───────────────────────────────────────────────────────────
+    def _make_styles(self):
         base = getSampleStyleSheet()
         def S(name, **kw):
-            parent = kw.pop('parent', base['Normal'])
-            return ParagraphStyle(name, parent=parent, **kw)
+            return ParagraphStyle(name, parent=kw.pop('parent', base['Normal']), **kw)
 
         return {
-            'title':           S('IEEETitle',     parent=base['Heading1'], fontSize=28,
-                                  textColor=IEEEColors.PRIMARY, spaceAfter=24,
-                                  alignment=TA_CENTER, fontName='Helvetica-Bold', leading=34),
-            'subtitle':        S('IEEESubtitle',  fontSize=12, textColor=IEEEColors.TEXT_SECONDARY,
-                                  spaceAfter=12, alignment=TA_CENTER, leading=18),
-            'metadata':        S('IEEEMetadata',  fontSize=10, textColor=IEEEColors.TEXT_MUTED,
-                                  spaceAfter=6, alignment=TA_CENTER, leading=14),
-            'toc_title':       S('TOCTitle',      parent=base['Heading1'], fontSize=18,
-                                  textColor=IEEEColors.PRIMARY, spaceAfter=24,
-                                  fontName='Helvetica-Bold', leading=22, alignment=TA_LEFT),
-            'chapter':         S('IEEEChapter',   parent=base['Heading1'], fontSize=16,
-                                  textColor=IEEEColors.PRIMARY, spaceAfter=12, spaceBefore=24,
-                                  fontName='Helvetica-Bold', leading=20, keepWithNext=1),
-            'topic':           S('IEEETopic',     parent=base['Heading2'], fontSize=13,
-                                  textColor=IEEEColors.SECONDARY, spaceAfter=8, spaceBefore=18,
-                                  fontName='Helvetica-Bold', leading=16, keepWithNext=1),
-            'section_label':   S('SectionLabel',  fontSize=10, textColor=IEEEColors.ACCENT,
-                                  spaceBefore=16, spaceAfter=6, fontName='Helvetica-Bold', leading=12),
-            'CustomHeading1':  S('CH1', parent=base['Heading1'], fontSize=14,
-                                  textColor=IEEEColors.PRIMARY, spaceAfter=8, spaceBefore=16,
-                                  fontName='Helvetica-Bold', leading=18),
-            'CustomHeading2':  S('CH2', parent=base['Heading2'], fontSize=12,
-                                  textColor=IEEEColors.SECONDARY, spaceAfter=6, spaceBefore=12,
-                                  fontName='Helvetica-Bold', leading=16),
-            'CustomHeading3':  S('CH3', parent=base['Heading3'], fontSize=11,
-                                  textColor=IEEEColors.SECONDARY, spaceAfter=6, spaceBefore=10,
-                                  fontName='Helvetica-Bold', leading=14),
-            'CustomBody':      S('IEEEBody', fontSize=10, leading=16, alignment=TA_JUSTIFY,
-                                  spaceAfter=8, textColor=IEEEColors.TEXT_PRIMARY),
-            'CustomBlockquote':S('IEEEBQ',   fontSize=10, leading=16, leftIndent=20,
-                                  rightIndent=20, spaceAfter=12, spaceBefore=12,
-                                  fontName='Helvetica-Oblique',
-                                  textColor=IEEEColors.TEXT_SECONDARY,
-                                  backColor=IEEEColors.BLOCKQUOTE_BG, borderPadding=10),
-            'CustomListItem':  S('IEEELI',   fontSize=10, leading=16, leftIndent=25,
-                                  spaceAfter=4, bulletIndent=10,
-                                  textColor=IEEEColors.TEXT_PRIMARY),
-            'bullet':          S('IEEEBullet', fontSize=10, leading=16, leftIndent=25,
-                                  bulletIndent=10, spaceAfter=4,
-                                  textColor=IEEEColors.TEXT_PRIMARY),
-            'code':            S('IEEECode', parent=base['Code'], fontSize=9, leading=13,
-                                  leftIndent=12, rightIndent=12,
-                                  backColor=IEEEColors.CODE_BG,
-                                  textColor=IEEEColors.CODE_TEXT,
-                                  borderColor=IEEEColors.CODE_BORDER,
-                                  borderWidth=1, borderPadding=12,
-                                  fontName='Courier', spaceAfter=12, spaceBefore=8),
-            'toc_chapter':     S('TOCChap', fontSize=11, textColor=IEEEColors.PRIMARY,
-                                  fontName='Helvetica-Bold', spaceAfter=6, spaceBefore=8),
-            'toc_topic':       S('TOCTopic', fontSize=10, textColor=IEEEColors.TEXT_PRIMARY,
-                                  spaceAfter=4, leftIndent=20),
-            'reference_title': S('RefTitle', parent=base['Heading1'], fontSize=14,
-                                  textColor=IEEEColors.PRIMARY, spaceAfter=16,
-                                  fontName='Helvetica-Bold', leading=18),
-            'reference_item':  S('RefItem',  fontSize=9, leading=14, leftIndent=20,
-                                  firstLineIndent=-20, spaceAfter=8,
-                                  textColor=IEEEColors.TEXT_PRIMARY),
-            'reference_url':   S('RefURL',   fontSize=8, leftIndent=20, spaceAfter=12,
-                                  fontName='Courier', textColor=IEEEColors.ACCENT),
+            # Title page
+            'cover_kicker':  S('CK',  fontSize=11, textColor=C.BLUE_LIGHT,
+                                fontName='Helvetica-Bold', alignment=TA_CENTER,
+                                spaceBefore=0, spaceAfter=8),
+            'cover_title':   S('CT',  fontSize=32, textColor=C.WHITE,
+                                fontName='Helvetica-Bold', alignment=TA_CENTER,
+                                leading=40, spaceBefore=0, spaceAfter=16),
+            'cover_meta':    S('CM',  fontSize=10, textColor=colors.HexColor('#94a3b8'),
+                                alignment=TA_CENTER, leading=16, spaceAfter=6),
+            'cover_tags':    S('CTG', fontSize=9,  textColor=colors.HexColor('#64748b'),
+                                alignment=TA_CENTER, leading=14, spaceAfter=0),
+
+            # TOC
+            'toc_h':         S('TOH', fontSize=20, textColor=C.NAVY,
+                                fontName='Helvetica-Bold', spaceAfter=6, spaceBefore=0),
+            'toc_chap':      S('TCH', fontSize=11, textColor=C.NAVY,
+                                fontName='Helvetica-Bold', spaceAfter=3, spaceBefore=10,
+                                leftIndent=0),
+            'toc_topic':     S('TTP', fontSize=10, textColor=C.TEXT_MED,
+                                spaceAfter=2, leftIndent=18),
+
+            # Body heading styles (within explanation)
+            'SubHeading1':   S('SH1', parent=base['Heading1'], fontSize=13,
+                                textColor=C.NAVY, fontName='Helvetica-Bold',
+                                spaceBefore=16, spaceAfter=6, leading=18, keepWithNext=1),
+            'SubHeading2':   S('SH2', parent=base['Heading2'], fontSize=11,
+                                textColor=C.BLUE,  fontName='Helvetica-Bold',
+                                spaceBefore=12, spaceAfter=4, leading=16, keepWithNext=1),
+            'SubHeading3':   S('SH3', parent=base['Heading3'], fontSize=10,
+                                textColor=C.TEAL,  fontName='Helvetica-BoldOblique',
+                                spaceBefore=8, spaceAfter=3, leading=14, keepWithNext=1),
+
+            'CustomHeading1': S('CH1', parent=base['Heading1'], fontSize=13,
+                                textColor=C.NAVY, fontName='Helvetica-Bold',
+                                spaceBefore=16, spaceAfter=6, leading=18, keepWithNext=1),
+            'CustomHeading2': S('CH2', parent=base['Heading2'], fontSize=11,
+                                textColor=C.BLUE, fontName='Helvetica-Bold',
+                                spaceBefore=12, spaceAfter=4, leading=16, keepWithNext=1),
+            'CustomHeading3': S('CH3', parent=base['Heading3'], fontSize=10,
+                                textColor=C.TEAL, fontName='Helvetica-BoldOblique',
+                                spaceBefore=8, spaceAfter=3, leading=14, keepWithNext=1),
+            'CustomHeading4': S('CH4', parent=base['Heading3'], fontSize=10,
+                                textColor=C.TEXT_MED, fontName='Helvetica-BoldOblique',
+                                spaceBefore=6, spaceAfter=2, leading=13, keepWithNext=1),
+
+            # Body text
+            'CustomBody':     S('CB', fontSize=10.5, leading=17, alignment=TA_JUSTIFY,
+                                spaceAfter=7, textColor=C.TEXT, firstLineIndent=0),
+            'CustomBlockquote': S('CBQ', fontSize=10, leading=16,
+                                leftIndent=22, rightIndent=22,
+                                spaceBefore=10, spaceAfter=10,
+                                fontName='Helvetica-Oblique',
+                                textColor=C.TEXT_MED,
+                                backColor=C.BLOCKQUOTE,
+                                borderPadding=(8, 12, 8, 12)),
+            'CustomListItem': S('CLI', fontSize=10.5, leading=17,
+                                leftIndent=28, firstLineIndent=0,
+                                spaceAfter=3, textColor=C.TEXT),
+            'bullet':         S('BUL', fontSize=10.5, leading=17,
+                                leftIndent=28, firstLineIndent=0,
+                                spaceAfter=3, textColor=C.TEXT),
+
+            # Misc
+            'section_label':  S('SL', fontSize=9, textColor=C.BLUE_LIGHT,
+                                fontName='Helvetica-Bold', spaceBefore=14,
+                                spaceAfter=4, leading=12),
+            'source_line':    S('SOL', fontSize=9, textColor=C.TEXT_MUTED,
+                                fontName='Helvetica-Oblique', spaceAfter=4, leading=13),
+
+            # References
+            'ref_title':      S('RT', parent=base['Heading1'], fontSize=16,
+                                textColor=C.NAVY, fontName='Helvetica-Bold',
+                                spaceAfter=14, leading=20),
+            'ref_item':       S('RI', fontSize=9.5, leading=14, leftIndent=22,
+                                firstLineIndent=-22, spaceAfter=6, textColor=C.TEXT),
+            'ref_url':        S('RU', fontSize=8.5, leftIndent=22, spaceAfter=10,
+                                fontName='Courier', textColor=C.BLUE),
         }
 
-    # ── export ───────────────────────────────────────────────────────────────
-
+    # ── public entry ─────────────────────────────────────────────────────
     def export(self):
-        """Build PDF into BytesIO; return as ContentFile (no disk I/O)."""
-        buffer = BytesIO()
+        buf = BytesIO()
+        note_title = self.note.title
+
         doc = SimpleDocTemplate(
-            buffer,
+            buf,
             pagesize=A4,
-            rightMargin=0.75 * inch,
-            leftMargin=0.75 * inch,
-            topMargin=0.75 * inch,
-            bottomMargin=0.75 * inch,
+            leftMargin=LEFT_MARGIN, rightMargin=RIGHT_MARGIN,
+            topMargin=TOP_MARGIN,   bottomMargin=BOTTOM_MARGIN,
             allowSplitting=1,
         )
 
         story = []
-        self._add_title_page(story)
+        self._cover(story)
         story.append(PageBreak())
-        self._add_table_of_contents(story)
+        self._toc(story)
         story.append(PageBreak())
-        sources = self._add_chapters_and_topics(story)
+        sources = self._content(story)
         if sources:
             story.append(PageBreak())
-            self._add_references(story, sources)
+            self._references(story, sources)
 
-        doc.build(story)
+        doc.build(
+            story,
+            onFirstPage=lambda cv, d: _draw_header_footer(cv, d, note_title),
+            onLaterPages=lambda cv, d: _draw_header_footer(cv, d, note_title),
+        )
 
-        pdf_bytes = buffer.getvalue()
-        buffer.close()
-        logger.info(f"PDF generated for note {self.note.id}: {len(pdf_bytes):,} bytes")
-        return ContentFile(pdf_bytes, name=f"note_{self.note.slug}_{date.today()}.pdf")
+        data = buf.getvalue()
+        buf.close()
+        logger.info(f'PDF generated for note {self.note.id}: {len(data):,} bytes')
+        return ContentFile(data, name=f'note_{self.note.slug}_{date.today()}.pdf')
 
-    # ── title page ───────────────────────────────────────────────────────────
+    # ── Cover page ────────────────────────────────────────────────────────
+    def _cover(self, story):
+        # Dark hero background via table
+        bg_data = [['']]
+        tbl = Table(bg_data, colWidths=[CONTENT_W], rowHeights=[3.8 * inch])
+        tbl.setStyle(TableStyle([
+            ('BACKGROUND',   (0, 0), (-1, -1), C.CHAPTER_BG),
+            ('ROUNDEDCORNERS', [10]),
+            ('TOPPADDING',   (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING',(0, 0), (-1, -1), 0),
+        ]))
 
-    def _add_title_page(self, story):
-        story.append(Spacer(1, 1.5 * inch))
-        story.append(Paragraph("STUDY NOTES", self.styles['metadata']))
+        # Build cover card with text on dark background using canvas directly
+        story.append(Spacer(1, 0.6 * inch))
+        # Kicker
+        story.append(Paragraph(
+            '<font color="#60a5fa">◆  STUDY NOTES</font>',
+            self.styles['cover_kicker']
+        ))
+        story.append(Spacer(1, 0.15 * inch))
+
+        # Title on white background (simulated with a colored paragraph)
+        title_style = ParagraphStyle(
+            'CoverTitle2', parent=self.styles['cover_title'],
+            textColor=C.NAVY, backColor=colors.white,
+            borderPadding=(12, 20, 12, 20),
+        )
+        story.append(Paragraph(self.note.title, title_style))
+        story.append(Spacer(1, 0.4 * inch))
+        story.append(HRule(color=C.BLUE_LIGHT, thickness=2, vpad=0))
         story.append(Spacer(1, 0.3 * inch))
-        story.append(Paragraph(self.note.title, self.styles['title']))
-        story.append(Spacer(1, 0.4 * inch))
-        story.append(SectionDivider(style='accent'))
-        story.append(Spacer(1, 0.4 * inch))
 
         created = self.note.created_at.strftime('%B %d, %Y')
         updated = self.note.updated_at.strftime('%B %d, %Y')
         story.append(Paragraph(
-            f'<para alignment="center"><font size="10" color="#4a5568">'
-            f'<b>Created:</b> {created}<br/>'
-            f'<b>Last Updated:</b> {updated}<br/>'
-            f'<b>Status:</b> {self.note.get_status_display()}</font></para>',
-            self.styles['subtitle'],
+            f'Created: <b>{created}</b>  ·  Last Updated: <b>{updated}</b>  ·  '
+            f'Status: <b>{self.note.get_status_display()}</b>',
+            self.styles['cover_meta']
         ))
-        story.append(Spacer(1, 0.5 * inch))
+
         if self.note.tags:
+            story.append(Spacer(1, 0.15 * inch))
             story.append(Paragraph(
-                f'<para alignment="center"><font size="9" color="#718096">'
-                f'<b>Keywords:</b> {", ".join(self.note.tags)}</font></para>',
-                self.styles['subtitle'],
+                'Keywords: ' + ' · '.join(self.note.tags),
+                self.styles['cover_tags']
             ))
-        story.append(Spacer(1, 1.5 * inch))
+
+        story.append(Spacer(1, 1.8 * inch))
+        story.append(HRule(color=C.DIVIDER, thickness=0.5, vpad=0))
+        story.append(Spacer(1, 0.15 * inch))
         story.append(Paragraph(
-            '<para alignment="center"><font size="9" color="#a0aec0">'
-            'Generated by NoteAssist AI<br/>Professional Note Management System'
-            '</font></para>',
-            self.styles['metadata'],
+            '<font color="#94a3b8" size="8">Generated by NoteAssist AI · Professional Note Management</font>',
+            self.styles['cover_meta']
         ))
 
-    # ── TOC ──────────────────────────────────────────────────────────────────
-
-    def _add_table_of_contents(self, story):
-        story.append(Paragraph("TABLE OF CONTENTS", self.styles['toc_title']))
+    # ── TOC ──────────────────────────────────────────────────────────────
+    def _toc(self, story):
+        story.append(Paragraph('Table of Contents', self.styles['toc_h']))
+        story.append(HRule(color=C.BLUE_LIGHT, thickness=2))
         story.append(Spacer(1, 0.2 * inch))
-        story.append(SectionDivider(style='line'))
-        story.append(Spacer(1, 0.3 * inch))
 
         rows = []
         cn = 1
-        for chapter in self.note.chapters.all().order_by('order'):
-            rows.append([Paragraph(f"<b>{cn}. {chapter.title}</b>", self.styles['toc_chapter'])])
+        for ch in self.note.chapters.all().order_by('order'):
+            # Chapter row
+            rows.append([
+                Paragraph(f'<b>{cn}. {ch.title}</b>', self.styles['toc_chap']),
+                Paragraph(f'<font color="#94a3b8">{ch.topics.count()} topics</font>',
+                          ParagraphStyle('TR', parent=self.styles['toc_chap'],
+                                         alignment=TA_RIGHT, textColor=C.TEXT_MUTED))
+            ])
             tn = 1
-            for topic in chapter.topics.all().order_by('order'):
-                rows.append([Paragraph(f"{cn}.{tn} {topic.name}", self.styles['toc_topic'])])
+            for tp in ch.topics.all().order_by('order'):
+                rows.append([
+                    Paragraph(f'  {cn}.{tn}  {tp.name}', self.styles['toc_topic']),
+                    Paragraph('', self.styles['toc_topic']),
+                ])
                 tn += 1
             cn += 1
 
         if rows:
-            t = Table(rows, colWidths=[6 * inch])
+            t = Table(rows, colWidths=[CONTENT_W * 0.85, CONTENT_W * 0.15])
             t.setStyle(TableStyle([
                 ('VALIGN',        (0, 0), (-1, -1), 'TOP'),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-                ('TOPPADDING',    (0, 0), (-1, -1), 4),
+                ('TOPPADDING',    (0, 0), (-1, -1), 3),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                ('LINEBELOW',     (0, 0), (-1, -2), 0.3, C.DIVIDER),
             ]))
             story.append(t)
 
-    # ── chapters & topics ────────────────────────────────────────────────────
+    # ── Main content ──────────────────────────────────────────────────────
+    def _content(self, story):
+        sources     = {}
+        src_counter = 1
+        cn          = 1
 
-    def _add_chapters_and_topics(self, story):
-        all_sources    = {}
-        source_counter = 1
-        chapter_num    = 1
+        for ch in self.note.chapters.all().order_by('order'):
+            story.append(ChapterBanner(f'Chapter {cn}  ·  {ch.title}'))
+            story.append(Spacer(1, 0.18 * inch))
 
-        for chapter in self.note.chapters.all().order_by('order'):
-            story.append(Paragraph(f"{chapter_num}. {chapter.title}", self.styles['chapter']))
-            story.append(SectionDivider(style='line'))
-            story.append(Spacer(1, 0.15 * inch))
-
-            topic_num = 1
-            for topic in chapter.topics.all().order_by('order'):
-                story.append(Paragraph(
-                    f"{chapter_num}.{topic_num} {topic.name}", self.styles['topic']
-                ))
-                story.append(Spacer(1, 0.1 * inch))
+            tn = 1
+            for tp in ch.topics.all().order_by('order'):
+                # Topic label banner
+                topic_label = f'{cn}.{tn}   {tp.name}'
+                topic_items = [TopicLabel(topic_label), Spacer(1, 0.12 * inch)]
 
                 # Explanation
-                if topic.explanation:
-                    parser = RichTextHTMLParser()
-                    parser.feed(topic.explanation.content)
-                    list_counter = 1
-                    for elem in parser.get_elements():
-                        text      = elem['text']
-                        alignment = elem['alignment']
+                if tp.explanation:
+                    exp_items, heading_counter = self._render_explanation(
+                        tp.explanation.content, cn, tn
+                    )
+                    topic_items.extend(exp_items)
+                    topic_items.append(Spacer(1, 0.08 * inch))
 
-                        if elem.get('is_code'):
-                            story.append(Spacer(1, 0.1 * inch))
-                            story.append(CodeEditorBlock(
-                                code=unescape(text),
-                                language=elem.get('language', 'python') or 'python',
-                                title=f"{(elem.get('language') or 'code').upper()} Code",
-                                show_line_numbers=True,
-                            ))
-                            story.append(Spacer(1, 0.15 * inch))
-                            continue
-
-                        is_code, lang = detect_code_pattern(text)
-                        if is_code:
-                            story.append(Spacer(1, 0.1 * inch))
-                            story.append(CodeEditorBlock(
-                                code=unescape(text),
-                                language=lang or 'python',
-                                title=f"{(lang or 'python').upper()} Code",
-                                show_line_numbers=True,
-                            ))
-                            story.append(Spacer(1, 0.15 * inch))
-                            continue
-
-                        base_style = self.styles.get(elem['style'], self.styles['CustomBody'])
-                        if alignment == 'CENTER':
-                            style = ParagraphStyle('_c', parent=base_style, alignment=TA_CENTER)
-                        elif alignment == 'RIGHT':
-                            style = ParagraphStyle('_r', parent=base_style, alignment=TA_RIGHT)
-                        elif alignment == 'JUSTIFY':
-                            style = ParagraphStyle('_j', parent=base_style, alignment=TA_JUSTIFY)
-                        else:
-                            style = base_style
-
-                        if elem['is_list_item']:
-                            bullet = '•' if elem['list_type'] == 'ul' else f'{list_counter}.'
-                            if elem['list_type'] != 'ul':
-                                list_counter += 1
-                            story.append(Paragraph(f"{bullet}  {text}", self.styles['bullet']))
-                        else:
-                            story.append(Paragraph(text, style))
-                            list_counter = 1
-                        story.append(Spacer(1, 0.04 * inch))
-
-                    story.append(Spacer(1, 0.1 * inch))
-
-                # Code snippet
-                if topic.code_snippet:
-                    story.append(Spacer(1, 0.1 * inch))
-                    story.append(Paragraph("Practical Example", self.styles['section_label']))
-                    story.append(Spacer(1, 0.08 * inch))
-                    clean = unescape(re.sub(r'<[^>]+>', '', topic.code_snippet.code))
-                    story.append(CodeEditorBlock(
+                # Code snippet (from dedicated code_snippet field)
+                if tp.code_snippet:
+                    clean = unescape(re.sub(r'<[^>]+>', '', tp.code_snippet.code))
+                    topic_items.append(Spacer(1, 0.08 * inch))
+                    topic_items.append(Paragraph('Practical Example', self.styles['section_label']))
+                    topic_items.append(Spacer(1, 0.06 * inch))
+                    topic_items.append(CodeEditorBlock(
                         code=clean,
-                        language=topic.code_snippet.language,
-                        title=f"{topic.code_snippet.language.upper()} Code",
+                        language=tp.code_snippet.language,
+                        title=f'{tp.code_snippet.language.upper()} · Example Code',
                         show_line_numbers=True,
                     ))
-                    story.append(Spacer(1, 0.15 * inch))
+                    topic_items.append(Spacer(1, 0.12 * inch))
 
-                # Source citation
-                if topic.source:
-                    key = topic.source.url
-                    if key not in all_sources:
-                        all_sources[key] = {
-                            'number': source_counter,
-                            'title':  topic.source.title,
-                            'url':    topic.source.url,
-                        }
-                        source_counter += 1
-                    story.append(Paragraph(
-                        f'<i><font color="#718096">Source: [{all_sources[key]["number"]}]</font></i>',
-                        self.styles['CustomBody'],
+                # Source
+                if tp.source:
+                    key = tp.source.url
+                    if key not in sources:
+                        sources[key] = {'number': src_counter,
+                                        'title': tp.source.title, 'url': tp.source.url}
+                        src_counter += 1
+                    topic_items.append(Paragraph(
+                        f'<font color="#94a3b8">📎 Source [{sources[key]["number"]}]: '
+                        f'{tp.source.title}</font>',
+                        self.styles['source_line']
                     ))
 
-                story.append(Spacer(1, 0.2 * inch))
-                topic_num    += 1
+                topic_items.append(Spacer(1, 0.22 * inch))
 
-            chapter_num += 1
+                # Keep topic label + first paragraph together to avoid orphan headers
+                if len(topic_items) > 2:
+                    story.append(KeepTogether(topic_items[:3]))
+                    story.extend(topic_items[3:])
+                else:
+                    story.extend(topic_items)
+
+                tn += 1
+
+            cn += 1
             story.append(Spacer(1, 0.3 * inch))
 
-        return all_sources
+        return sources
 
-    # ── references ───────────────────────────────────────────────────────────
+    # ── Render explanation HTML → story items ────────────────────────────
+    def _render_explanation(self, html_content, chapter_num, topic_num):
+        """
+        Parse rich-text HTML and build story items.
+        h2 → subtopic 1.1.1, h3 → 1.1.1.1, etc.
+        Returns (items, final_heading_counter)
+        """
+        parser = RichTextHTMLParser()
+        parser.feed(html_content)
+        elements = parser.get_elements()
 
-    def _add_references(self, story, sources):
-        story.append(Paragraph("REFERENCES", self.styles['reference_title']))
-        story.append(SectionDivider(style='line'))
-        story.append(Spacer(1, 0.2 * inch))
+        items           = []
+        list_counter    = 1
+        h2_counter      = 0
+        h3_counter      = 0
+
+        for elem in elements:
+            text      = elem['text']
+            alignment = elem['alignment']
+
+            # ── Inline code block ──────────────────────────────────────
+            if elem.get('is_code'):
+                items.append(Spacer(1, 0.1 * inch))
+                items.append(CodeEditorBlock(
+                    code=unescape(text),
+                    language=elem.get('language') or 'python',
+                    title=f"{(elem.get('language') or 'code').upper()} Code",
+                    show_line_numbers=True,
+                ))
+                items.append(Spacer(1, 0.12 * inch))
+                continue
+
+            # ── Auto-detect code patterns ─────────────────────────────
+            is_code, lang = detect_code_pattern(text)
+            if is_code:
+                items.append(Spacer(1, 0.1 * inch))
+                items.append(CodeEditorBlock(
+                    code=unescape(text),
+                    language=lang or 'python',
+                    title=f'{(lang or "code").upper()} Code',
+                    show_line_numbers=True,
+                ))
+                items.append(Spacer(1, 0.12 * inch))
+                continue
+
+            sname = elem['style']
+
+            # ── Numbered headings (subtopics) ─────────────────────────
+            if sname == 'CustomHeading2':
+                h2_counter += 1
+                h3_counter  = 0
+                numbered = f'{chapter_num}.{topic_num}.{h2_counter}  {text}'
+                items.append(Paragraph(numbered, self.styles['SubHeading1']))
+                list_counter = 1
+                continue
+
+            if sname == 'CustomHeading3':
+                h3_counter += 1
+                numbered = f'{chapter_num}.{topic_num}.{h2_counter}.{h3_counter}  {text}'
+                items.append(Paragraph(numbered, self.styles['SubHeading2']))
+                list_counter = 1
+                continue
+
+            if sname == 'CustomHeading1':
+                # h1 inside explanation — treat like h2 for numbering
+                h2_counter += 1
+                h3_counter  = 0
+                numbered = f'{chapter_num}.{topic_num}.{h2_counter}  {text}'
+                items.append(Paragraph(numbered, self.styles['SubHeading1']))
+                list_counter = 1
+                continue
+
+            if sname in ('CustomHeading4',):
+                items.append(Paragraph(text, self.styles['CustomHeading4']))
+                continue
+
+            # ── Alignment variant ─────────────────────────────────────
+            base_style = self.styles.get(sname, self.styles['CustomBody'])
+            if alignment == 'CENTER':
+                style = ParagraphStyle('_c', parent=base_style, alignment=TA_CENTER)
+            elif alignment == 'RIGHT':
+                style = ParagraphStyle('_r', parent=base_style, alignment=TA_RIGHT)
+            else:
+                style = base_style
+
+            # ── List items ────────────────────────────────────────────
+            if elem['is_list_item']:
+                bullet = '•' if elem['list_type'] == 'ul' else f'{list_counter}.'
+                if elem['list_type'] != 'ul':
+                    list_counter += 1
+                items.append(Paragraph(f'{bullet}  {text}', self.styles['bullet']))
+            else:
+                items.append(Paragraph(text, style))
+                list_counter = 1
+
+        return items, h2_counter
+
+    # ── References ───────────────────────────────────────────────────────
+    def _references(self, story, sources):
+        story.append(Paragraph('References', self.styles['ref_title']))
+        story.append(HRule(color=C.BLUE_LIGHT, thickness=2))
+        story.append(Spacer(1, 0.15 * inch))
         for src in sorted(sources.values(), key=lambda x: x['number']):
             story.append(Paragraph(
-                f"[{src['number']}] {src['title']}", self.styles['reference_item']
+                f'[{src["number"]}]  {src["title"]}', self.styles['ref_item']
             ))
             story.append(Paragraph(
                 f"<link href='{src['url']}'>{src['url']}</link>",
-                self.styles['reference_url'],
+                self.styles['ref_url']
             ))
 
 
 # ============================================================================
-# Public entry point
+# Public entry
 # ============================================================================
-
 def export_note_to_pdf(note):
     return PDFExportService(note).export()
