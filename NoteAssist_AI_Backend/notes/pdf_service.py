@@ -833,7 +833,7 @@ class PDFExportService:
                 self.styles['ref_item']
             ))
             story.append(Paragraph(
-                f"<link href='{src[\"url\"]}'>{src['url']}</link>",
+                f"<link href=\"{src['url']}\">{src['url']}</link>",
                 self.styles['ref_url']
             ))
 
