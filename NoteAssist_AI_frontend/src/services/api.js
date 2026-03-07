@@ -235,5 +235,5 @@ export const showToast = (options) => {
   }
 };
 
-export { TokenManager };
+export { TokenManager, refreshAccessToken };
 export default api;

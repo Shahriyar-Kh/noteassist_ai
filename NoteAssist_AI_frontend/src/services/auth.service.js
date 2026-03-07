@@ -3,7 +3,7 @@
 // FIXED: Robust auth service with silent refresh and persistent sessions
 // ============================================================================
 
-import api, { TokenManager } from './api';
+import api, { TokenManager, refreshAccessToken } from './api';
 import { API_ENDPOINTS } from '@/utils/constants';
 import logger from '@/utils/logger';
 import { sanitizeString } from '@/utils/validation';
@@ -52,10 +52,17 @@ const scheduleTokenRefresh = (accessToken) => {
     logger.info(`[AuthService] Token refresh scheduled in ${Math.round(refreshIn / 1000)}s`);
 
     refreshSchedulerId = setTimeout(async () => {
-      // Only refresh if the user is still active (not idle > 30 min)
+      // If user is idle > 30 min, reschedule with a shorter retry instead of dying
       const idleSeconds = ActivityTracker.getSecondsSinceActivity();
       if (idleSeconds > 30 * 60) {
-        logger.info('[AuthService] User idle, skipping proactive refresh');
+        logger.info('[AuthService] User idle, deferring refresh (will retry in 5 min)');
+        const currentAccess = TokenManager.getAccess();
+        if (currentAccess) {
+          refreshSchedulerId = setTimeout(() => {
+            const token = TokenManager.getAccess();
+            if (token) scheduleTokenRefresh(token);
+          }, 5 * 60 * 1000);
+        }
         return;
       }
 
@@ -63,24 +70,61 @@ const scheduleTokenRefresh = (accessToken) => {
         const refreshToken = TokenManager.getRefresh();
         if (!refreshToken) return;
 
-        const response = await api.post('/api/token/refresh/', { refresh: refreshToken });
-        const { access, refresh } = response.data;
-        TokenManager.setTokens(access, refresh || refreshToken);
-
-        // Update stored user if returned
-        if (response.data.user) {
-          localStorage.setItem('user', JSON.stringify(response.data.user));
-        }
+        // Use plain-axios refreshAccessToken (no interceptors) to avoid
+        // the response interceptor calling redirectToLogin on race conditions
+        const newAccess = await refreshAccessToken();
 
         logger.info('[AuthService] Proactive token refresh successful');
-        scheduleTokenRefresh(access); // Schedule next refresh
+        scheduleTokenRefresh(newAccess); // Schedule next refresh
       } catch (err) {
         logger.error('[AuthService] Proactive refresh failed:', err.message);
+        // Reschedule retry in 2 minutes instead of dying
+        refreshSchedulerId = setTimeout(() => {
+          const token = TokenManager.getAccess();
+          if (token) scheduleTokenRefresh(token);
+        }, 2 * 60 * 1000);
       }
     }, refreshIn);
   } catch (err) {
     logger.warn('[AuthService] Could not parse token for scheduling:', err.message);
   }
+};
+
+// ─── Visibility Change Handler ───────────────────────────────────────────────
+// When user returns to the tab after it was backgrounded, immediately check
+// token validity and refresh if needed. Browser timer throttling can cause
+// the scheduler to miss its window while the tab is inactive.
+
+let visibilityListenerActive = false;
+
+const setupVisibilityRefresh = () => {
+  if (visibilityListenerActive) return;
+  visibilityListenerActive = true;
+
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState !== 'visible') return;
+
+    // User just came back to the tab
+    ActivityTracker.record();
+
+    const accessToken = TokenManager.getAccess();
+    const refreshToken = TokenManager.getRefresh();
+    if (!accessToken || !refreshToken) return;
+
+    if (TokenManager.isAccessExpiringSoon()) {
+      logger.info('[AuthService] Tab visible — token expiring, refreshing...');
+      try {
+        const newAccess = await refreshAccessToken();
+        scheduleTokenRefresh(newAccess);
+        logger.info('[AuthService] Token refreshed on tab visibility');
+      } catch (err) {
+        logger.warn('[AuthService] Visibility refresh failed:', err.message);
+      }
+    } else {
+      // Token still valid — make sure the scheduler is still running
+      scheduleTokenRefresh(accessToken);
+    }
+  });
 };
 
 // ─── Auth Service ─────────────────────────────────────────────────────────────
@@ -102,6 +146,7 @@ export const authService = {
     if (accessToken) {
       scheduleTokenRefresh(accessToken);
       ActivityTracker.init();
+      setupVisibilityRefresh();
     }
   },
 
@@ -227,6 +272,7 @@ export const authService = {
       // Resume proactive refresh scheduling
       scheduleTokenRefresh(accessToken);
       ActivityTracker.init();
+      setupVisibilityRefresh();
       logger.info('[AuthService] Session restored from storage');
       return true;
     }

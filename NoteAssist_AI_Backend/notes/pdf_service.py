@@ -68,6 +68,49 @@ def _clean(text: str) -> str:
 
 
 # ============================================================================
+# CSS color → hex (ReportLab only supports hex / named colors, not rgba/rgb)
+# ============================================================================
+def _css_color_to_hex(css_color: str) -> str:
+    """Convert CSS color values (rgba, rgb, hex, named) to hex for ReportLab."""
+    if not css_color:
+        return '#000000'
+    css_color = css_color.strip().rstrip(';').strip()
+
+    # Already a hex value
+    if css_color.startswith('#'):
+        return css_color
+
+    # rgba(r, g, b, a) or rgb(r, g, b)
+    m = re.match(r'rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)', css_color)
+    if m:
+        r = max(0, min(255, int(m.group(1))))
+        g = max(0, min(255, int(m.group(2))))
+        b = max(0, min(255, int(m.group(3))))
+        return f'#{r:02x}{g:02x}{b:02x}'
+
+    # Named color — return as-is (ReportLab supports common CSS color names)
+    return css_color
+
+
+# ============================================================================
+# Safe Paragraph wrapper (catches ReportLab XML parse errors)
+# ============================================================================
+def _safe_paragraph(text, style):
+    """Create a Paragraph, falling back to plain text on parse errors."""
+    try:
+        return Paragraph(text, style)
+    except (ValueError, Exception) as e:
+        logger.warning(f"Paragraph parse error, falling back to plain text: {e}")
+        # Strip all markup and re-try
+        plain = re.sub(r'<[^>]+>', '', text)
+        plain = _clean(plain) or ' '
+        try:
+            return Paragraph(plain, style)
+        except Exception:
+            return Paragraph('(content could not be rendered)', style)
+
+
+# ============================================================================
 # Color Palette
 # ============================================================================
 class C:
@@ -361,6 +404,7 @@ class RichTextHTMLParser(HTMLParser):
         self.in_code          = False
         self.code_buf         = []
         self.code_lang        = 'python'
+        self._span_font_counts = []   # stack tracking <font> tags opened per <span>
 
     def handle_starttag(self, tag, attrs):
         ad  = dict(attrs)
@@ -399,12 +443,20 @@ class RichTextHTMLParser(HTMLParser):
             if 'center'  in s: self.align = 'CENTER'
             elif 'right' in s: self.align = 'RIGHT'
             elif 'justify' in s: self.align = 'JUSTIFY'
-        elif tag == 'span' and 'style' in ad:
-            s  = ad['style']
-            mc = re.search(r'color:\s*([^;]+)', s)
-            if mc: self.cur_text.append(f'<font color="{mc.group(1).strip()}">')
-            mb = re.search(r'background-color:\s*([^;]+)', s)
-            if mb: self.cur_text.append(f'<font backColor="{mb.group(1).strip()}">')
+        elif tag == 'span':
+            font_count = 0
+            if 'style' in ad:
+                s  = ad['style']
+                # Negative lookbehind prevents matching 'background-color' for 'color'
+                mc = re.search(r'(?<!-)color:\s*([^;]+)', s)
+                if mc:
+                    self.cur_text.append(f'<font color="{_css_color_to_hex(mc.group(1).strip())}">')
+                    font_count += 1
+                mb = re.search(r'background-color:\s*([^;]+)', s)
+                if mb:
+                    self.cur_text.append(f'<font backColor="{_css_color_to_hex(mb.group(1).strip())}">')
+                    font_count += 1
+            self._span_font_counts.append(font_count)
 
     def handle_endtag(self, tag):
         if self.tag_stack and self.tag_stack[-1][0] == tag:
@@ -433,7 +485,9 @@ class RichTextHTMLParser(HTMLParser):
             self._flush()
             if tag == 'p': self.align = 'LEFT'
         elif tag == 'span':
-            self.cur_text.append('</font>')
+            count = self._span_font_counts.pop() if self._span_font_counts else 0
+            for _ in range(count):
+                self.cur_text.append('</font>')
 
     def handle_data(self, data):
         if self.in_code:
@@ -797,7 +851,7 @@ class PDFExportService:
             # ── headings (styled only, NO numeric prefix added) ───────
             if sname in ('CustomHeading1', 'CustomHeading2',
                          'CustomHeading3', 'CustomHeading4'):
-                items.append(Paragraph(text, self.styles[sname]))
+                items.append(_safe_paragraph(text, self.styles[sname]))
                 list_counter = 1
                 continue
 
@@ -815,9 +869,9 @@ class PDFExportService:
                 bullet = '•' if elem['list_type'] == 'ul' else f'{list_counter}.'
                 if elem['list_type'] != 'ul':
                     list_counter += 1
-                items.append(Paragraph(f'{bullet}  {text}', self.styles['bullet']))
+                items.append(_safe_paragraph(f'{bullet}  {text}', self.styles['bullet']))
             else:
-                items.append(Paragraph(text, style))
+                items.append(_safe_paragraph(text, style))
                 list_counter = 1
 
         return items

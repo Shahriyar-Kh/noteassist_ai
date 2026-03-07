@@ -12,9 +12,9 @@ threads = 4
 worker_connections = 1000
 max_requests = 1000
 max_requests_jitter = 50
-timeout = 120
+timeout = 300
 keepalive = 5
-graceful_timeout = 30
+graceful_timeout = 60
 
 # Logging
 accesslog = '-'  # Log to stdout
