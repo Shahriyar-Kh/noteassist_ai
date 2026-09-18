@@ -210,8 +210,8 @@ VITE_API_BASE_URL=http://localhost:8000
 
 ```python
 # Google OAuth Settings
-GOOGLE_OAUTH2_CLIENT_ID = os.getenv('GOOGLE_OAUTH2_CLIENT_ID')
-GOOGLE_OAUTH2_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH2_CLIENT_SECRET')
+GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID')
+GOOGLE_OAUTH_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH_CLIENT_SECRET')
 
 # Google Drive Settings
 GOOGLE_DRIVE_SCOPES = [
@@ -256,7 +256,7 @@ def google_auth(request):
         idinfo = id_token.verify_oauth2_token(
             credential,
             requests.Request(),
-            settings.GOOGLE_OAUTH2_CLIENT_ID
+            settings.GOOGLE_OAUTH_CLIENT_ID
         )
         
         email = idinfo.get('email')
@@ -575,12 +575,12 @@ Create `.env` file in `NoteAssist_AI_Backend/`:
 
 ```env
 # Google OAuth
-GOOGLE_OAUTH2_CLIENT_ID=your-client-id.apps.googleusercontent.com
-GOOGLE_OAUTH2_CLIENT_SECRET=your-client-secret
+GOOGLE_OAUTH_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
 
 # Google Drive
-GOOGLE_DRIVE_CLIENT_ID=your-client-id.apps.googleusercontent.com
-GOOGLE_DRIVE_CLIENT_SECRET=your-client-secret
+GOOGLE_OAUTH_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
 
 # API Configuration
 ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,https://yourdomain.com
@@ -605,8 +605,8 @@ REST_FRAMEWORK = {
     ),
 }
 
-GOOGLE_OAUTH2_CLIENT_ID = os.getenv('GOOGLE_OAUTH2_CLIENT_ID')
-GOOGLE_OAUTH2_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH2_CLIENT_SECRET')
+GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID')
+GOOGLE_OAUTH_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH_CLIENT_SECRET')
 
 # CORS Configuration for Google OAuth
 CORS_ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:5173').split(',')
@@ -679,7 +679,7 @@ try {
 - **Backend**: Store refresh tokens securely with encryption
 
 ### 2. Client Secret Protection
-- Never expose `GOOGLE_OAUTH2_CLIENT_SECRET` in frontend
+- Never expose `GOOGLE_OAUTH_CLIENT_SECRET` in frontend
 - Store only in backend environment variables
 - Use `.env` file with proper permissions
 
