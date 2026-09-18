@@ -4,6 +4,7 @@ from datetime import timedelta
 from decouple import config
 import dj_database_url
 import logging
+from django.core.exceptions import ImproperlyConfigured
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,11 @@ os.makedirs(BASE_DIR / 'logs', exist_ok=True)
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
 DEBUG = os.getenv('DEBUG', 'True' if ENVIRONMENT == 'development' else 'False') == 'True'
 
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-key-change-in-production')
+SECRET_KEY = config('SECRET_KEY', default='')
+if not SECRET_KEY:
+    if ENVIRONMENT == 'production':
+        raise ImproperlyConfigured('SECRET_KEY must be set in the production environment.')
+    SECRET_KEY = 'dev-only-not-for-production-change-me'
 
 ALLOWED_HOSTS = config(
     'ALLOWED_HOSTS',

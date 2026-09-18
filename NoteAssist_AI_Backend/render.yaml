@@ -28,10 +28,10 @@ services:
       - key: DATABASE_URL
         sync: false
       
-      - key: GOOGLE_OAUTH2_CLIENT_ID
+      - key: GOOGLE_OAUTH_CLIENT_ID
         sync: false
       
-      - key: GOOGLE_OAUTH2_CLIENT_SECRET
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
         sync: false
       
       - key: EMAIL_HOST_USER

@@ -356,8 +356,8 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 
 # Google OAuth Settings
-GOOGLE_OAUTH2_CLIENT_ID = os.getenv('GOOGLE_OAUTH2_CLIENT_ID')
-GOOGLE_OAUTH2_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH2_CLIENT_SECRET')
+GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID')
+GOOGLE_OAUTH_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH_CLIENT_SECRET')
 
 # Redis Cache (for sessions and caching)
 CACHES = {
@@ -431,10 +431,10 @@ services:
           name: noteassist-db
           property: port
       
-      - key: GOOGLE_OAUTH2_CLIENT_ID
+      - key: GOOGLE_OAUTH_CLIENT_ID
         sync: false
       
-      - key: GOOGLE_OAUTH2_CLIENT_SECRET
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
         sync: false
       
       - key: EMAIL_HOST_USER
@@ -585,7 +585,7 @@ VITE_ANALYTICS_ID=your-analytics-id
 # ============================================================================
 DEBUG=False
 ENVIRONMENT=production
-SECRET_KEY=your-secret-key-here-django-generates
+SECRET_KEY=<set-in-deployment-environment>
 
 # ============================================================================
 # Database (Auto-filled by Render)
@@ -593,7 +593,7 @@ SECRET_KEY=your-secret-key-here-django-generates
 DB_ENGINE=django.db.backends.postgresql
 DB_NAME=noteassist_db
 DB_USER=noteassist_user
-DB_PASSWORD=your-secure-password
+DB_PASSWORD=<set-in-deployment-environment>
 DB_HOST=dpg-xxx.render.com
 DB_PORT=5432
 
@@ -606,8 +606,8 @@ CORS_ALLOWED_ORIGINS=https://noteassist-frontend.vercel.app,http://localhost:517
 # ============================================================================
 # Google OAuth
 # ============================================================================
-GOOGLE_OAUTH2_CLIENT_ID=your-client-id.apps.googleusercontent.com
-GOOGLE_OAUTH2_CLIENT_SECRET=your-client-secret-here
+GOOGLE_OAUTH_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret-here
 
 # ============================================================================
 # Email Configuration
@@ -616,7 +616,7 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USE_TLS=True
 EMAIL_HOST_USER=your-email@gmail.com
-EMAIL_HOST_PASSWORD=your-app-password
+EMAIL_HOST_PASSWORD=<set-in-deployment-environment>
 DEFAULT_FROM_EMAIL=noreply@noteassist.ai
 
 # ============================================================================
@@ -629,13 +629,13 @@ CELERY_RESULT_BACKEND=redis://localhost:6379
 # ============================================================================
 # SendGrid (Alternative to Gmail)
 # ============================================================================
-SENDGRID_API_KEY=your-sendgrid-api-key
+SENDGRID_API_KEY=<set-in-deployment-environment>
 
 # ============================================================================
 # AWS S3 (Optional - for media files)
 # ============================================================================
 AWS_ACCESS_KEY_ID=your-aws-key
-AWS_SECRET_ACCESS_KEY=your-aws-secret
+AWS_SECRET_ACCESS_KEY=<set-in-deployment-environment>
 AWS_STORAGE_BUCKET_NAME=noteassist-media
 AWS_S3_REGION_NAME=us-east-1
 
@@ -654,7 +654,7 @@ SITE_URL=https://noteassist-backend.onrender.com
    ```
    DEBUG=False
    ENVIRONMENT=production
-   SECRET_KEY=generated-by-django
+   SECRET_KEY=<set-in-deployment-environment>
    ...
    ```
 4. For database variables, Render auto-fills from PostgreSQL service

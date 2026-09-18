@@ -63,7 +63,7 @@ Click **"Advanced"** → **"Add Environment Variable"**
 ```env
 DEBUG=False
 ENVIRONMENT=production
-SECRET_KEY=generate-new-secret-key
+SECRET_KEY=<set-in-deployment-environment>
 ALLOWED_HOSTS=noteassist-backend.onrender.com,localhost
 DATABASE_URL=postgresql://postgres:YOUR_SUPABASE_PASSWORD@db.uxbdbkopymgjqwccghvq.supabase.co:5432/postgres
 GOOGLE_OAUTH_CLIENT_ID=732779644819-77j15g59nbfh8qe3ffjkhpg47o48hd05.apps.googleusercontent.com
@@ -202,7 +202,7 @@ ALLOWED_HOSTS=localhost,127.0.0.1
 # Production (Render - Supabase)
 DEBUG=False
 ENVIRONMENT=production
-DATABASE_URL=postgresql://postgres:PASSWORD@db.uxbdbkopymgjqwccghvq.supabase.co:5432/postgres
+DATABASE_URL=<set-in-deployment-environment>
 ALLOWED_HOSTS=noteassist-backend.onrender.com,localhost
 ```
 
