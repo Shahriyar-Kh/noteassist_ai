@@ -356,8 +356,8 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 
 # Google OAuth Settings
-GOOGLE_OAUTH2_CLIENT_ID = os.getenv('GOOGLE_OAUTH2_CLIENT_ID')
-GOOGLE_OAUTH2_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH2_CLIENT_SECRET')
+GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID')
+GOOGLE_OAUTH_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH_CLIENT_SECRET')
 
 # Redis Cache (for sessions and caching)
 CACHES = {
@@ -431,10 +431,10 @@ services:
           name: noteassist-db
           property: port
       
-      - key: GOOGLE_OAUTH2_CLIENT_ID
+      - key: GOOGLE_OAUTH_CLIENT_ID
         sync: false
       
-      - key: GOOGLE_OAUTH2_CLIENT_SECRET
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
         sync: false
       
       - key: EMAIL_HOST_USER
@@ -606,8 +606,8 @@ CORS_ALLOWED_ORIGINS=https://noteassist-frontend.vercel.app,http://localhost:517
 # ============================================================================
 # Google OAuth
 # ============================================================================
-GOOGLE_OAUTH2_CLIENT_ID=your-client-id.apps.googleusercontent.com
-GOOGLE_OAUTH2_CLIENT_SECRET=your-client-secret-here
+GOOGLE_OAUTH_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret-here
 
 # ============================================================================
 # Email Configuration
