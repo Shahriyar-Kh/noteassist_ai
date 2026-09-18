@@ -196,7 +196,7 @@ Wait 5-10 minutes for changes to propagate.
 # Development (Local - SQLite3)
 DEBUG=True
 ENVIRONMENT=development
-DATABASE_URL=  <set-in-deployment-environment>
+DATABASE_URL=  # Leave empty to use SQLite3
 ALLOWED_HOSTS=localhost,127.0.0.1
 
 # Production (Render - Supabase)
