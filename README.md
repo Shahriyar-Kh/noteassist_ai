@@ -1,216 +1,419 @@
-<!-- ================= PREMIUM ANIMATED HEADER ================= -->
+<div align="center">
 
-<h1 align="center">🚀 NoteAssist AI</h1>
-<h3 align="center">Enterprise AI Study Platform • Django • DRF • React</h3>
+# NoteAssist AI
 
-<p align="center">
-<img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&size=24&duration=3000&pause=1000&color=00F7FF&center=true&vCenter=true&width=700&lines=AI-Powered+Note+Taking+Platform;Full-Stack+Django+%2B+React+Application;Scalable+REST+API+Architecture;Production-Ready+Learning+System" />
+### AI-Assisted Notes, Learning Productivity & Administration Platform
+
+**Django 5.2 · Django REST Framework · React 18 · PostgreSQL · Redis · Celery · Groq · Google OAuth/Drive**
+
+A deployed full-stack learning-productivity application for structured notes, AI-assisted study workflows, user plans and quotas, Google integrations, exports, dashboards, and administration.
+
+<p>
+  <img alt="Python" src="https://img.shields.io/badge/Python-Backend-3776AB?logo=python&logoColor=white">
+  <img alt="Django" src="https://img.shields.io/badge/Django-5.2-092E20?logo=django&logoColor=white">
+  <img alt="DRF" src="https://img.shields.io/badge/Django%20REST%20Framework-3.16-A30000">
+  <img alt="React" src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=111111">
+  <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-Supabase-4169E1?logo=postgresql&logoColor=white">
+  <img alt="Redis" src="https://img.shields.io/badge/Redis-Cache%20%2F%20Broker-DC382D?logo=redis&logoColor=white">
+  <img alt="Celery" src="https://img.shields.io/badge/Celery-Async-37814A">
 </p>
 
----
-
-<!-- ================= PREMIUM BADGES ================= -->
-
-<p align="center">
-<img src="https://img.shields.io/badge/Python-3.9%2B-blue" />
-<img src="https://img.shields.io/badge/Django-4.2-green" />
-<img src="https://img.shields.io/badge/DRF-REST%20API-red" />
-<img src="https://img.shields.io/badge/React-18-blue" />
-<img src="https://img.shields.io/badge/PostgreSQL-Supabase-informational" />
-<img src="https://img.shields.io/badge/Redis-Caching-critical" />
-<img src="https://img.shields.io/badge/Celery-Async-success" />
-<img src="https://img.shields.io/badge/Status-Production%20Ready-brightgreen" />
-</p>
+</div>
 
 ---
 
-## 🔍 SEO Keywords
+## Overview
 
-> AI Study Platform, Django REST API, React Learning App, Full Stack Python Project, AI Note Generator, Scalable Django Backend, Production Ready AI Application
+**NoteAssist AI** is a full-stack study and note-management product built around a Django REST API and a React/Vite frontend.
 
----
+The repository contains implemented workflows for:
 
-## 📖 Overview
+- structured notes
+- AI-assisted content generation
+- summarization and improvement
+- user authentication
+- Google OAuth
+- Google Drive integration
+- usage quotas
+- AI output history
+- PDF/export workflows
+- admin analytics
+- user administration
+- caching and asynchronous processing
+- deployment on Vercel / Render / Supabase
 
-**NoteAssist AI** is a full-stack, enterprise-grade AI study platform designed to help students and professionals generate, organize, and optimize learning content using artificial intelligence.
+Live frontend:
 
-Built with a production-first mindset, the platform demonstrates scalable backend architecture, secure API design, and modern React frontend integration.
-
----
-
-## 🚀 Why This Project Matters
-
-- 📚 Reduces manual study effort via AI assistance  
-- ⚡ Demonstrates scalable Django REST architecture  
-- 🧠 Real-world AI integration in web apps  
-- 🏗️ Production-ready system design  
-- 👨‍💻 Shows full-stack engineering capability  
-
----
-
-## ✨ Key Features
-
-- Intelligent hierarchical note system  
-- AI-powered content generation  
-- Role-based authentication system  
-- Admin analytics dashboard  
-- Usage tracking & quotas  
-- Export to multiple formats  
-- Cloud-ready deployment  
+**https://noteassistai.vercel.app/**
 
 ---
 
-## 🧠 AI Capabilities
+## Architecture
 
-- Context-aware topic generation  
-- Smart summarization  
-- Content improvement  
-- Code generation assistance  
-- Adaptive learning responses  
+~~~mermaid
+flowchart LR
+    U[User] --> WEB[React 18 + Vite]
+    WEB -->|REST / JWT| API[Django 5.2 + DRF]
 
----
+    API --> AUTH[Accounts / JWT / Google OAuth]
+    API --> NOTES[Notes & Chapters]
+    API --> AI[AI Tools]
+    API --> DASH[User / Admin Dashboards]
+    API --> ADMIN[User Management]
+    API --> DRIVE[Google Drive Integration]
 
-## 📊 Architecture Diagram
+    AUTH --> DB[(PostgreSQL)]
+    NOTES --> DB
+    AI --> DB
+    DASH --> DB
+    ADMIN --> DB
 
-<p align="center">
-<img src="./NoteAssiss-AI_Architecture.png" width="700" alt="NoteAssist AI architecture diagram" />
-</p>
+    API --> REDIS[(Redis)]
+    REDIS --> CELERY[Celery Workers]
+    AI --> GROQ[Groq Provider]
+    DRIVE --> GOOGLE[Google APIs]
+~~~
 
->
----
-
-## 🏗️ System Architecture
-
-```
-React Frontend (Vercel)
-        │
-        ▼
-Django REST API (Render)
-        │
- ┌───────────────┬───────────────┐
- ▼               ▼               ▼
-PostgreSQL     Redis          Celery
-(Supabase)     Cache          Workers
-```
+The architecture separates the React client, REST API, persistence, caching/queue infrastructure, and third-party providers.
 
 ---
 
-## 🛠️ Tech Stack
+## Notes & Learning Workflows
 
-**Backend:** Python, Django, DRF, Celery  
-**Frontend:** React, Vite, Tailwind  
-**Database:** PostgreSQL, Redis  
-**DevOps:** Vercel, Render, Supabase  
-**Auth:** JWT, Google OAuth  
+The note domain supports hierarchical learning content rather than only flat text records.
 
----
+Implemented structures include:
 
-## 📊 Key Technical Achievements
+- notes
+- chapters
+- chapter topics
+- AI-generated outputs
+- saved learning content
+- exports
+- published/private note behavior
 
-- ⚡ Optimized database performance  
-- 🚀 Sub‑500ms API responses  
-- 📈 Designed for high concurrency  
-- 🔐 Secure JWT authentication  
-- 🧠 Redis caching layer  
-- 🏗️ Modular scalable architecture  
+An integration test in the repository verifies the workflow:
 
----
+~~~text
+AI output
+   ↓
+Save to note
+   ↓
+Create chapter/topic content
+   ↓
+Retrieve stored result
+~~~
 
-## 🔐 Security & Performance
-
-**Security**
-
-- JWT authentication  
-- Role-based authorization  
-- Rate limiting on AI APIs  
-- Environment-based secrets  
-- Admin audit logs  
-
-**Performance**
-
-- Query optimization  
-- Redis caching  
-- Async background workers  
-- Frontend request deduplication  
+This gives the project direct evidence of application-level workflows across AI output and persisted learning content.
 
 ---
 
-## 📦 Project Structure
+## AI Tooling
 
-```
-accounts/      → auth & users
-notes/         → note management
-ai_tools/      → AI services
-dashboard/     → analytics
-utils/         → helpers
-frontend/      → React app
-```
+The AI domain includes application models, serializers, views, background tasks and quota tracking.
+
+Implemented product areas include:
+
+- topic/content generation
+- summarization
+- content improvement
+- code-oriented AI output
+- generated-output history
+- saving AI output into notes
+- output downloads
+- per-user usage tracking
+- quota enforcement
+
+AI configuration is environment-driven.
+
+The repository currently includes the **Groq SDK** and server-side provider configuration. This README does not claim model quality or learning-outcome improvements that have not been independently measured.
 
 ---
 
-## 📸 Screenshots
+## Authentication & Google Integration
 
-> 🔹 Add your application screenshots here
+Authentication/security capabilities include:
+
+- JWT authentication
+- refresh-token workflows
+- Google OAuth configuration
+- email verification-related flows
+- password-reset-related models/workflows
+- role/admin permission boundaries
+
+Google integration includes:
+
+- OAuth login / identity flow
+- Google Drive authorization
+- token refresh/handling
+- uploading generated output to Google Drive
+
+Google credentials are configured through environment variables rather than committed runtime secrets.
 
 ---
 
-## ⚙️ Installation & Setup
+## User Plans, Quotas & Feature Controls
+
+The product includes explicit user-plan and AI-usage controls.
+
+Administration can work with data such as:
+
+- plan type
+- blocked/active state
+- feature access
+- note counts
+- AI usage counts
+- daily / weekly / monthly limits
+- recent activity
+
+This gives the product an operational layer beyond a simple notes CRUD application.
+
+---
+
+## Administration System
+
+The backend contains a dedicated admin user-management API and the frontend contains matching administration screens.
+
+Implemented administration areas include:
+
+- admin dashboard
+- user listing
+- search/filtering
+- user detail
+- plan management
+- block/unblock actions
+- feature-access controls
+- quota/limit updates
+- user insights
+- AI usage breakdown
+- admin action logs
+
+The frontend includes dedicated admin routes/layouts rather than relying only on Django's built-in admin interface.
+
+---
+
+## Dashboard & Analytics
+
+The project contains user-facing and administration-facing dashboard modules.
+
+Backend dashboard logic includes:
+
+- dashboard models/services
+- asynchronous dashboard tasks
+- aggregated usage data
+- user activity information
+
+The frontend includes charting and dashboard experiences using React/Recharts.
+
+---
+
+## Performance-Oriented Engineering
+
+The repository contains explicit query and load-test artifacts, including:
+
+- \`select_related\` / \`prefetch_related\` oriented query optimization
+- query-count regression tests
+- Redis caching
+- Celery task processing
+- request-deduplication utilities on the frontend
+- connection/runtime configuration
+- a Locust workload definition
+
+Examples of verified regression tests include upper bounds on query counts for:
+
+- note listing
+- note details
+- AI-output listing
+
+A Locust scenario exists for load testing common authenticated workflows.
+
+> The presence of a load-test scenario is not the same as a verified production capacity benchmark. This README therefore does **not** repeat historical claims such as “10,000+ concurrent users” or fixed latency percentages without a current benchmark report.
+
+---
+
+## Testing
+
+The backend contains:
+
+- Django/DRF tests
+- app-specific test modules
+- integration tests
+- query/performance regression tests
+- load-test definitions
+
+Examples include:
+
+- complete AI-output → note workflow
+- AI output download behavior
+- note query-count checks
+- AI-output query-count checks
+
+Run backend tests with:
+
+~~~bash
+cd NoteAssist_AI_Backend
+pytest
+~~~
+
+The frontend currently provides build/lint tooling through Vite/ESLint.
+
+This README does not claim an overall coverage percentage because a current repository-wide coverage report was not verified during this documentation pass.
+
+---
+
+## Technology Stack
+
+| Layer | Technology |
+|---|---|
+| Backend | Python, Django 5.2, Django REST Framework |
+| Frontend | React 18, Vite 5, Tailwind CSS |
+| Client state | Redux Toolkit |
+| Database | PostgreSQL / Supabase |
+| Cache | Redis |
+| Async jobs | Celery |
+| Auth | JWT, Google OAuth |
+| AI | Groq integration |
+| Google | OAuth + Drive API |
+| Documents | ReportLab, html2pdf-related frontend tooling |
+| Hosting | Render + Vercel |
+| Testing | pytest / pytest-django, Django TestCase, Locust workload |
+
+---
+
+## Repository Structure
+
+~~~text
+noteassist_ai/
+├── NoteAssist_AI_Backend/
+│   ├── accounts/
+│   ├── profiles/
+│   ├── notes/
+│   ├── ai_tools/
+│   ├── dashboard/
+│   ├── admin_analytics/
+│   ├── tests/
+│   │   ├── integration/
+│   │   ├── performance/
+│   │   └── load/
+│   └── NoteAssist_AI/
+│
+├── NoteAssist_AI_frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   └── services/
+│   └── package.json
+│
+├── NoteAssiss-AI_Architecture.png
+├── PRODUCTION_ARCHITECTURE.md
+├── GOOGLE_INTEGRATION_GUIDE.md
+├── DEPLOYMENT_PRODUCTION_GUIDE.md
+└── pytest.ini
+~~~
+
+---
+
+## Local Development
 
 ### Backend
 
-```bash
-git clone https://github.com/Shahriyar-Kh/noteassist_ai
-cd noteassist_ai
+~~~bash
+cd NoteAssist_AI_Backend
+python -m venv .venv
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver
-```
+~~~
 
 ### Frontend
 
-```bash
-cd frontend
+~~~bash
+cd NoteAssist_AI_frontend
 npm install
 npm run dev
-```
+~~~
+
+Redis and Celery are needed for the background/cache paths that use them.
 
 ---
 
-## 🌐 Live Demo
+## Deployment
 
-- Frontend: https://noteassistai.vercel.app  
-- API: https://noteassist-ai.onrender.com/api/
+Repository configuration/documentation targets:
 
----
+- **Frontend:** Vercel
+- **Backend:** Render
+- **Database:** Supabase PostgreSQL
+- **Cache / async:** Redis + Celery
 
-## 🚀 Deployment
+Live frontend:
 
-- Frontend → Vercel  
-- Backend → Render  
-- Database → Supabase  
+**https://noteassistai.vercel.app/**
 
----
-
-## 🧪 Future Enhancements
-
-- AWS cloud migration  
-- Docker containerization  
-- CI/CD pipelines  
-- Real-time collaboration  
-- Microservices architecture  
+The repository also documents a Render API endpoint. Availability of individual services should be checked independently rather than inferred from old deployment notes.
 
 ---
 
-## 👨‍💻 Author
+## Security Notes
 
-**Shahriyar Khan**
+The repository uses environment-driven configuration for sensitive values such as:
 
-- GitHub: https://github.com/Shahriyar-Kh  
-- LinkedIn: https://www.linkedin.com/in/shahriyar-khan-developer/  
-- Email: shahriyarkhanpk1@gmail.com  
+- Django secret
+- database URL
+- Google OAuth credentials
+- Groq API key
+- email/provider credentials
+
+The root \`.gitignore\` excludes common secrets, environment files, virtual environments, databases, logs and generated runtime artifacts.
+
+Historical setup/deployment documents may contain configuration examples and client IDs. Those should be treated as operational documentation, not secret-management storage.
 
 ---
 
-<p align="center">
-⭐ Star the repo if you find it useful
-</p>
+## Engineering Evidence for Reviewers
+
+Useful entry points:
+
+- \`NoteAssist_AI_Backend/ai_tools/\` — AI workflows and quota/output models
+- \`NoteAssist_AI_Backend/notes/\` — note domain and Google Drive integration
+- \`NoteAssist_AI_Backend/accounts/admin_views.py\` — administration workflows
+- \`NoteAssist_AI_Backend/dashboard/\` — dashboard services/tasks
+- \`NoteAssist_AI_Backend/tests/integration/test_note_workflow.py\` — cross-domain workflow
+- \`NoteAssist_AI_Backend/tests/performance/test_query_optimization.py\` — query regression checks
+- \`NoteAssist_AI_Backend/tests/load/locustfile.py\` — load-test scenario
+- \`NoteAssist_AI_frontend/src/pages/AdminUserManagementPage.jsx\` — admin product UI
+- \`NoteAssist_AI_frontend/src/pages/AdminAIAnalyticsPage.jsx\` — AI analytics UI
+- \`GOOGLE_INTEGRATION_GUIDE.md\` — Google OAuth / Drive integration
+- \`PRODUCTION_ARCHITECTURE.md\` — deployment architecture
+
+---
+
+## Repository Positioning
+
+This repository is the **canonical full source** for NoteAssist AI.
+
+A separate public repository named \`noteassisst-ai_p\` contains a lightweight/public snapshot with a zipped frontend artifact. It should not be treated as the canonical engineering source for this project.
+
+For recruiter review, this repository provides much stronger evidence because the backend, frontend, tests, integrations and administration system are directly inspectable.
+
+---
+
+## Author
+
+**Shahriyar Khan**  
+Software Engineer · Full-Stack Python Developer
+
+**Core focus:** Python · Django · Django REST Framework · React · PostgreSQL · Redis · Celery · AI Integration
+
+- GitHub: [@Shahriyar-Kh](https://github.com/Shahriyar-Kh)
+- Portfolio: [shahriyarkhan.com](https://shahriyarkhan.com)
+- LinkedIn: [Shahriyar Khan](https://www.linkedin.com/in/shahriyar-khan-developer/)
+- Live app: [noteassistai.vercel.app](https://noteassistai.vercel.app/)
+
+---
+
+<div align="center">
+
+**Django REST APIs · structured notes · AI workflows · Google integrations · administration · async processing**
+
+</div>
