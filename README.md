@@ -1,3 +1,10 @@
+<p align="center">
+  <img src="noteassisst_ai.png"
+       alt="Project GitHub Cover"
+       width="100%" />
+</p>
+
+
 <div align="center">
 
 # NoteAssist AI
