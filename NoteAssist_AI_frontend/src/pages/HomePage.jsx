@@ -4,104 +4,22 @@
 // ============================================================================
 
 import { Link, useNavigate } from 'react-router-dom';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { 
   Sparkles, Brain, Zap, FileText, Code, TrendingUp,
-  ArrowRight, CheckCircle, Star, Users, BookOpen,
+  ArrowRight, CheckCircle, BookOpen,
   MessageSquare, BarChart3, Shield, Globe, Menu, X, Lightbulb, Rocket,
-  ChevronLeft, ChevronRight, Terminal, Edit3, Wrench, ChevronDown
+  Edit3, Wrench, ChevronDown
 } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import Footer from '@/components/layout/Footer';
 import { startGuestSession } from '@/store/slices/authSlice';
 
 // ============================================================================
-// Animated Counter Component - Uses IntersectionObserver for scroll triggers
-// ============================================================================
-const AnimatedCounter = ({ end, suffix = '', duration = 2000 }) => {
-  const [count, setCount] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !isVisible) {
-          setIsVisible(true);
-        }
-      },
-      { threshold: 0.5 }
-    );
-
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [isVisible]);
-
-  useEffect(() => {
-    if (!isVisible) return;
-
-    let startTime = null;
-    const animate = (timestamp) => {
-      if (!startTime) startTime = timestamp;
-      const elapsed = timestamp - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      setCount(Math.floor(end * progress));
-      
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-
-    requestAnimationFrame(animate);
-  }, [isVisible, end, duration]);
-
-  const formatNumber = (num) => {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(0) + 'K';
-    return num;
-  };
-
-  return (
-    <span ref={ref} className="font-black text-4xl md:text-5xl text-white">
-      {formatNumber(count)}{suffix}
-    </span>
-  );
-};
-
-// ============================================================================
-// Animated Text Component - Cycles through words with fade transitions
-// ============================================================================
-const AnimatedText = ({ words = [], duration = 3000 }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [fade, setFade] = useState('in');
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setFade('out');
-      setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % words.length);
-        setFade('in');
-      }, 300);
-    }, duration);
-
-    return () => clearInterval(interval);
-  }, [words, duration]);
-
-  return (
-    <span
-      className={`transition-opacity duration-300 ${fade === 'in' ? 'opacity-100' : 'opacity-0'}`}
-    >
-      {words[currentIndex] || 'AI Intelligence'}
-    </span>
-  );
-};
-
-// ============================================================================
 // Mobile Menu Component - Smooth animations with backdrop
 // ============================================================================
-const MobileMenu = ({ isOpen, onClose }) => {
+const MobileMenu = ({ isOpen, onClose, onStartFree }) => {
   return (
     <>
       {/* Backdrop */}
@@ -204,18 +122,11 @@ const MobileMenu = ({ isOpen, onClose }) => {
                   Note Editor
                 </span>
               </Link>
-              <Link
-                to="/code-runner"
-                className="block py-2 text-gray-600 hover:text-violet-600 text-sm font-medium transition-all"
-                onClick={onClose}
-              >
-                <span className="flex items-center gap-2">
-                  <Terminal className="w-3.5 h-3.5" />
-                  Online Code Runner
-                </span>
-              </Link>
+              <a href="/tools/" className="block py-2 text-gray-600 hover:text-violet-600 text-sm font-medium transition-all" onClick={onClose}>More free tools</a>
             </div>
           </div>
+          <a href="/study-notes/" className="block px-4 py-2 text-gray-700 hover:text-violet-600">Free study notes</a>
+          <a href="/blog/" className="block px-4 py-2 text-gray-700 hover:text-violet-600">Learning blog</a>
           <hr className="my-4" />
           <Link
             to="/login"
@@ -226,7 +137,7 @@ const MobileMenu = ({ isOpen, onClose }) => {
           </Link>
           <button
             className="w-full px-4 py-3 bg-gradient-to-r from-violet-600 to-blue-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
-            onClick={onClose}
+            onClick={onStartFree}
           >
             Get Started Free
           </button>
@@ -244,7 +155,6 @@ const HomePage = () => {
   const [scrollY, setScrollY] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [guestLoading, setGuestLoading] = useState(false);
-  const [carouselIndex, setCarouselIndex] = useState(0);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -262,22 +172,14 @@ const HomePage = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Auto-rotate testimonials carousel every 6 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCarouselIndex((prev) => (prev + 1) % Math.ceil(testimonials.length / 3));
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
-
   const aiFeatures = [
     {
       icon: Sparkles,
       title: 'AI Content Generation',
       description: 'Generate comprehensive topic explanations instantly with advanced AI algorithms',
       color: 'from-violet-500 to-purple-600',
-      stat: '10,000+',
-      statLabel: 'Explanations Generated',
+      stat: 'Drafts',
+      statLabel: 'Check before studying',
       benefits: ['Topic explanations', 'Outline creation', 'Content scaffolding']
     },
     {
@@ -285,8 +187,8 @@ const HomePage = () => {
       title: 'Smart Enhancement',
       description: 'Improve clarity, grammar, and structure of your existing notes with AI',
       color: 'from-blue-500 to-cyan-600',
-      stat: '95%',
-      statLabel: 'Quality Improvement',
+      stat: 'Clarity',
+      statLabel: 'Edit your result',
       benefits: ['Grammar fixing', 'Clarity boost', 'Structure optimization']
     },
     {
@@ -294,8 +196,8 @@ const HomePage = () => {
       title: 'Intelligent Summarization',
       description: 'Condense lengthy materials into digestible, focused summaries',
       color: 'from-emerald-500 to-teal-600',
-      stat: '5x',
-      statLabel: 'Faster Learning',
+      stat: 'Review',
+      statLabel: 'Compare with the source',
       benefits: ['Concise summaries', 'Key points extraction', 'Quick review']
     },
     {
@@ -303,17 +205,17 @@ const HomePage = () => {
       title: 'Code Generation',
       description: 'Generate code snippets in multiple programming languages instantly',
       color: 'from-orange-500 to-red-600',
-      stat: '15+',
-      statLabel: 'Languages Supported',
+      stat: 'Practice',
+      statLabel: 'Test generated code',
       benefits: ['Multiple languages', 'Best practices', 'Explanations included']
     }
   ];
 
   const stats = [
-    { value: 50000, suffix: '+', label: 'Active Learners', icon: Users },
-    { value: 1000000, suffix: '+', label: 'AI Generations', icon: Brain },
-    { value: 500000, suffix: '+', label: 'Notes Created', icon: FileText },
-    { value: 98, suffix: '%', label: 'Satisfaction Rate', icon: Star }
+    { title: 'Free study notes', label: 'Worked examples and exercises', icon: BookOpen },
+    { title: 'Free guides', label: 'Turn lessons into practice', icon: FileText },
+    { title: 'Free browser tools', label: 'Word counter and focus timer', icon: Wrench },
+    { title: 'Limited free AI', label: 'Optional help with your notes', icon: Brain }
   ];
 
   const features = [
@@ -337,66 +239,21 @@ const HomePage = () => {
     },
     {
       icon: Globe,
-      title: 'Seamless Integration',
-      description: 'Export and sync your notes across multiple platforms effortlessly',
-      benefits: ['PDF export', 'Cloud sync', 'Email reports', 'Cloud backup']
+      title: 'Export Options',
+      description: 'Download your notes as PDF or connect Google Drive when the integration is configured',
+      benefits: ['PDF download', 'Google Drive export', 'Personal note storage', 'Share controls']
     },
     {
       icon: Shield,
       title: 'Secure & Private',
-      description: 'Your data is encrypted and protected with enterprise-grade security',
-      benefits: ['End-to-end encryption', 'GDPR compliant', 'No data sharing', 'Secure login']
+      description: 'Keep personal notes in your account and choose what to share',
+      benefits: ['Account login', 'Private notes', 'Sharing controls', 'Password reset']
     },
     {
       icon: Rocket,
-      title: 'Lightning Fast',
-      description: 'Experience blazing-fast performance optimized for seamless access',
-      benefits: ['Instant loading', 'Optimized sync', 'Smooth animations', 'Low latency']
-    }
-  ];
-
-  const testimonials = [
-    {
-      name: 'Sarah Chen',
-      role: 'Computer Science Student',
-      image: '👩‍💻',
-      quote: 'NoteAssist AI saved me hours of study time. The note quality is absolutely incredible!',
-      rating: 5
-    },
-    {
-      name: 'Marcus Williams',
-      role: 'Medical Student',
-      image: '👨‍⚕️',
-      quote: 'Best study tool I\'ve used. AI summaries are spot-on and help retain information.',
-      rating: 5
-    },
-    {
-      name: 'Aisha Kumar',
-      role: 'Data Science Professional',
-      image: '👩‍🔬',
-      quote: 'Code generation feature is amazing! Helps me learn new concepts rapidly.',
-      rating: 5
-    },
-    {
-      name: 'James Rodriguez',
-      role: 'MBA Student',
-      image: '👨‍🎓',
-      quote: 'The organization features are fantastic. Study groups love it!',
-      rating: 5
-    },
-    {
-      name: 'Priya Patel',
-      role: 'Law Student',
-      image: '👩‍⚖️',
-      quote: 'Content enhancement helps me boost my notes to publication quality.',
-      rating: 5
-    },
-    {
-      name: 'Alex Kim',
-      role: 'Full-Stack Developer',
-      image: '👨‍💻',
-      quote: 'Perfect for learning new frameworks. The AI explanations are comprehensive.',
-      rating: 5
+      title: 'Learn at Your Pace',
+      description: 'Move from a worked example to a personal note and an optional AI explanation',
+      benefits: ['Free reading', 'Practice exercises', 'Browser tools', 'Limited daily AI']
     }
   ];
 
@@ -416,31 +273,14 @@ const HomePage = () => {
     }
   };
 
-  // Carousel helper functions
-  const testimonialsPerPage = 3;
-  const totalPages = Math.ceil(testimonials.length / testimonialsPerPage);
-  const visibleTestimonials = testimonials.slice(
-    carouselIndex * testimonialsPerPage,
-    carouselIndex * testimonialsPerPage + testimonialsPerPage
-  );
-
-  const goToPreviousSlide = () => {
-    setCarouselIndex((prev) => (prev - 1 + totalPages) % totalPages);
-  };
-
-  const goToNextSlide = () => {
-    setCarouselIndex((prev) => (prev + 1) % totalPages);
-  };
-
   return (
     <>
       {/* ================================================================
           SEO - Meta Tags & Structured Data
           ================================================================ */}
       <Helmet>
-        <title>NoteAssist AI - AI-Powered Learning Platform for Students</title>
-        <meta name="description" content="Transform your learning with AI-powered note generation, intelligent summaries, content enhancement, and code generation. Join 50K+ students learning smarter." />
-        <meta name="keywords" content="AI study notes, intelligent learning, note-taking app, AI education, study assistant, automated notes, learning platform, note generation" />
+        <title>NoteAssist AI | Free Study Notes and Learning Tools</title>
+        <meta name="description" content="Read free programming notes and study guides, create your own notes, and use limited free AI help when needed." />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="theme-color" content="#7c3aed" />
         
@@ -448,14 +288,13 @@ const HomePage = () => {
         <meta property="og:title" content="NoteAssist AI - Learn Faster with AI" />
         <meta property="og:description" content="Generate comprehensive notes instantly with AI. Improve your notes, create summaries, and boost learning efficiency." />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="/og-image.jpg" />
-        <meta property="og:url" content="https://noteassist.ai" />
+        <meta property="og:url" content="https://noteassistai.vercel.app/" />
         
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="NoteAssist AI - AI-Powered Learning" />
         <meta name="twitter:description" content="Transform your learning with AI-powered intelligent note-taking platform" />
-        <meta name="twitter:image" content="/og-image.jpg" />
+        <link rel="canonical" href="https://noteassistai.vercel.app/" />
         
         {/* Schema.org Structured Data */}
         <script type="application/ld+json">
@@ -465,16 +304,11 @@ const HomePage = () => {
             "name": "NoteAssist AI",
             "applicationCategory": "EducationalApplication",
             "description": "AI-powered note-taking platform for students",
-            "url": "https://noteassist.ai",
+            "url": "https://noteassistai.vercel.app/",
             "offers": {
               "@type": "Offer",
               "price": "0",
               "priceCurrency": "USD"
-            },
-            "aggregateRating": {
-              "@type": "AggregateRating",
-              "ratingValue": "4.9",
-              "ratingCount": "5000"
             },
             "creator": {
               "@type": "Organization",
@@ -575,16 +409,18 @@ const HomePage = () => {
                       <Edit3 className="w-4 h-4" />
                       <span className="text-sm font-medium">Note Editor</span>
                     </Link>
-                    <Link 
-                      to="/code-runner" 
+                    <a
+                      href="/tools/"
                       className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:text-violet-600 hover:bg-violet-50 transition-colors"
                     >
-                      <Terminal className="w-4 h-4" />
-                      <span className="text-sm font-medium">Online Code Runner</span>
-                    </Link>
+                      <Wrench className="w-4 h-4" />
+                      <span className="text-sm font-medium">More free tools</span>
+                    </a>
                   </div>
                 </div>
               </div>
+              <a href="/study-notes/" className="hidden md:inline text-sm font-medium text-gray-700 hover:text-violet-600">Study notes</a>
+              <a href="/blog/" className="hidden md:inline text-sm font-medium text-gray-700 hover:text-violet-600">Blog</a>
 
               {/* Desktop Buttons */}
               <div className="hidden md:flex items-center gap-4">
@@ -622,7 +458,7 @@ const HomePage = () => {
           </nav>
 
           {/* Mobile Menu */}
-          <MobileMenu isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+          <MobileMenu isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} onStartFree={handleStartFree} />
         </header>
 
         {/* ================================================================
@@ -655,7 +491,7 @@ const HomePage = () => {
               >
                 <Sparkles className="w-4 md:w-5 h-4 md:h-5 text-white flex-shrink-0" />
                 <span className="text-xs md:text-sm font-semibold text-white">
-                  AI-Powered Learning Platform
+                  Free notes, guides and study tools
                 </span>
               </div>
 
@@ -668,11 +504,11 @@ const HomePage = () => {
                   opacity: 1 - scrollY * 0.0005
                 }}
               >
-                Learn Faster with{' '}
+                Learn with free notes on{' '}
                 <span className="relative inline-block">
                   <span className="relative bg-gradient-to-r from-violet-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent">
                     <AnimatedText 
-                      words={['AI Intelligence', 'Smart Learning', 'Excellence']}
+                      words={['Python', 'Django', 'SQL']}
                       duration={3000}
                     />
                   </span>
@@ -684,8 +520,8 @@ const HomePage = () => {
                 className="text-lg md:text-xl lg:text-2xl text-white/90 mb-8 md:mb-10 max-w-3xl mx-auto leading-relaxed"
                 style={{ animation: 'fadeInUp 0.6s ease-out 0.4s both' }}
               >
-                Generate comprehensive notes, improve content quality, and master any subject with 
-                <span className="font-semibold text-cyan-300"> AI-powered study tools</span>
+                Read original worked examples and learning guides. Practice with free browser tools,
+                then use up to 3 free AI requests per day when you need them.
               </p>
 
               {/* CTA Buttons */}
@@ -693,24 +529,23 @@ const HomePage = () => {
                 className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center mb-12 md:mb-16"
                 style={{ animation: 'fadeInUp 0.6s ease-out 0.6s both' }}
               >
-                <button
-                  onClick={handleStartFree}
-                  disabled={guestLoading}
+                <a
+                  href="/study-notes/"
                   className="w-full sm:w-auto group relative px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-violet-600 to-blue-600 text-white rounded-2xl font-bold text-base md:text-lg overflow-hidden transition-all hover:shadow-2xl hover:shadow-violet-500/50 hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
-                    {guestLoading ? 'Starting...' : 'Start Learning for Free'}
-                    {!guestLoading && <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />}
+                    Read free study notes
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-violet-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                </button>
+                </a>
                 
-                <Link 
-                  to="/login" 
+                <a
+                  href="/tools/"
                   className="w-full sm:w-auto px-6 md:px-8 py-3 md:py-4 bg-white/10 text-white rounded-2xl font-bold text-base md:text-lg border-2 border-white/30 hover:border-white/60 hover:bg-white/20 transition-all hover:shadow-xl text-center backdrop-blur-sm"
                 >
-                  Explore Platform
-                </Link>
+                  Explore free tools
+                </a>
               </div>
 
               {/* Stats Grid with Animated Counters */}
@@ -729,7 +564,7 @@ const HomePage = () => {
                       </div>
                     </div>
                     <div className="text-2xl md:text-3xl lg:text-4xl font-black text-white mb-1">
-                      <AnimatedCounter end={stat.value} suffix={stat.suffix} duration={2500} />
+                      {stat.title}
                     </div>
                     <div className="text-xs md:text-sm text-white/80 font-medium">
                       {stat.label}
@@ -738,6 +573,19 @@ const HomePage = () => {
                 ))}
               </div>
             </div>
+          </div>
+        </section>
+
+        <section className="py-16 md:py-20 bg-gradient-to-b from-violet-50/30 to-white">
+          <div className="container mx-auto px-4">
+            <h2 className="text-4xl font-black text-gray-900 mb-4">Learn for free, then make your own notes</h2>
+            <p className="text-lg text-gray-600 max-w-3xl mb-8">Start with a worked example, answer the practice questions, and use the free editor to organize what you learned.</p>
+            <div className="grid md:grid-cols-3 gap-6">
+              <a href="/study-notes/" className="p-8 rounded-2xl bg-white border border-violet-100 shadow-sm hover:shadow-lg"><BookOpen className="text-violet-600 mb-4" /><h3 className="font-bold text-xl mb-2">Ready-made study notes</h3><p className="text-gray-600">Python, Django and SQL examples with exercises and answers.</p></a>
+              <a href="/blog/" className="p-8 rounded-2xl bg-white border border-violet-100 shadow-sm hover:shadow-lg"><FileText className="text-violet-600 mb-4" /><h3 className="font-bold text-xl mb-2">Practical guides</h3><p className="text-gray-600">Make useful notes and turn class material into questions.</p></a>
+              <a href="/tools/" className="p-8 rounded-2xl bg-white border border-violet-100 shadow-sm hover:shadow-lg"><Wrench className="text-violet-600 mb-4" /><h3 className="font-bold text-xl mb-2">Free browser tools</h3><p className="text-gray-600">Count words or plan a focused study session without an account.</p></a>
+            </div>
+            <p className="mt-6 text-gray-600">Need an order to follow? Try the <a className="font-semibold text-violet-700 underline" href="/learning-paths/">free Python to Django learning path</a>.</p>
           </div>
         </section>
 
@@ -916,102 +764,6 @@ const HomePage = () => {
         </section>
 
         {/* ================================================================
-            TESTIMONIALS - Six user testimonials with ratings
-            ================================================================ */}
-        <section className="py-16 md:py-20 lg:py-24 bg-gradient-to-b from-violet-50/30 to-white">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12 md:mb-16">
-              <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 mb-3 md:mb-4">
-                Loved by Students Worldwide
-              </h2>
-              <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                Join thousands of learners transforming their education
-              </p>
-            </div>
-
-            <div className="max-w-7xl mx-auto">
-              {/* Carousel Container */}
-              <div className="relative">
-                {/* Testimonials Grid - 3 columns */}
-                <div className="grid md:grid-cols-3 gap-6 md:gap-8">
-                  {visibleTestimonials.map((testimonial, index) => (
-                    <div
-                      key={index}
-                      className="h-full p-6 md:p-8 rounded-2xl bg-white border-2 border-gray-200 hover:border-violet-500 transition-all hover:shadow-xl hover:translate-y-1 animate-fade-in flex flex-col"
-                      style={{ animation: `fadeInUp 0.6s ease-out ${0.1 * index}s both` }}
-                    >
-                      {/* Star Rating */}
-                      <div className="flex items-center gap-1 mb-4">
-                        {[...Array(testimonial.rating)].map((_, i) => (
-                          <Star key={i} className="w-4 md:w-5 h-4 md:h-5 fill-yellow-400 text-yellow-400" />
-                        ))}
-                      </div>
-                      
-                      <p className="text-gray-700 text-sm md:text-base mb-4 md:mb-6 italic">
-                        "{testimonial.quote}"
-                      </p>
-                      
-                      {/* Author Info */}
-                      <div className="flex items-center gap-3 mt-auto">
-                        <div className="text-2xl md:text-3xl">
-                          {testimonial.image}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-bold text-gray-900 text-sm md:text-base">
-                            {testimonial.name}
-                          </div>
-                          <div className="text-xs md:text-sm text-gray-600">
-                            {testimonial.role}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Navigation Buttons */}
-                <div className="flex items-center justify-center gap-4 mt-8 md:mt-12">
-                  <button
-                    onClick={goToPreviousSlide}
-                    className="p-3 md:p-4 rounded-full bg-violet-100 hover:bg-violet-200 text-violet-600 transition-all hover:scale-110 active:scale-95"
-                    aria-label="Previous testimonials"
-                  >
-                    <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
-                  </button>
-
-                  {/* Dot Indicators */}
-                  <div className="flex items-center gap-2">
-                    {Array.from({ length: totalPages }).map((_, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setCarouselIndex(idx)}
-                        className={`h-2 md:h-3 rounded-full transition-all ${
-                          idx === carouselIndex
-                            ? 'bg-violet-600 w-6 md:w-8'
-                            : 'bg-gray-300 w-2 md:w-3 hover:bg-gray-400'
-                        }`}
-                        aria-label={`Go to slide ${idx + 1}`}
-                      />
-                    ))}
-                  </div>
-
-                  <button
-                    onClick={goToNextSlide}
-                    className="p-3 md:p-4 rounded-full bg-violet-100 hover:bg-violet-200 text-violet-600 transition-all hover:scale-110 active:scale-95"
-                    aria-label="Next testimonials"
-                  >
-                    <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
-                  </button>
-                </div>
-
-                {/* Auto-rotation Indicator */}
-              
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ================================================================
             CTA SECTION - Final call to action with value props
             ================================================================ */}
         <section className="py-16 md:py-20 lg:py-24 bg-gradient-to-r from-violet-600 via-blue-600 to-cyan-600 relative overflow-hidden">
@@ -1025,7 +777,7 @@ const HomePage = () => {
                 Start Learning Smarter Today
               </h2>
               <p className="text-base md:text-lg lg:text-xl text-white/90 mb-8 md:mb-10 leading-relaxed max-w-2xl mx-auto">
-                Join thousands of students and professionals using NoteAssist AI to accelerate their learning journey
+                Read free study notes, use practical tools and organize your learning. AI help is optional and limited.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center mb-8 md:mb-10">

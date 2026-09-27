@@ -25,7 +25,6 @@ from .serializers import (
 
 import os
 from django.conf import settings
-from .code_execution_service import CodeExecutionService
 from .services import NoteService, ChapterService, TopicService
 from .google_drive_service import GoogleDriveService, GoogleAuthService
 from .daily_report_service import DailyNotesReportService
@@ -40,6 +39,7 @@ from accounts.guest_manager import GuestSessionManager
 
 # ✅ Import permission classes
 from accounts.permissions import IsAuthenticatedForMutations, IsAuthenticatedUser
+from ai_tools.quota import reserve_ai_request
 
 # Import optimization utilities
 from utils.query_optimization import QueryOptimizer, CacheOptimizer
@@ -679,6 +679,7 @@ class TopicViewSet(viewsets.ModelViewSet):
 
    # In views.py - Update the ai_action_standalone method
     @action(detail=False, methods=['post'], url_path='ai-action-standalone')
+    @reserve_ai_request
     def ai_action_standalone(self, request):
         """
         AI action that works WITHOUT requiring a saved topic
@@ -768,6 +769,7 @@ class TopicViewSet(viewsets.ModelViewSet):
     # Keep the existing ai_action method for backward compatibility
     # But update it to also work without topic_id if input is provided
     @action(detail=True, methods=['post'])
+    @reserve_ai_request
     def ai_action(self, request, pk=None):
         """
         AI action - works BEFORE topic is saved (FIXED VERSION)
@@ -1010,79 +1012,13 @@ def extract_input_requirements(code, language):
 
 
 @api_view(['POST'])
-@permission_classes([permissions.AllowAny])  # Public code runner - no auth required
+@permission_classes([permissions.AllowAny])
 def execute_code(request):
-    """Execute code with input support - Public endpoint for Online Code Runner tool"""
-    user_info = request.user if request.user.is_authenticated else 'Anonymous'
-    logger.info(f"Code execution request from {user_info}")
-    code = request.data.get('code', '')
-    language = request.data.get('language', 'python')
-    stdin = request.data.get('stdin', '')
-    
-    logger.info(f"Code: {code[:100]}... Language: {language} Stdin: {stdin[:50] if stdin else 'None'}...")
-    
-    if not code:
-        return Response({'success': False, 'error': 'No code provided'}, status=400)
-    
-    # Validate code length
-    if len(code) > 10000:
-        return Response({
-            'success': False, 
-            'error': 'Code is too long. Maximum 10,000 characters allowed.'
-        }, status=400)
-    
-    try:
-        # Check if code requires input but stdin is not provided
-        requires_input = extract_input_requirements(code, language)
-        logger.info(f"Requires input: {requires_input}")
-        
-        if requires_input and not stdin:
-            return Response({
-                'success': False,
-                'output': '',
-                'error': f'This {language} code requires input. Please provide input in the stdin field.',
-                'exit_code': None,
-                'runtime_ms': 0,
-                'requires_input': True
-            })
-        
-        # Execute code
-        logger.info(f"Executing code in {language}...")
-        result = CodeExecutionService.execute_code(
-            code=code,
-            language=language,
-            stdin=stdin
-        )
-        logger.info(f"Execution result: {result}")
-        
-        # Format output for display
-        if not result.get('success'):
-            error = result.get('error', '')
-            if not error and result.get('output'):
-                error = result.get('output')
-            
-            result['formatted_error'] = format_error_output(
-                error,
-                language,
-                code
-            )
-        else:
-            output = result.get('output', '').strip()
-            if output:
-                result['formatted_output'] = f"✅ Execution Successful\n\n{output}"
-                if result.get('runtime_ms'):
-                    result['formatted_output'] += f"\n\n⏱️ Runtime: {result['runtime_ms']}ms"
-        
-        return Response(result)
-        
-    except Exception as e:
-        logger.error(f"Code execution error: {str(e)}", exc_info=True)
-        return Response({
-            'success': False,
-            'output': '',
-            'error': f'Server error: {str(e)}',
-            'formatted_error': f"🚨 Server Error\n\n{str(e)}\n\nPlease try again or contact support."
-        }, status=500)
+    """Disabled until code runs in an isolated, rate-limited external sandbox."""
+    return Response(
+        {'success': False, 'error': 'Code execution is temporarily unavailable.'},
+        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+    )
 
 
 def format_error_output(error_output, language, original_code):

@@ -967,17 +967,6 @@ const AIToolsPage = () => {
       barGradient: 'linear-gradient(90deg, #ec4899, #f43f5e)',
       iconBg: 'linear-gradient(135deg, #ec4899, #f43f5e)',
       route: '/note-editor'
-    },
-    {
-      id: 'code-runner',
-      icon: Terminal,
-      title: 'Online Code Runner',
-      description: 'Execute code in 15+ programming languages instantly',
-      gradient: 'from-slate-500 to-gray-600',
-      glowColor: 'rgba(100,116,139,0.6)',
-      barGradient: 'linear-gradient(90deg, #64748b, #475569)',
-      iconBg: 'linear-gradient(135deg, #64748b, #475569)',
-      route: '/code-runner'
     }
   ];
 

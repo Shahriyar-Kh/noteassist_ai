@@ -229,12 +229,12 @@ const PrivacyPolicy = () => {
                   <div className="flex items-center gap-3">
                     <FileText className="w-5 h-5 text-primary-600" />
                     <a 
-                      href="https://noteassist-ai.vercel.app" 
+                      href="https://noteassistai.vercel.app"
                       className="text-primary-600 hover:text-primary-700"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      https://noteassist-ai.vercel.app
+                      https://noteassistai.vercel.app
                     </a>
                   </div>
                 </div>

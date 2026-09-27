@@ -58,6 +58,12 @@ build/
 .vite/
 .cache/
 .parcel-cache/
+/NoteAssist_AI_frontend/public/blog/
+/NoteAssist_AI_frontend/public/study-notes/
+/NoteAssist_AI_frontend/public/learning-paths/
+/NoteAssist_AI_frontend/public/tools/
+/NoteAssist_AI_frontend/public/robots.txt
+/NoteAssist_AI_frontend/public/sitemap.xml
 
 # ============================================================================
 # Environment & Configuration

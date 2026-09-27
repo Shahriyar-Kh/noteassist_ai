@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 
 
@@ -126,11 +126,12 @@ class AIToolQuota(models.Model):
     )
 
     # Monthly quotas
-    monthly_limit = models.IntegerField(default=100)
+    monthly_limit = models.IntegerField(default=60)
     monthly_used = models.IntegerField(default=0)
+    last_reset_month = models.DateField(default=timezone.localdate)
 
     # Daily quotas
-    daily_limit = models.IntegerField(default=20)
+    daily_limit = models.IntegerField(default=3)
     daily_used = models.IntegerField(default=0)
     last_reset_date = models.DateField(auto_now_add=True)
 
@@ -152,10 +153,37 @@ class AIToolQuota(models.Model):
             self.last_reset_date = today
             self.save(update_fields=['daily_used', 'last_reset_date'])
 
+    def reset_monthly_quota(self):
+        """Start a fresh monthly allowance when the calendar month changes."""
+        today = timezone.localdate()
+        if (self.last_reset_month.year, self.last_reset_month.month) != (today.year, today.month):
+            self.monthly_used = 0
+            self.last_reset_month = today
+            self.save(update_fields=['monthly_used', 'last_reset_month'])
+
     def can_use_tool(self):
         """Check if user has quota available"""
         self.reset_daily_quota()
+        self.reset_monthly_quota()
         return self.daily_used < self.daily_limit and self.monthly_used < self.monthly_limit
+
+    def try_reserve(self):
+        """Reserve one provider request under a database lock, across all AI entry points."""
+        with transaction.atomic():
+            current = type(self).objects.select_for_update().get(pk=self.pk)
+            if not current.can_use_tool():
+                self.daily_used = current.daily_used
+                self.monthly_used = current.monthly_used
+                return False
+            current.increment_usage()
+            self.daily_used = current.daily_used
+            self.monthly_used = current.monthly_used
+            return True
+
+    def add_tokens(self, tokens):
+        type(self).objects.filter(pk=self.pk).update(
+            total_tokens_used=models.F('total_tokens_used') + tokens
+        )
 
     def increment_usage(self, tokens=0):
         """Increment usage counters"""

@@ -158,3 +158,25 @@ class AIToolQuotaTest(TestCase):
         self.quota.save()
 
         self.assertFalse(self.quota.can_use_tool())
+
+    def test_monthly_allowance_restarts_in_new_month(self):
+        self.quota.monthly_used = self.quota.monthly_limit
+        self.quota.last_reset_month = timezone.localdate().replace(day=1) - timedelta(days=1)
+        self.quota.save()
+
+        self.assertTrue(self.quota.can_use_tool())
+        self.quota.refresh_from_db()
+        self.assertEqual(self.quota.monthly_used, 0)
+
+    def test_reservation_stops_before_fourth_request(self):
+        quota = AIToolQuota.objects.create(user=User.objects.create_user(
+            email='second@example.com', password='testpass123', terms_accepted=True,
+        ))
+        self.assertEqual(quota.daily_limit, 3)
+        self.assertEqual(quota.monthly_limit, 60)
+        self.assertTrue(quota.try_reserve())
+        self.assertTrue(quota.try_reserve())
+        self.assertTrue(quota.try_reserve())
+        self.assertFalse(quota.try_reserve())
+        quota.refresh_from_db()
+        self.assertEqual(quota.daily_used, 3)

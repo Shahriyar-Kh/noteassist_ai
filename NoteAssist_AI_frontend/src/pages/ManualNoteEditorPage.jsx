@@ -13,7 +13,7 @@ import { useDraftPersistence, DRAFT_KEYS } from '@/hooks/useDraftPersistence';
 import {
   FileText, ArrowLeft, Save, Download, Upload, Code, Link as LinkIcon,
   Bold, Italic, List, Heading, Type, Loader2, Info, CheckCircle,
-  Copy, Trash2, Play, Terminal, Eye, Edit, AlignLeft, Image,
+  Copy, Trash2, Play, Eye, Edit, AlignLeft, Image,
   Table, AlignCenter, AlignRight, AlignJustify, Quote, ListOrdered,
   FileCode, Undo2, Redo2, Maximize2, X, Sparkles, Zap
 } from 'lucide-react';
@@ -321,9 +321,6 @@ const ManualNoteEditorPage = () => {
   const [saving, setSaving] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [runningCode, setRunningCode] = useState(false);
-  const [codeOutput, setCodeOutput] = useState('');
-  const [codeError, setCodeError] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // ── Inject custom Quill styles
@@ -385,47 +382,6 @@ const ManualNoteEditorPage = () => {
       },
     },
   }), [imageHandler]);
-
-  // ── Code Execution
-  const handleRunCode = useCallback(async () => {
-    if (!codeContent.trim()) {
-      toast.error('No code to run');
-      return;
-    }
-
-    const executableLanguages = ['python', 'javascript', 'java', 'cpp', 'c', 'go', 'rust', 'ruby', 'php'];
-    if (!executableLanguages.includes(codeLanguage)) {
-      toast.error('This language cannot be executed in the browser sandbox');
-      return;
-    }
-
-    setRunningCode(true);
-    setCodeOutput('');
-    setCodeError(null);
-
-    try {
-      const result = await noteService.runCode({
-        code: codeContent,
-        language: codeLanguage,
-        stdin: '',
-        timeout: 15,
-      });
-
-      if (result.success) {
-        let outputText = result.output || '✅ No output';
-        if (result.runtime_ms) {
-          outputText += `\n\n⏱️ Runtime: ${result.runtime_ms}ms`;
-        }
-        setCodeOutput(outputText);
-      } else {
-        setCodeError(result.error || 'Execution failed');
-      }
-    } catch (err) {
-      setCodeError(err.message || 'Execution failed');
-    } finally {
-      setRunningCode(false);
-    }
-  }, [codeContent, codeLanguage]);
 
   // ── Build note data for export
   const buildNoteData = useCallback(() => {
@@ -651,7 +607,7 @@ const ManualNoteEditorPage = () => {
       case 'code':
         return (
           <div className="space-y-5">
-            {/* Language Select & Run Button */}
+            {/* Language selection for the free code editor */}
             <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
               <div className="flex-1">
                 <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
@@ -669,27 +625,6 @@ const ManualNoteEditorPage = () => {
                   ))}
                 </select>
               </div>
-              <button
-                onClick={handleRunCode}
-                disabled={runningCode || !codeContent.trim()}
-                className="flex items-center justify-center gap-2 px-5 py-2.5 
-                  bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl text-sm font-semibold 
-                  hover:from-emerald-700 hover:to-green-700 hover:shadow-lg hover:shadow-emerald-500/25
-                  disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 
-                  active:scale-[.98] shadow-md"
-              >
-                {runningCode ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    Running...
-                  </>
-                ) : (
-                  <>
-                    <Play size={16} fill="white" />
-                    Run Code
-                  </>
-                )}
-              </button>
             </div>
 
             {/* Code Editor */}
@@ -705,7 +640,7 @@ const ManualNoteEditorPage = () => {
                     {CODE_LANGUAGES.find(l => l.value === codeLanguage)?.label || 'Code'}
                   </span>
                 </div>
-                <span className="text-xs text-emerald-400/80">✓ Executable</span>
+                <span className="text-xs text-gray-300">Save code in your note</span>
               </div>
               <Suspense fallback={<EditorLoader />}>
                 <Editor
@@ -729,27 +664,6 @@ const ManualNoteEditorPage = () => {
               </Suspense>
             </div>
 
-            {/* Output Terminal */}
-            {(codeOutput || codeError) && (
-              <div className="border-2 border-gray-200 rounded-xl overflow-hidden transition-all duration-200">
-                <div className="flex items-center justify-between px-4 py-2.5 bg-gray-900 border-b border-gray-700/60">
-                  <div className="flex items-center gap-2">
-                    <Terminal size={14} className="text-gray-400" />
-                    <span className="text-xs text-gray-400 font-medium">Output</span>
-                  </div>
-                  <span className={`text-xs font-medium ${codeError ? 'text-red-400' : 'text-emerald-400'}`}>
-                    {codeError ? '✗ Error' : '✓ Success'}
-                  </span>
-                </div>
-                <div className="p-4 bg-gray-950 min-h-[100px] max-h-[200px] overflow-auto">
-                  {codeError ? (
-                    <pre className="text-red-400 text-sm font-mono whitespace-pre-wrap leading-relaxed">{codeError}</pre>
-                  ) : (
-                    <pre className="text-emerald-400 text-sm font-mono whitespace-pre-wrap leading-relaxed">{codeOutput}</pre>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         );
 
@@ -914,7 +828,6 @@ const ManualNoteEditorPage = () => {
 
                 {/* Nav Pills - Hidden on small screens */}
                 <div className="hidden md:flex items-center gap-1.5">
-                  <NavPill to="/code-runner" icon={Code} label="Code Runner" />
                   <NavPill to="/ai-tools" icon={Sparkles} label="AI Tools" />
                 </div>
 
@@ -1086,8 +999,8 @@ const ManualNoteEditorPage = () => {
               <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-gray-50/80 hover:bg-gray-50 transition-colors">
                 <Play size={14} className="text-orange-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-xs font-medium text-gray-800">Run Code</p>
-                  <p className="text-xs text-gray-500">Execute code directly in browser</p>
+                  <p className="text-xs font-medium text-gray-800">Practice in your editor</p>
+                  <p className="text-xs text-gray-500">Save a snippet and test it in your own environment</p>
                 </div>
               </div>
               <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-gray-50/80 hover:bg-gray-50 transition-colors">
