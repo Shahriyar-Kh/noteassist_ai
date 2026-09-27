@@ -49,7 +49,6 @@ const AIToolsGenerateCodePage = lazy(() => import('./pages/AIToolsGenerateCodePa
 const AIHistoryPage = lazy(() => import('./pages/AIHistoryPage'));
 
 // Public Tools - accessible without authentication
-const OnlineCodeRunnerPage = lazy(() => import('./pages/OnlineCodeRunnerPage'));
 const ManualNoteEditorPage = lazy(() => import('./pages/ManualNoteEditorPage'));
 
 // Admin Pages - lazy loaded (accessed less frequently)
@@ -171,11 +170,7 @@ function AppInner() {
             } />
 
             {/* Public Tools - Accessible without authentication */}
-            <Route path="/code-runner" element={
-              <PublicPageRoute>
-                <OnlineCodeRunnerPage />
-              </PublicPageRoute>
-            } />
+            <Route path="/code-runner" element={<Navigate to="/" replace />} />
             
             <Route path="/note-editor" element={
               <PublicPageRoute>

@@ -97,3 +97,22 @@ class AIToolsAPITest(APITestCase):
         self.assertIn('quota', response.data)
         self.assertEqual(response.data['quota']['daily_limit'], 10)
         self.assertEqual(response.data['quota']['daily_used'], 0)
+
+    def test_legacy_topic_action_shares_ai_allowance(self):
+        quota = self.user.ai_quota
+        quota.daily_used = quota.daily_limit
+        quota.save(update_fields=['daily_used'])
+
+        response = self.client.post('/api/topics/ai-action-standalone/', {
+            'action_type': 'summarize_explanation',
+            'input_content': 'A short study note',
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_public_code_execution_is_unavailable(self):
+        response = self.client.post('/api/run_code/', {
+            'language': 'python', 'code': 'print(123)',
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)

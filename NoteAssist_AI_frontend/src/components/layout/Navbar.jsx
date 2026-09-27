@@ -5,7 +5,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '@/store/slices/authSlice';
 import { Menu } from '@headlessui/react';
-import { BookOpen, Home, FileText, Brain, User, LogOut, Menu as MenuIcon, X, Sparkles, Zap, Code, ChevronDown, Terminal, Edit3, Wrench } from 'lucide-react';
+import { BookOpen, Home, FileText, Brain, User, LogOut, Menu as MenuIcon, X, Sparkles, Zap, Code, ChevronDown, Edit3, Wrench } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useState } from 'react';
 
@@ -19,8 +19,7 @@ const aiToolsSubItems = [
 
 // Manual Tools - available to everyone (including guests)
 const manualToolsItems = [
-  { id: 'note-editor', label: 'Note Editor', icon: Edit3, path: '/note-editor' },
-  { id: 'code-runner', label: 'Online Code Runner', icon: Terminal, path: '/code-runner' }
+  { id: 'note-editor', label: 'Note Editor', icon: Edit3, path: '/note-editor' }
 ];
 
 const Navbar = ({ hideLinks = [] }) => {
@@ -47,7 +46,7 @@ const Navbar = ({ hideLinks = [] }) => {
     // Hide "AI Tools" when on AI tools pages (but NOT on home)
     ...(currentPath.startsWith('/ai-tools') ? ['ai-tools'] : []),
     // Hide Manual Tools when on manual tool pages
-    ...(currentPath === '/note-editor' || currentPath === '/code-runner' ? ['manual-tools'] : []),
+    ...(currentPath === '/note-editor' ? ['manual-tools'] : []),
     // Hide all items on dashboard (dashboard has its own sidebar)
     ...(isDashboardPage ? ['ai-tools', 'notes', 'manual-tools', 'dashboard'] : [])
   ];
@@ -92,6 +91,8 @@ const Navbar = ({ hideLinks = [] }) => {
               <Home size={18} />
               Home
             </Link>
+            <a href="/study-notes/" className="text-gray-700 dark:text-gray-300 hover:text-primary-600 font-medium">Study notes</a>
+            <a href="/blog/" className="text-gray-700 dark:text-gray-300 hover:text-primary-600 font-medium">Blog</a>
 
             {/* Dashboard - Right after Home for logged-in users */}
             {isAuthenticated && !isGuest && !effectiveHideLinks.includes('dashboard') && (
@@ -192,6 +193,7 @@ const Navbar = ({ hideLinks = [] }) => {
                         </Link>
                       );
                     })}
+                    <a href="/tools/" className="flex items-center gap-3 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:text-primary-600 text-sm">More free tools</a>
                   </div>
                 )}
               </div>
@@ -335,6 +337,9 @@ const Navbar = ({ hideLinks = [] }) => {
                   AI Assist Note
                 </Link>
               )}
+              <a href="/study-notes/" className="block px-2 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600" onClick={() => setMobileMenuOpen(false)}>Free study notes</a>
+              <a href="/blog/" className="block px-2 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600" onClick={() => setMobileMenuOpen(false)}>Learning blog</a>
+              <a href="/tools/" className="block px-2 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600" onClick={() => setMobileMenuOpen(false)}>Free tools</a>
 
               {/* Manual Tools - Available to everyone in mobile menu */}
               {!effectiveHideLinks.includes('manual-tools') && (

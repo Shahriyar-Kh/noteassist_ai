@@ -94,10 +94,9 @@ const DashboardPage = () => {
       id: 'tools',
       icon: Wrench, 
       label: 'Manual Tools', 
-      path: '/code-runner',
-      description: 'Code runner & note editor',
+      path: '/note-editor',
+      description: 'Write and organize notes yourself',
       subItems: [
-        { id: 'code-runner', label: 'Code Runner', icon: Terminal, path: '/code-runner' },
         { id: 'note-editor', label: 'Note Editor', icon: Edit3, path: '/note-editor' }
       ]
     },

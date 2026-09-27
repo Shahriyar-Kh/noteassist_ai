@@ -3,15 +3,9 @@
 # Wandbox: https://wandbox.org (free public API, no key required)
 
 import time
-import subprocess
-import sys
 import requests
-import base64
 import re
 from typing import Dict, Any
-from pathlib import Path
-import tempfile
-import os
 import logging
 
 logger = logging.getLogger(__name__)
@@ -48,15 +42,6 @@ WANDBOX_COMPILE_OPTIONS = {
     "c": {"options": "warning,c17"},
     "java": {},
     "csharp": {},
-}
-
-# Local execution fallback (Python only)
-LOCAL_LANGUAGES = {
-    "python": {
-        "executable": sys.executable,
-        "extension": ".py",
-        "timeout": 10
-    },
 }
 
 DEFAULT_TIMEOUT = 15
@@ -216,103 +201,11 @@ class CodeExecutionService:
             }
 
     @staticmethod
-    def execute_local(code: str, language: str = "python", stdin: str = "",
-                     timeout: int = DEFAULT_TIMEOUT) -> Dict[str, Any]:
-        """Execute code locally (Python only fallback)"""
-        
-        if language not in LOCAL_LANGUAGES:
-            return {
-                "success": False,
-                "output": "",
-                "error": f"Local execution not supported for: {language}",
-                "exit_code": None,
-                "runtime_ms": 0
-            }
-        
-        lang_config = LOCAL_LANGUAGES[language]
-        start = time.perf_counter()
-        
-        # Create temporary file for code
-        with tempfile.NamedTemporaryFile(
-            mode='w',
-            suffix=lang_config['extension'],
-            delete=False,
-            encoding='utf-8'
-        ) as f:
-            f.write(code)
-            temp_file = f.name
-        
-        try:
-            process = subprocess.Popen(
-                [lang_config['executable'], temp_file],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                stdin=subprocess.PIPE,
-                text=True,
-                encoding='utf-8'
-            )
-            
-            try:
-                stdout, stderr = process.communicate(
-                    input=stdin,
-                    timeout=timeout
-                )
-                runtime_ms = round((time.perf_counter() - start) * 1000, 2)
-                
-                if len(stdout) > MAX_OUTPUT_SIZE:
-                    stdout = stdout[:MAX_OUTPUT_SIZE] + "\n... (output truncated)"
-                if len(stderr) > MAX_OUTPUT_SIZE:
-                    stderr = stderr[:MAX_OUTPUT_SIZE] + "\n... (output truncated)"
-                
-                success = process.returncode == 0
-                
-                return {
-                    "success": success,
-                    "output": stdout.strip() if stdout else "",
-                    "error": stderr.strip() if stderr else "",
-                    "exit_code": process.returncode,
-                    "runtime_ms": runtime_ms
-                }
-            
-            except subprocess.TimeoutExpired:
-                process.kill()
-                try:
-                    process.wait(timeout=2)
-                except:
-                    process.terminate()
-                
-                runtime_ms = round((time.perf_counter() - start) * 1000, 2)
-                return {
-                    "success": False,
-                    "output": "",
-                    "error": f"Execution timeout exceeded ({timeout}s)",
-                    "exit_code": None,
-                    "runtime_ms": runtime_ms
-                }
-        
-        except Exception as e:
-            runtime_ms = round((time.perf_counter() - start) * 1000, 2)
-            return {
-                "success": False,
-                "output": "",
-                "error": f"Execution error: {str(e)}",
-                "exit_code": None,
-                "runtime_ms": runtime_ms
-            }
-        
-        finally:
-            try:
-                if os.path.exists(temp_file):
-                    os.unlink(temp_file)
-            except:
-                pass
-
-    @staticmethod
     def execute_code(code: str, language: str = "python", stdin: str = "",
                      timeout: int = DEFAULT_TIMEOUT, memory_limit: int = 128) -> Dict[str, Any]:
         """
         Execute code using Wandbox API (free, no registration required).
-        Falls back to local execution for Python if Wandbox fails.
+        Returns an error when the external service is unavailable.
         
         Supported languages:
         - Python, JavaScript, TypeScript, Java, C++, C, C#
@@ -340,7 +233,7 @@ class CodeExecutionService:
             }
         
         # Check if language is supported
-        all_supported = set(list(WANDBOX_COMPILERS.keys()) + list(LOCAL_LANGUAGES.keys()))
+        all_supported = set(WANDBOX_COMPILERS)
         if language not in all_supported:
             return {
                 "success": False,
@@ -355,18 +248,7 @@ class CodeExecutionService:
             logger.info(f"Executing {language} code via Wandbox API")
             result = CodeExecutionService.execute_with_wandbox(code, language, stdin, timeout)
             
-            # If Wandbox fails with service error and we have local fallback, try that
-            if not result["success"] and "service error" in result.get("error", "").lower():
-                if language in LOCAL_LANGUAGES:
-                    logger.info(f"Wandbox unavailable, falling back to local execution for {language}")
-                    return CodeExecutionService.execute_local(code, language, stdin, timeout)
-            
             return result
-        
-        # Local execution fallback (Python only)
-        if language in LOCAL_LANGUAGES:
-            logger.info(f"Executing {language} code locally")
-            return CodeExecutionService.execute_local(code, language, stdin, timeout)
         
         return {
             "success": False,

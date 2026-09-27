@@ -1,5 +1,22 @@
 {
+  "redirects": [
+    { "source": "/code-runner", "destination": "/tools/", "permanent": false }
+  ],
   "rewrites": [
+    { "source": "/learning-paths/", "destination": "/learning-paths/index.html" },
+    { "source": "/learning-paths", "destination": "/learning-paths/index.html" },
+    { "source": "/study-notes/:slug/", "destination": "/study-notes/:slug/index.html" },
+    { "source": "/study-notes/:slug", "destination": "/study-notes/:slug/index.html" },
+    { "source": "/study-notes/", "destination": "/study-notes/index.html" },
+    { "source": "/study-notes", "destination": "/study-notes/index.html" },
+    { "source": "/blog/:slug/", "destination": "/blog/:slug/index.html" },
+    { "source": "/blog/:slug", "destination": "/blog/:slug/index.html" },
+    { "source": "/blog/", "destination": "/blog/index.html" },
+    { "source": "/blog", "destination": "/blog/index.html" },
+    { "source": "/tools/:slug/", "destination": "/tools/:slug/index.html" },
+    { "source": "/tools/:slug", "destination": "/tools/:slug/index.html" },
+    { "source": "/tools/", "destination": "/tools/index.html" },
+    { "source": "/tools", "destination": "/tools/index.html" },
     {
       "source": "/(.*)",
       "destination": "/"

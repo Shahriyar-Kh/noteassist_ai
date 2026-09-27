@@ -75,7 +75,7 @@ class AIToolsViewSet(viewsets.GenericViewSet):
             
         quota, _ = AIToolQuota.objects.get_or_create(user=user)
 
-        if not quota.can_use_tool():
+        if not quota.try_reserve():
             raise serializers.ValidationError({
                 'error': 'Daily or monthly quota exceeded',
                 'quota_exceeded': True,
@@ -153,7 +153,7 @@ class AIToolsViewSet(viewsets.GenericViewSet):
                 tokens_used=int(len(output_content.split()) * 1.3),
             )
 
-            quota.increment_usage(tokens=usage.tokens_used)
+            quota.add_tokens(tokens=usage.tokens_used)
 
             ai_output = AIToolOutput.objects.create(
                 user=request.user,
@@ -256,7 +256,7 @@ class AIToolsViewSet(viewsets.GenericViewSet):
                 tokens_used=int(len(improved_content.split()) * 1.3),
             )
 
-            quota.increment_usage(tokens=usage.tokens_used)
+            quota.add_tokens(tokens=usage.tokens_used)
 
             ai_output = AIToolOutput.objects.create(
                 user=request.user,
@@ -343,7 +343,7 @@ class AIToolsViewSet(viewsets.GenericViewSet):
                 tokens_used=int(len(summary.split()) * 1.3),
             )
 
-            quota.increment_usage(tokens=usage.tokens_used)
+            quota.add_tokens(tokens=usage.tokens_used)
 
             ai_output = AIToolOutput.objects.create(
                 user=request.user,
@@ -430,7 +430,7 @@ class AIToolsViewSet(viewsets.GenericViewSet):
                 tokens_used=int(len(code.split()) * 1.3),
             )
 
-            quota.increment_usage(tokens=usage.tokens_used)
+            quota.add_tokens(tokens=usage.tokens_used)
 
             ai_output = AIToolOutput.objects.create(
                 user=request.user,
@@ -642,6 +642,7 @@ class AIToolsViewSet(viewsets.GenericViewSet):
     def quota(self, request):
         """Get user's quota status"""
         quota, _ = AIToolQuota.objects.get_or_create(user=request.user)
+        quota.can_use_tool()
         serializer = AIToolQuotaSerializer(quota)
 
         return Response({

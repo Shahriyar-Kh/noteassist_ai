@@ -7,7 +7,7 @@ import {
   Brain, 
   UploadCloud, 
   Mail, 
-  Code,
+  Wrench,
   FileText,
   Scale,
   Shield
@@ -27,7 +27,7 @@ const Footer = () => {
               <span className="text-xl font-bold">NoteAssist AI</span>
             </div>
             <p className="text-gray-400 mb-4">
-              Your all-in-one platform for mastering any skill with AI-powered tools.
+              Free study notes, practical guides and learning tools, with optional limited AI help.
             </p>
 
           </div>
@@ -43,11 +43,14 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/notes" className="hover:text-primary-400 transition-colors flex items-center gap-2">
+                <a href="/study-notes/" className="hover:text-primary-400 transition-colors flex items-center gap-2">
                   <FileText className="w-4 h-4" />
-                  Study Notes
-                </Link>
+                  Free study notes
+                </a>
               </li>
+              <li><a href="/blog/" className="hover:text-primary-400">Learning blog</a></li>
+              <li><a href="/learning-paths/" className="hover:text-primary-400">Learning path</a></li>
+              <li><a href="/tools/" className="hover:text-primary-400">Free tools</a></li>
               <li>
                 <Link to="/ai-tools" className="hover:text-primary-400 transition-colors flex items-center gap-2">
                   <Brain className="w-4 h-4" />
@@ -80,8 +83,8 @@ const Footer = () => {
                 <span>Daily Reports</span>
               </li>
               <li className="flex items-center gap-2">
-                <Code className="w-4 h-4" />
-                <span>Code Execution</span>
+                <Wrench className="w-4 h-4" />
+                <span>Study tools</span>
               </li>
             </ul>
           </div>
@@ -98,7 +101,6 @@ const Footer = () => {
                   shahriyarkhanpk1@gmail.com
                 </a>
               </li>
-              <li>Support: support@noteassist-ai.com</li>
               <li>Islamabad, Pakistan</li>
             </ul>
           </div>
