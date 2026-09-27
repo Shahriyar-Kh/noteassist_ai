@@ -4,6 +4,8 @@
 import sendgrid
 from sendgrid.helpers.mail import Mail, Content, To
 from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
+from django.utils.html import escape
 import logging
 
 logger = logging.getLogger(__name__)
@@ -12,8 +14,6 @@ logger = logging.getLogger(__name__)
 def send_admin_notification_email(user_email, subject, message, action_type='general'):
     """Send admin notification emails to users"""
     try:
-        sg = sendgrid.SendGridAPIClient(api_key=settings.SENDGRID_API_KEY)
-        
         # Email templates based on action type
         templates = {
             'block': {
@@ -124,7 +124,7 @@ def send_admin_notification_email(user_email, subject, message, action_type='gen
                 <div class="content">
                     <h2>Hello!</h2>
                     <div class="message">
-                        <p style="margin: 0;"><strong>{message}</strong></p>
+                        <p style="margin: 0;"><strong>{escape(message)}</strong></p>
                     </div>
                     <p>If you have any questions or concerns, please contact our support team.</p>
                     <div style="text-align: center;">
@@ -140,20 +140,18 @@ def send_admin_notification_email(user_email, subject, message, action_type='gen
         </html>
         """
         
-        from_email = settings.DEFAULT_FROM_EMAIL
-        to_emails = [To(user_email)]
-        
-        message = Mail(
-            from_email=from_email,
-            to_emails=to_emails,
+        from_email = settings.EMAIL_HOST_USER or settings.DEFAULT_FROM_EMAIL
+        email = EmailMultiAlternatives(
             subject=subject,
-            html_content=html_content
+            body=message,
+            from_email=from_email,
+            to=[user_email],
         )
-        
-        response = sg.send(message)
-        logger.info(f"Admin notification email sent to {user_email}: {response.status_code}")
-        
-        return True
+        email.attach_alternative(html_content, "text/html")
+        sent = email.send(fail_silently=False) == 1
+        if sent:
+            logger.info("Admin notification email sent to %s", user_email)
+        return sent
         
     except Exception as e:
         logger.error(f"Failed to send admin notification email to {user_email}: {str(e)}")
